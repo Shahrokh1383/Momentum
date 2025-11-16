@@ -1,4 +1,5 @@
 
+<img width="1920" height="913" alt="Screenshot 2025-11-16 at 04-09-42 Momentum - Habit Tracker Analytics" src="https://github.com/user-attachments/assets/49b4f354-d26b-4232-adef-7f28c1641bbf" />
 
 # Momentum - Habit Tracker Analytics
 
@@ -30,7 +31,7 @@ Momentum is a sophisticated personal habit analytics application designed to hel
 
 1. Clone the repository:
    ```bash
-   git clone <https://github.com/Shahrokh1383/momentum-app>
+   git clone https://github.com/Shahrokh1383/Momentum.git
    cd Momentum
    ```
 
