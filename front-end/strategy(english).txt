@@ -1,0 +1,685 @@
+# Momentum Enterprise Expansion — Complete Implementation Roadmap
+
+**Backend:** Laravel 11 | **Frontend:** React (SPA) | **Auth:** Sanctum (HttpOnly Cookies) | **Queue:** Database Driver | **Real-time:** Laravel Reverb | **PWA:** Progressive Web App from Day 1
+
+---
+
+## Phase 1: Foundation, Auth & PWA Core (Weeks 1–2)
+
+### Database Schema
+
+**New Tables:**
+
+- **`users`**
+  - `id` (PK, bigint unsigned, auto_increment)
+  - `name` (varchar, 255)
+  - `email` (varchar, 255, unique, indexed)
+  - `email_verified_at` (timestamp, nullable)
+  - `password` (varchar, 255, nullable — null for OAuth users)
+  - `role` (enum: `user`, `admin`, default `user`)  ← `premium` removed; derived from subscription
+  - `provider` (varchar, 50, nullable — e.g., 'google', 'github', 'apple')
+  - `provider_id` (varchar, 255, nullable, unique — ID from OAuth provider)
+  - `avatar` (varchar, 255, nullable)
+  - `profile_visibility` (enum: `public`, `friends_only`, `private`, default `public`)
+  - `bio` (text, nullable)
+  - `remember_token` (varchar, 100, nullable)
+  - `created_at`, `updated_at`
+
+- **`password_resets`** (Laravel default)
+  - `email` (varchar, indexed)
+  - `token` (varchar)
+  - `created_at`
+
+- **`personal_access_tokens`** (Sanctum default)
+
+- **`subscriptions`**
+  - `id` (PK)
+  - `user_id` (FK → users.id, indexed, cascade on delete)
+  - `plan` (enum: `free`, `premium`, `lifetime`, default `free`)
+  - `status` (enum: `active`, `cancelled`, `expired`, default `active`)
+  - `starts_at` (timestamp)
+  - `expires_at` (timestamp, nullable)
+  - `cancelled_at` (timestamp, nullable)
+  - `payment_method` (varchar, nullable — simulated in dev)
+  - `transaction_ref` (UUID, unique)
+  - `created_at`, `updated_at`
+
+- **`plans`** (Feature-gating configuration)
+  - `id` (PK)
+  - `name` (varchar, e.g., "Free", "Premium Monthly")
+  - `slug` (varchar, unique: `free`, `premium`, `lifetime`)
+  - `max_active_habits` (int, default 5 for free, -1 for unlimited)
+  - `max_groups` (int, default 1 for free, -1 for unlimited)
+  - `max_freezes_per_week` (int, default 1 for free, 3 for premium)
+  - `max_photos_per_log` (int, default 1 for free, -1 for unlimited)
+  - `max_pdfs_per_month` (int, default 1 for free, -1 for unlimited)
+  - `has_advanced_analytics` (boolean, default false)
+  - `has_insights` (boolean, default false)
+  - `has_xp_booster` (boolean, default false)
+  - `has_unlimited_photos` (boolean, default false)
+  - `price_monthly` (decimal, nullable)
+  - `price_lifetime` (decimal, nullable)
+  - `created_at`, `updated_at`
+
+- **`simulated_payments`**
+  - `id` (PK)
+  - `user_id` (FK → users.id, indexed)
+  - `subscription_id` (FK → subscriptions.id, nullable, indexed)
+  - `amount` (decimal, 10, 2)
+  - `currency` (varchar, default "USD")
+  - `status` (enum: `pending`, `success`, `failed`, default `pending`)
+  - `provider_ref` (varchar, nullable)
+  - `payload` (JSON, nullable — stores simulated request data)
+  - `processed_at` (timestamp, nullable)
+  - `created_at`, `updated_at`
+
+- **`sent_emails_log`** (Dev-only, replaces SMTP)
+  - `id` (PK)
+  - `recipient_email` (varchar, indexed)
+  - `subject` (varchar)
+  - `body` (text)
+  - `token` (varchar, indexed — for password reset or email verification retrieval)
+  - `type` (enum: `password_reset`, `email_verification`)
+  - `created_at`
+
+- **`user_settings`**
+  - `id` (PK)
+  - `user_id` (FK → users.id, unique, cascade delete)
+  - `timezone` (varchar, default 'UTC')
+  - `theme` (enum: `light`, `dark`, `system`, default 'system')
+  - `language` (varchar, default 'en')
+  - `date_format` (varchar, default 'Y-m-d')
+  - `created_at`, `updated_at`
+
+### Backend Logic
+
+- **API Routing Architecture (Context-Based):**
+  - `routes/api/auth.php`: Wrapped in `Route::prefix('api/auth')`. Contains login, register, forgot-password, OAuth callbacks, and CSRF token endpoint. (No auth middleware).
+  - `routes/api/user.php`: Wrapped in `Route::prefix('api/user')->middleware(['auth:sanctum', 'verified'])`. Contains all user features (habits, categories, profile, etc.).
+  - `routes/api/admin.php`: Wrapped in `Route::prefix('api/admin')->middleware(['auth:sanctum', 'role:admin'])`. Contains admin features.
+  
+- **SPA Authentication (Sanctum + HttpOnly Cookies):**
+  - Configure `config/sanctum.php` for SPA stateful authentication with `SESSION_DRIVER=cookie`.
+  - `AuthController` (located in `App\Http\Controllers\Auth`): `register()`, `login()`, `logout()`, `me()`.
+  - Return user object with `is_premium` computed attribute on every auth response.
+  - CSRF token endpoint `/api/auth/sanctum/csrf-cookie` consumed by frontend on app load.
+
+- **OAuth2 Integration (Google, Apple, GitHub):**
+  - `OAuthController`: `redirect($provider)` generates OAuth URL and returns it to frontend.
+  - `callback($provider)` receives authorization code, exchanges for token via provider API.
+  - Logic: search `users` by `provider` + `provider_id`. If found, issue Sanctum cookie. If not, create user with `password = null`, set `provider`/`provider_id`, then issue cookie.
+  - Frontend handles OAuth popup → code → sends to backend `/api/auth/{provider}/callback`.
+
+- **Email Verification (Simulated):**
+  - On `register()`, generate secure random token, store in `sent_emails_log` with `type = email_verification`.
+  - `EmailVerificationController::verify($token)`: finds token in log, sets `users.email_verified_at = now()`.
+  - `verified` middleware applied to the `api/user` route group to block unverified users.
+
+- **RBAC (Role-Based Access Control):**
+  - Custom middleware `RoleMiddleware` checking `auth()->user()->role` against allowed roles.
+  - Route groups: `user` routes (default inside `api/user.php`), `premium` routes (wrapped in `EnsurePremium` middleware inside `api/user.php`), `admin` routes (inside `api/admin.php` with `role:admin`).
+  - `EnsurePremium` middleware: checks `auth()->user()->subscription->isActive()` and `plan !== 'free'`. If false, abort 403 with JSON payload `{ error: 'subscription_required', message: 'Premium subscription required.' }`.
+
+- **Rate Limiting:**
+  - Apply `Throttle:5,1` on `login`, `register` (inside `api/auth`).
+  - Apply `Throttle:1,5` on `forgot-password` and `reset-password` (inside `api/auth`).
+  - Apply global `Throttle:60,1` on all `/api/user/` routes.
+  - Apply `Throttle:10,1` on file upload endpoints.
+
+- **Strict Password Validation:**
+  - In `AuthController::register()` and password reset logic, enforce strict backend rules: `Password::min(8)->mixedCase()->numbers()->symbols()` to ensure security standards independent of frontend indicators.
+
+- **Subscription Infrastructure:**
+  - `SubscriptionController`: `current()` returns active subscription with plan details.
+  - `upgrade(plan_slug)` creates `simulated_payments` record with `status = pending`, creates/updates `subscriptions` with `plan = pending`.
+  - Simulated payment processor: a queued job (database driver) waits 3 seconds, then flips `simulated_payments.status` to `success`, updates `subscriptions.plan` to target plan, **does NOT change `users.role`** (no premium role).
+  - `cancel()` sets `subscriptions.cancelled_at = now()` but keeps `plan` active until `expires_at`.
+- **Feature Gating:**
+  - `PlanQuotaService`: central service to check limits. Methods: `canCreateHabit($user)`, `canJoinGroup($user)`, `canUploadPhoto($user, $habitLog)`, `canGeneratePdf($user)`.
+  - Returns `['allowed' => bool, 'reason' => string, 'limit' => int, 'used' => int]`.
+- **Free Tier Quotas (Hard Limits):**
+  - Enforced at controller level before creation. If exceeded, return 422 with `{ error: 'quota_exceeded', resource: 'habits', limit: 5, used: 5 }`.
+
+### Frontend Pages
+
+- **Global Architecture:**
+  - **State Management:** `Zustand` for client-side UI state (modals, timers, offline queue status). `React Query (TanStack Query)` for server state (habits, logs, profiles) handling caching, background refetching, and optimistic updates.
+  - **AxiosInstance:** base URL `/api/user/`, `withCredentials: true`, 401 interceptor → redirects to `/login`.
+- **`/login`**
+  - Login form: email, password, "Remember me" checkbox.
+  - OAuth section: Google, Apple, GitHub branded buttons.
+  - Client-side validation: required fields, email format.
+  - Links: "Create account", "Forgot password?".
+  - Error display: inline field errors + toast for generic 401.
+- **`/register`**
+  - Registration form: name, email, password, password confirmation.
+  - OAuth section (same as login).
+  - Password strength indicator (visual representation of backend rules: min 8, mixed case, numbers, symbols).
+  - Link to Login.
+- **`/forgot-password`**
+  - Email input form.
+  - Success message: "If the email exists, reset instructions have been sent." (UX simulation).
+  - Dev note section: "Developers: retrieve token from `sent_emails_log` table."
+- **`/reset-password`**
+  - Reads `?token=` from URL query params.
+  - New password + confirmation fields.
+  - Submit to backend with token.
+  - Success → auto-redirect to `/login`.
+- **`/verify-email`**
+  - Displays "Please check your email (or dev log table) to verify."
+  - Button to resend verification email.
+- **`/plans` (Pricing & Upgrade)**
+  - Three pricing cards: Free, Premium Monthly, Lifetime.
+  - Each card lists features with check/cross icons (e.g., "Max 5 Habits", "Unlimited Habits", "Advanced Analytics").
+  - "Current Plan" badge on active plan.
+  - Upgrade button for non-premium plans → opens **Simulated Payment Modal**.
+  - **Simulated Payment Modal**: overlay with 3-second countdown, spinner, "Processing payment..." text, then success animation + plan update. Closes and refreshes user context via React Query.
+- **Layout Components (Global)**
+  - `Header`: Logo, navigation links (conditional on auth), **Premium Badge** (golden crown icon if `isPremium`), user avatar dropdown.
+  - `AuthContext` (Zustand): holds `user`, `isAuthenticated`, `isPremium`, `subscription`, `logout()`, `refreshUser()`.
+  - `ProtectedRoute`: HOC that checks `isAuthenticated` before rendering children. Shows loading spinner while verifying session.
+
+### PWA Implementation (Phase 1)
+
+- **Manifest & Registration:**
+  - Create `manifest.json`: `name` ("Momentum Tracker"), `short_name` ("Momentum"), `start_url` ("/"), `display` ("standalone"), `theme_color`, `background_color`, icons (192x192, 512x512).
+  - Register service worker in `main.tsx` using `navigator.serviceWorker.register('/sw.js')`.
+  - Add `<link rel="manifest" href="/manifest.json">` in `index.html`.
+- **Service Worker Core (`sw.js`):**
+  - `install` event: cache static shell (JS bundles, CSS, fonts, offline.html) to `CacheStorage`.
+  - `activate` event: claim clients immediately, clean old caches.
+  - `fetch` event: cache-first strategy for static assets; network-first for `/api/user/` calls.
+- **Offline Fallback:**
+  - `offline.html`: branded page with "You are offline. Some features may be unavailable."
+- **Install Prompt:**
+  - Capture `beforeinstallprompt` event in React, store in state.
+  - Show "Install App" button in settings or header for eligible browsers.
+  - Deferred prompt triggered on user click.
+
+---
+
+## Phase 2: Enhanced Data Model & Core Tracking (Weeks 3–4)
+
+### Database Schema
+
+**New Tables:**
+
+- **`categories`**
+  - `id` (PK)
+  - `user_id` (FK → users.id, indexed, cascade delete)
+  - `name` (varchar, 255)
+  - `color` (varchar, 7 — hex color, e.g., "#4F46E5")
+  - `icon` (varchar, 50 — Lucide/FontAwesome icon name)
+  - `sort_order` (int, default 0)
+  - `is_default` (boolean, default false — cannot be deleted)
+  - `created_at`, `updated_at`, `deleted_at` (soft delete)
+
+- **`habits`**
+  - `id` (PK)
+  - `user_id` (FK → users.id, indexed, cascade delete)
+  - `category_id` (FK → categories.id, nullable, indexed, set null on delete)
+  - `title` (varchar, 255)
+  - `description` (text, nullable)
+  - `type` (enum: `boolean`, `numeric`, `timer`, `checklist`, default `boolean`)
+  - `schedule` (JSON — stores complex configs like `{"interval": 3, "start_date": "2024-01-01"}` for custom frequency)
+  - `due_days_of_week` (varchar, 10, nullable — comma-separated ISO days, e.g., "1,2,3,4,5" for weekdays. Indexed for high-performance `isDueToday` lookups)
+  - `frequency` (enum: `daily`, `weekly`, `custom`, default `daily`)
+  - `reminder_time` (time, nullable)
+  - `timezone` (varchar, default 'UTC')
+  - `target_value` (decimal, nullable — e.g., 8 glasses, 5km)
+  - `unit` (varchar, nullable — e.g., "glasses", "km", "minutes")
+  - `is_active` (boolean, default true)
+  - `archived_at` (timestamp, nullable) ← *Soft delete removed for habits. Archive is the ONLY way to hide them to prevent schema confusion.*
+  - **`group_id` removed** — groups use `group_habits` pivot exclusively.
+  - `created_at`, `updated_at`
+
+- **`habit_logs`** (Basic structure — extended in Phase 3)
+  - `id` (PK)
+  - `habit_id` (FK → habits.id, indexed, cascade delete)
+  - `user_id` (FK → users.id, indexed, cascade delete)
+  - `logged_date` (date, indexed — user-local date)
+  - `status` (enum: `pending`, `completed`, `missed`, `skipped`, default `pending`)
+  - `notes` (text, nullable)
+  - `created_at`, `updated_at`
+  - *Indexes: `idx_habit_logs_habit_date` on `(habit_id, logged_date)`, `idx_habit_logs_status_date` on `(habit_id, logged_date, status)` for analytics.*
+  - *Unique Constraint: `unique_habit_log_per_day` on `(habit_id, logged_date, user_id)` — **Critical for Offline Sync Conflict Resolution.***
+
+- **`tags`**
+  - `id` (PK)
+  - `user_id` (FK → users.id, indexed, cascade delete)
+  - `name` (varchar, 255)
+  - `slug` (varchar, 255 — auto-generated lowercase)
+  - `color` (varchar, 7, default "#6B7280")
+  - `created_at`, `updated_at`
+
+- **`habit_tag`** (Pivot)
+  - `habit_id` (FK → habits.id, cascade delete)
+  - `tag_id` (FK → tags.id, cascade delete)
+  - Primary key composite (`habit_id`, `tag_id`)
+
+- **`streaks`** (Cached streak data)
+  - `id` (PK)
+  - `user_id` (FK → users.id, indexed, cascade delete)
+  - `habit_id` (FK → habits.id, unique, cascade delete)
+  - `current_streak` (int, default 0)
+  - `longest_streak` (int, default 0)
+  - `last_log_date` (date, nullable)
+  - `created_at`, `updated_at`
+
+- **`streak_freezes`** *(Moved from Phase 4 to prevent schema dependency errors)*
+  - `id` (PK)
+  - `user_id` (FK → users.id, indexed, cascade delete)
+  - `habit_id` (FK → habits.id, nullable, indexed, set null on delete)
+  - `frozen_date` (date, indexed — the specific date being protected)
+  - `used_at` (timestamp)
+  - `reason` (varchar, nullable)
+  - `created_at`
+
+### Backend Logic
+
+- **Timezone Handling (Architectural Fix):**
+  - **NO dynamic modification of `config('app.timezone')`** via middleware to prevent race conditions in concurrent requests.
+  - Create a global helper function `user_now($user = null)`: Returns `Carbon::now($user->settings->timezone ?? config('app.timezone'))`.
+  - All "today", "yesterday", "isDueToday" calculations use `user_now()`.
+  - `habit_logs.logged_date` is always stored in the user's local date (e.g., `user_now()->toDateString()`), NOT UTC.
+- **Complex Scheduling & High-Performance Lookups (Habits):**
+  - `HabitController`: `store()` validates `schedule` JSON structure based on `frequency`.
+    - `daily`: Populates `due_days_of_week` string (e.g., "1,2,3,4,5").
+    - `weekly`: Populates `due_days_of_week` string (e.g., "1" for Monday).
+    - `custom`: Keeps `schedule` JSON for interval logic.
+  - `isDueToday($habit)`: For `daily`/`weekly`, uses high-speed string search/check on `due_days_of_week` against `user_now()->format('N')`. For `custom`, parses JSON interval logic.
+- **Automatic Missed Detection (Critical Timezone-Aware Fix):**
+  - `MarkMissedHabitsCommand` (Artisan): **Runs every 15 minutes** via Laravel Scheduler to handle global timezone offsets safely.
+  - Logic: Fetches active users. Calculates their "local yesterday" using `user_now($user)->subDay()->toDateString()`. Identifies habits due on that date where no `habit_log` exists (or exists with `status = pending`), and updates/creates a log with `status = missed`. The 15-minute interval ensures that even users in `UTC-12` are accurately processed *after* their local midnight has passed, without race conditions.
+- **Reminder Dispatcher (Critical Addition):**
+  - `DispatchRemindersCommand` (Artisan): Runs every minute via Scheduler.
+  - Logic: Query habits where `reminder_time` is not null. Check if current UTC time matches the `reminder_time` adjusted for user's timezone offset. If match, broadcast a `ReminderDue` event via Laravel Reverb (or dispatch to a notification queue).
+- **Streak Caching:**
+  - `StreakService`: `calculate($habitId, $userId)` — fetches last 30 days of `habit_logs` for habit, computes consecutive `completed` days from `last_log_date` backward.
+  - **Exclusions:** Excludes days marked as `skipped` OR days that exist in the `streak_freezes` table for that specific habit.
+  - `HabitLogObserver`: on `created`/`updated`/`deleted`, triggers `StreakService::recalculate($habitId)`.
+  - All read operations fetch streak from `streaks` table, never compute on the fly.
+- **Archiving Logic:**
+  - `HabitController`: `destroy()` sets `archived_at = now()`.
+  - `restore()` sets `archived_at = null`.
+  - `forceDelete()` permanently deletes habit + logs + streak.
+  - Global scope `ActiveHabitScope` applies `whereNull('archived_at')` on all `Habit` queries unless explicitly removed.
+- **Subscription-Aware Quotas:**
+  - `HabitController::store()` calls `PlanQuotaService::canCreateHabit($user)`.
+  - Query: `count(habits where user_id = X and archived_at is null) < plans.max_active_habits`.
+  - If exceeded: 422 `{ error: 'quota_exceeded', resource: 'habits', limit: 5, used: 5 }`.
+- **Categories CRUD & Soft Deletes:**
+  - `CategoryController`: full CRUD. `destroy()` executes soft delete (`deleted_at = now()`). 
+  - Global scope applied to ensure `whereNull('deleted_at')` is standard for all category queries.
+  - `destroy()` checks if category has active habits. If yes: either move habits to `is_default = true` category or return 422 `{ error: 'category_has_habits', count: N }`.
+- **Tags with Autocomplete:**
+  - `TagController`: `index(q)` searches `tags` where `name LIKE %q%` and `user_id = auth()->id()`.
+  - `store()` normalizes name to lowercase, prevents duplicates via unique slug per user.
+- **Settings Management:**
+  - `SettingsController`: `updateProfile()` (name, avatar, bio), `updatePreferences()` (timezone, theme, language).
+
+### Frontend Pages
+
+- **`/dashboard` (Home)**
+  - **Today's Habits Section**: List of habits due today. Each item: title, category color, streak flame + count, completion checkbox.
+  - **Progress Overview Cards**: "Completed Today", "Pending Today", "Current Best Streak", "Total Active Habits".
+  - **Quota Indicator** (Free users): "Active Habits: 3/5". Progress bar.
+  - **Upgrade Banner**: Inline when free user has 4/5 habits.
+  - **Quick Add**: FAB disabled with tooltip if quota reached.
+- **`/categories`**
+  - Grid/List View with color strip, icon, habit count.
+  - Create/Edit Modal: name, color picker, icon selector.
+  - Delete Guard: Modal to move habits to Default or Cancel.
+- **`/tags`**
+  - Tag Cloud/List with colors.
+  - Create Input with autocomplete.
+  - Edit/Delete modals.
+- **`/habits` (Habit Management)**
+  - Active Habits Table: title, type, category, schedule, streak, actions.
+  - Filters: category, tag, type.
+  - Archive Button.
+  - Create Habit Modal: Title, description, category, type, schedule builder, reminder time, target + unit.
+- **`/settings`**
+  - Profile Tab: Avatar upload, name, bio.
+  - Preferences Tab: Timezone select, theme toggle, language.
+  - Account Tab: Change password, Delete account.
+- **`/archived`**
+  - Grayed-out cards. Restore and Force Delete buttons.
+
+### PWA Implementation (Phase 2)
+
+- **Cache API Responses:**
+  - Extend service worker to cache /api/user/me, /api/user/habits, /api/user/categories responses.
+  - Strategy: stale-while-revalidate (React Query handles this natively, SW acts as fallback).
+- **IndexedDB Setup:**
+  - Initialize `momentum-db` with stores: `habits`, `categories`, `tags`, `logs`.
+  - React Query initial placeholder data populated from IndexedDB.
+- **Offline Auth Session:**
+  - Cache user auth state in IndexedDB. If offline, show cached profile and cached habits.
+
+---
+
+## Phase 3: Advanced Habit Tracking & Journal (Weeks 5–6)
+
+### Database Schema
+
+**Table Updates:**
+
+- **`habit_logs`** (Extended with rich context fields)
+  - Add `value` (JSON, nullable) — `{"amount": 5}`, `{"duration": 900}`, `{"items": [true, false, true]}`
+  - Add `skip_reason` (varchar, 255, nullable)
+  - Add `mood` (tinyint unsigned, nullable, check 1-5)
+  - Add `journal_entry` (longtext, nullable — sanitized HTML)
+  - Add `timer_duration` (int, nullable, seconds)
+  - Add `started_at` (timestamp, nullable)
+  - Add `ended_at` (timestamp, nullable)
+  - Add `offline_id` (UUID, nullable, unique) — *For offline sync idempotency*
+
+- **`habits`** (Feature flags per habit)
+  - Add `mood_enabled` (boolean, default false)
+  - Add `journal_enabled` (boolean, default false)
+  - Add `photo_enabled` (boolean, default false)
+  - Add `skip_enabled` (boolean, default true)
+
+**New Tables:**
+
+- **`journal_entries`**
+  - `id` (PK)
+  - `user_id` (FK → users.id, indexed, cascade delete)
+  - `entry_date` (date, indexed)
+  - `title` (varchar, 255, nullable)
+  - `content` (longtext, nullable — sanitized HTML)
+  - `mood` (tinyint, nullable)
+  - `created_at`, `updated_at`
+
+- **`habit_photos`**
+  - `id` (PK)
+  - `habit_log_id` (FK → habit_logs.id, indexed, cascade delete)
+  - `user_id` (FK → users.id, indexed, cascade delete)
+  - `file_path` (varchar, 500)
+  - `original_name` (varchar, 255)
+  - `mime_type` (varchar, 50)
+  - `file_size` (int, bytes)
+  - `created_at`, `updated_at`
+
+### Backend Logic
+
+- **Polymorphic Logs:**
+  - `HabitLogController::store()` validates `value` JSON schema based on parent `Habit.type`.
+- **Offline Sync Conflict Resolution (Last-Write-Wins Fix):**
+  - If request contains `offline_id`, attempt to insert the log.
+  - If a `QueryException` occurs due to the `unique_habit_log_per_day` constraint violation (meaning a log for this habit/date already exists, possibly created from another device), catch the exception.
+  - Execute an `UPDATE` on the existing record with the incoming payload (overwriting old data with the newest offline sync).
+  - Return the updated log with an appended JSON flag: `{ ...log, is_merged: true }` so the frontend can notify the user if needed.
+- **Skip with Reason:**
+  - `status` = `skipped` requires `skip_reason`.
+  - `StreakService`: treats `skipped` as a non-breaking day.
+- **Photo Evidence:**
+  - `FileController::upload()`. Storage path: `photos/{user_id}/{uuid}.jpg`.
+  - **Quota check:** `PlanQuotaService::canUploadPhoto()` counts `habit_photos` for the *specific `habit_log_id`*. Free users limited to 1 photo per individual log entry.
+  - Resize to max 1920px.
+- **HTML Sanitization:**
+  - Uses `mews/purifier`. Restricts to tags: b,i,ul,ol,li,p,br.
+- **Timer Habits:**
+  - Backend stores `timer_duration`, `started_at`, `ended_at`. Validates time delta (±5s tolerance).
+- **Journal Aggregation:**
+  - `JournalController::daily($date)` fetches logs + journal entries, merges chronologically. Eager-loads `habit_photos`.
+
+### Frontend Pages
+
+- **`/habits/:id` (Habit Detail)**
+  - Header: title, category badge, streak flame, edit/archive buttons.
+  - Monthly Calendar: green (completed), yellow (skipped), red (missed), gray (future), ring (today). Click opens Log Modal.
+  - Stats Cards: total completions, rate %, best streak, avg value.
+- **`/habits/:id/stats` (Habit Analytics)**
+  - Trend Chart (Recharts line), Weekly Comparison (bar).
+  - Best/Worst days text insights.
+- **`/journal`**
+  - Date picker navigation.
+  - Daily Timeline feed of logs + entries.
+  - Mood summary, Photo gallery with lightbox.
+  - Add Journal Entry (TipTap rich editor).
+- **`/habits/:id/log` or Modal (Log Entry)**
+  - **Dynamic Input:** Boolean (toggle), Numeric (slider + input), Timer (digital display, start/pause/stop), Checklist (checkboxes + progress bar).
+  - **Mood Selector:** 1-5 emojis (conditional on `habit.mood_enabled`).
+  - **Photo Upload:** Drag-and-drop. **Crucial PWA attribute:** `<input type="file" accept="image/*" capture="environment" />` to directly open mobile camera.
+  - **Notes:** Mini rich text editor.
+  - **Skip Button:** "Skip Today" → reason selector.
+- **Secure HTML Rendering:**
+  - When displaying `journal_entry` or `notes` from the backend, explicitly use React's `dangerouslySetInnerHTML` since the content is strictly pre-sanitized by `mews/purifier` on the backend to allow safe basic formatting.
+
+### PWA Implementation (Phase 3)
+
+- **Offline Habit Logging Queue:**
+  - If `navigator.onLine === false`, log payload (with generated `offline_id`) saved to IndexedDB `pending_logs` store.
+  - On `window.addEventListener('online')`, trigger sync function.
+  - Sync function reads IndexedDB, POSTs to `/api/user/logs` (using `offline_id`). If response contains `is_merged: true`, update local React Query cache. Removes from IndexedDB on success.
+- **Photo Caching:**
+  - Cache uploaded photos in CacheStorage using their UUID URLs.
+- **Timer Offline Support:**
+  - Timer runs via `setInterval`. If app closes, save `timer_start` timestamp to `localStorage`. On reopen, calculate elapsed.
+- **Rich Text Auto-save:**
+  - TipTap content saved to `localStorage` every 5 seconds.
+
+---
+
+## Phase 4: Gamification, Social & Real-time (Weeks 7–8)
+
+### Database Schema
+
+**Table Updates:**
+
+- **`users`**
+  - Add `total_xp` (bigint unsigned, default 0)
+  - Add `current_level` (int unsigned, default 1)
+  - Add `xp_booster_active_until` (timestamp, nullable)
+  - Add `xp_booster_multiplier` (decimal, 3, 2, default 1.00)
+
+- **`habits`**
+  - Add `xp_weight` (int, default 10)
+
+**New Tables:**
+
+- **`xp_transactions`**
+  - `id`, `user_id` (FK, indexed, cascade), `source_type` (varchar), `source_id` (bigint, nullable), `amount` (int), `multiplier` (decimal), `description`, `created_at`
+- **`levels`**
+  - `id`, `level_number` (unique), `xp_required` (int), `title` (varchar), `icon` (varchar, nullable)
+- **`badges`**
+  - `id`, `name`, `slug` (unique), `description`, `icon`, `criteria_type` (enum), `criteria_value` (int), `xp_reward`, `requires_premium` (boolean), `created_at`, `updated_at`
+- **`user_badges`**
+  - `id`, `user_id` (FK, cascade), `badge_id` (FK, cascade), `earned_at`, `seen` (boolean, default false)
+- **`friends`**
+  - `id`, `requester_id` (FK, indexed), `addressee_id` (FK, indexed), `status` (enum: `pending`, `accepted`, `blocked`), `created_at`, `updated_at`
+  - *Indexes: `idx_friends_requester` on `(requester_id, status)`, `idx_friends_addressee` on `(addressee_id, status)`*
+- **`challenges`** & **`challenge_participants`** (Standard schema as originally defined)
+- **`groups`**, **`group_members`**, **`group_habits`** (Standard schema as originally defined)
+- **`leaderboard_entries`** (Computed snapshots)
+  - `id`, `user_id` (FK, cascade), `period_type` (enum: weekly, monthly), `category_id` (FK, nullable), `total_xp` (bigint), `total_completions` (int), `tie_breaker_timestamp` (timestamp — records the exact time the user reached this XP to resolve ties), `created_at`
+- **`notifications`** (Critical Addition)
+  - `id` (PK)
+  - `user_id` (FK → users.id, indexed, cascade delete)
+  - `type` (varchar, 100 — e.g., 'level_up', 'badge_earned', 'friend_request')
+  - `title` (varchar, 255)
+  - `body` (text, nullable)
+  - `data` (JSON, nullable — stores related IDs, e.g., `{ "badge_id": 5 }`)
+  - `read_at` (timestamp, nullable)
+  - `created_at`
+
+### Backend Logic
+
+- **XP & Levels (Event-Driven):**
+  - `HabitLogCreated` → `AddXpListener` (checks booster multiplier, inserts transaction, increments `total_xp`) → `LevelUpListener` (checks `levels` table, increments `current_level`, fires `LevelUpEvent`).
+- **Badge System:**
+  - `BadgeEvaluatorService`: `evaluate($userId)` iterates unearned badges, checks criteria (streaks, completions, early bird logs before 8 AM local time).
+  - If met: inserts `user_badges`, adds XP, **creates a `notification` record**.
+- **Streak Freeze (Subscription-Linked):**
+  - `StreakFreezeController::use($habitId, $date)`:
+  - Count freezes for the ISO week of `$date` in user's timezone.
+  - Check against `plans.max_freezes_per_week`. If under limit, insert into `streak_freezes`. If limit reached: 403.
+- **Group Streak Logic (Architectural Fix):**
+  - *New Logic:* `GroupStreakService::recalculate($groupId)` calculates the **Daily Group Completion Rate** for the last `N` days. If >= 80% of active members completed the group habit on a specific day, that day counts toward the group streak. If a day drops below 80%, the group streak resets to 0.
+- **Leaderboard Computation & Tie-Breaking:**
+  - `LeaderboardComputeCommand`: Aggregates XP/completions. When inserting into `leaderboard_entries`, populates `tie_breaker_timestamp` with the timestamp of the user's most recent qualifying activity.
+  - Query ordering: `ORDER BY total_xp DESC, tie_breaker_timestamp ASC` (The user who reached the XP score first ranks higher).
+- **Real-time Broadcasting (Laravel Reverb):**
+  - Events: `HabitCompleted`, `LevelUpEvent`, `FriendRequestEvent`, `BadgeEarnedEvent`.
+  - Broadcasts on private channels: `private-user.{id}`.
+- **Notifications:**
+  - `NotificationController::index()`: Returns paginated unread/read notifications.
+  - `NotificationController::markAsRead($id)`: Sets `read_at = now()`.
+- **Friend Privacy:**
+  - `UserController::publicProfile($userId)` respects `profile_visibility` and `friends` table status.
+
+### Frontend Pages
+
+- **`/profile`**
+  - Profile Card: avatar, name, level badge, animated XP bar (current / next level XP).
+  - Stats Grid: Total Habits, Completions, Longest Streak, Total XP.
+  - Level-Up Animation: Confetti if `seen = false`.
+  - Badges Showcase: Earned (color), Locked (grayscale), Premium locked (blurred + ribbon).
+  - XP Booster Widget: Activate button or countdown timer.
+- **`/friends`**
+  - Search bar, Pending requests (Accept/Decline), Friends list, Activity feed (respects privacy).
+- **`/challenges`**
+  - Active/Available/My tabs. Progress bars, join/leave buttons.
+- **`/leaderboard`**
+  - Tabs (Global/Premium), Period (Weekly/Monthly), Category filter.
+  - Top 3 Podium (Gold/Silver/Bronze). Highlighted "Your Rank" row at bottom.
+  - Tie indicator (e.g., "Reached 2 hours ago") displayed next to tied scores.
+- **`/groups`**
+  - My Groups, Create Group modal, Group Detail (group streak, members, invite code, shared habits).
+  - Join Group via invite code.
+- **Notification Dropdown (Global Layout)**
+  - Bell icon in Header. Listens to Laravel Reverb `private-user.{id}` channel.
+  - Drops down list of notifications. Clicking marks as read and navigates to relevant content.
+
+### PWA Implementation (Phase 4)
+
+- **Social Data Caching:**
+  - Cache friends, challenges, groups in IndexedDB for offline reading.
+- **Sync Queue for Social Actions:**
+  - Friend requests/challenge joins queued in IndexedDB if offline.
+- **Real-time via Service Worker:**
+  - Use `navigator.serviceWorker` to listen for push events (if Web Push configured later) or rely on active Reverb WebSocket connection when app is open.
+
+---
+
+## Phase 5: Intelligence, Insights & Reports (Weeks 9–10)
+
+### Database Schema
+
+**Table Updates:**
+
+- **`users`**
+  - Add `pdfs_generated_this_month` (int, default 0)
+  - Add `last_pdf_reset_at` (date, nullable)
+
+**New Tables:**
+
+- **`insights`**
+  - `id`, `user_id` (FK, cascade), `type` (enum: `predictive`, `correlation`, `basic`, `tip`), `title`, `description`, `data` (JSON), `risk_score` (decimal, 5, 2, nullable), `habit_id` (FK, nullable), `generated_at`, `expires_at`
+- **`correlations`**
+  - `id`, `user_id` (FK, cascade), `habit_a_id` (FK, cascade), `habit_b_id` (FK, cascade), `correlation_type` (enum), `correlation_score` (decimal, 3, 2), `period_days`, `sample_size`, `insight_text`
+- **`reports`**
+  - `id`, `user_id` (FK, cascade), `type` (enum), `date_from`, `date_to`, `status` (enum: `pending`, `processing`, `completed`, `failed`), `file_path`, `file_size`, `downloaded_at`
+- **`smart_reminders`**
+  - `id`, `user_id` (FK, cascade), `habit_id` (FK, cascade), `suggested_time` (time), `confidence_score` (decimal, 3, 2), `is_enabled` (boolean)
+
+### Backend Logic
+
+- **Feature Flags per Plan:**
+  - `EnsurePremium` middleware protects `/insights/advanced`, `/insights/correlations`, `/reports/generate`.
+- **Predictive Analytics (Statistical & Configurable Fix):**
+  - `InsightService::predictive($userId)`:
+  - Calculate raw score using weights pulled from `config('momentum.insights.risk_weights')` (e.g., `['late_nights' => 10, 'weekend_misses' => 15, 'recent_misses' => 20]`). This makes the algorithm tunable without code changes.
+  - **Normalize Score:** Apply min-max normalization or a logistic function to map the raw score strictly to a 0-100 percentage scale. Store normalized value in `risk_score`.
+  - Generate text: "You have a {risk_score}% chance of breaking your streak tomorrow."
+- **Correlation Analysis:**
+  - `CorrelationService::analyze($userId, $habitAId, $habitBId)`:
+  - Calculate co-occurrence $P(B|A)$ over 30 days.
+  - If > 0.80 and sample >= 10: store positive correlation. Generate text.
+- **Rule-Based Tips:**
+  - `InsightService::generateTips($userId)`: Simple pattern matching (missed > 2, weekend drops, variance in timing). Returns tip objects.
+- **Batched Insight Generation (OOM Prevention Fix):**
+  - `InsightsGenerateCommand`: Instead of processing all users in a single memory-heavy loop, uses `User::chunkById(100, function($users) { ... })`.
+  - Inside the chunk, dispatches an individual `GenerateUserInsightsJob` to the database queue for each user. This ensures memory stays flat regardless of user count.
+- **PDF Reports (Queue-Based & Rendering Fix):**
+  - `ReportController::request()`: Validate dates, check quota (`pdfs_generated_this_month`), create `reports` record, dispatch `GeneratePdfJob`.
+  - `GeneratePdfJob` (Dompdf):
+    - **Architectural Fix:** Do NOT attempt to generate base64 chart images in PHP.
+    - Instead, render HTML/CSS-based data visualizations (e.g., styled `<div>` bars representing completion percentages, styled HTML tables for stats).
+  - Save to `storage/app/reports/{uuid}.pdf`. Update status.
+- **Smart Reminders:**
+  - `SmartReminderService::suggest()`: Find mode (most common hour) of completion for a habit over 30 days. Calculate confidence based on low variance.
+
+### Frontend Pages
+
+- **`/insights`**
+  - Grid layout. Basic stats (Free). Predictive Risk Card (color-coded percentage). Correlation Card.
+  - Rule-Based Tips list.
+  - Recharts line/bar charts for 30-day trends.
+  - **Premium Paywall:** Blurred overlay on Predictive/Correlation cards for free users + "Unlock with Premium" button.
+- **`/reports`**
+  - Request Form: Date range picker, presets.
+  - Status Area: Spinner + "Generating..." while polling `/api/user/reports/{id}/status` every 3 seconds.
+  - Download Section: Button appears on `completed`.
+  - Report History table.
+  - Quota Indicator for free users.
+- **`/settings/smart-reminders`**
+  - Per-habit suggestions: "Suggested time: 08:00 AM" + confidence bar.
+  - Toggle to enable/disable.
+- **`/admin/payment-logs`** (Dev-Only)
+  - Table of `simulated_payments`. JSON payload viewer modal.
+
+### PWA Implementation (Phase 5)
+
+- **Insights Offline Caching:**
+  - Cache last generated insights in IndexedDB with 24-hour TTL.
+- **Report Request Queue:**
+  - Queue report requests in IndexedDB if offline, submit on reconnect.
+- **Smart Reminders (Local Notifications):**
+  - If Web Push is not set up, use Service Worker `setTimeout` or `periodicSync` to trigger local `showNotification()` based on cached smart reminder times.
+
+---
+
+## Cross-Phase Backend Commands (Artisan & Scheduler)
+
+**Scheduler Setup (`app/Console/Kernel.php`):**
+```php
+protected function schedule(Schedule $schedule)
+{
+    // 1. Mark pending habits as missed (Runs every 15 mins to safely cover global timezone offsets without race conditions)
+    $schedule->command('habits:mark-missed')->everyFifteenMinutes();
+
+    // 2. Dispatch smart/manual reminder notifications
+    $schedule->command('reminders:dispatch')->everyMinute();
+
+    // 3. Pre-compute insights, correlations, and tips (Off-peak hours, chunked to prevent OOM)
+    $schedule->command('insights:generate')->dailyAt('03:00');
+
+    // 4. Compute leaderboard snapshots
+    $schedule->command('leaderboard:compute --period=weekly')->weeklyOn(0, '23:59'); // Sunday
+    $schedule->command('leaderboard:compute --period=monthly')->lastDayOfMonth('23:59');
+
+    // 5. Subscription maintenance
+    $schedule->command('subscriptions:clean-expired')->daily();
+
+    // 6. PDF quota reset
+    $schedule->command('pdf-quota:reset-monthly')->monthlyOn(1, '00:00');
+    
+    // 7. Clean up old generated PDFs (older than 90 days)
+    $schedule->command('reports:clean-old')->weekly();
+}
+```
+
+**Command Registry:**
+- `habits:mark-missed` — Iterates users, calculates their local "yesterday", finds due habits with no log/pending log, and sets them to `missed`. Skips users whose local time hasn't passed midnight yet.
+- `reminders:dispatch` — Checks `reminder_time` and `smart_reminders`, fires Reverb broadcasts/notifications.
+- `insights:generate` — Chunks active users by ID and dispatches individual queue jobs per user to run `InsightService` and `CorrelationService`.
+- `leaderboard:compute` — Aggregates XP/completions, populates `leaderboard_entries` including `tie_breaker_timestamp`.
+- `subscriptions:clean-expired` — Sets `status = expired` where `expires_at < now()`.
+- `reports:clean-old` — Deletes PDF files from disk where `created_at < 90 days ago`.
+- `pdf-quota:reset-monthly` — Sets `users.pdfs_generated_this_month = 0`.
+
+**Configuration Files:**
+- **`config/momentum.php`**: Created to store tunable algorithmic constants (e.g., `insights.risk_weights`, `groups.completion_threshold_percentage`) keeping business logic flexible and separate from service classes.
