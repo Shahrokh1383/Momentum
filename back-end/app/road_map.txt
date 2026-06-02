@@ -26,6 +26,8 @@ Http\Resources
 Http\Resources\Admin
 Http\Resources\User
 Http\middleware
+Http\middleware\EnsurePremium.php
+Http\middleware\RoleMiddleware.php
 Models
 Models\Plan.php
 Models\SentEmailLog.php
@@ -38,3 +40,5 @@ Providers\AppServiceProvider.php
 Services
 Services\Admin
 Services\User
+Traits
+Traits\HasApiResponse.php
