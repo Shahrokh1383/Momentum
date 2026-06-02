@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PlanSlug;
 use App\Enums\ProfileVisibility;
 use App\Enums\UserRole;
 use App\Models\Subscription;
@@ -44,5 +45,10 @@ class User extends Authenticatable
     public function simulatedPayments()
     {
         return $this->hasMany(SimulatedPayment::class);
+    }
+
+    public function getIsPremiumAttribute(): bool
+    {
+        return $this->subscription?->isActive() && $this->subscription->plan !== PlanSlug::FREE;
     }
 }
