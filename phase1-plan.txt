@@ -1,0 +1,229 @@
+
+## Analysis of Phase 1
+
+Phase 1 is the core foundation of Momentum. It's not just about building login; it's about establishing robust authentication, a flexible subscription/entitlement system, real-time premium feature gating, PWA readiness, and a clean frontend architecture. The backend design features context-based API route grouping, Sanctum SPA auth with HttpOnly cookies, simulated payments for dev flow, and a hard quota enforcement system. The frontend uses Zustand for UI state and React Query for server state, with a clear separation of concerns. The PWA integration is immediate, not an afterthought, ensuring offline capability from the start.
+
+Key interdependencies:
+- The `users` and `subscriptions` tables must be created before auth and plan controllers can function.
+- The `plans` table and `PlanQuotaService` are required for feature gating on any user action.
+- The simulated email log must be ready before registration can "send" verification emails.
+- The CSRF cookie route must be in place for the SPA to start any authenticated request.
+- The frontend pages for auth and plans depend on the corresponding API routes and Zustand auth store.
+- The PWA service worker cache strategy must account for API calls vs static assets.
+
+I'll break Phase 1 into 8 cohesive modules, each containing backend, frontend, and configuration tasks that belong together. This avoids parallel integration issues.
+
+## Modular Breakdown (English Plan)
+
+Below is the complete implementation plan for Phase 1, organized by module.
+
+---
+
+### Module 1: Database Schema & Configuration
+**Purpose:** Create all required tables, seed essential data, and set up the configuration file and the first Artisan command.
+
+**Tasks:**
+- Create migrations for `users`, `password_resets`, `personal_access_tokens`, `subscriptions`, `plans`, `simulated_payments`, `sent_emails_log`, `user_settings`.
+- Define Eloquent models with relationships (`User`, `Subscription`, `Plan`, `SimulatedPayment`, `SentEmailLog`, `UserSetting`).
+- Create a seeder for `plans` table with three records: `free`, `premium`, `lifetime` (using the slug and attribute defaults as specified).
+- Create `config/momentum.php` returning initial settings:
+  ```php
+  return [
+      'subscription' => [
+          'grace_period_days' => 3,
+      ],
+  ];
+  ```
+- **Artisan Command:** Implement `subscriptions:clean-expired`.  
+  - Logic: `Subscription::where('expires_at', '<', now())->where('status', 'active')->update(['status' => 'expired'])`.  
+  - Dispatch a `SubscriptionExpired` event for each updated subscription.
+- Create the `SubscriptionExpired` event class (listeners will be added in later phases).
+- Register the command in `Kernel.php`.
+
+---
+
+### Module 2: Core Backend Architecture & Middleware
+**Purpose:** Set up route files, middleware, rate limiting, and the Sanctum configuration required for the entire app.
+
+**Tasks:**
+- Create route files: `routes/api/auth.php`, `routes/api/user.php`, `routes/api/admin.php`.
+- Modify `bootstrap/app.php` (Laravel 11) or `RouteServiceProvider` to register these route files with appropriate prefixes and middleware groups:
+  - `api/auth` → no auth middleware.
+  - `api/user` → `auth:sanctum`, `verified`.
+  - `api/admin` → `auth:sanctum`, `role:admin`.
+- Configure `config/sanctum.php` for SPA stateful authentication; set `SESSION_DRIVER=cookie`.
+- Create `RoleMiddleware` that checks `auth()->user()->role` against a given role parameter.
+- Create `EnsurePremium` middleware: checks if `auth()->user()->subscription?->isActive()` and plan != 'free'; otherwise abort 403.
+- Apply rate limiting:
+  - `login`/`register`: 5 attempts per minute.
+  - `forgot-password`/`reset-password`: 1 per 5 minutes.
+  - All `/api/user/`: 60 per minute.
+  - File upload endpoints: 10 per minute (to be applied in later modules, but define here).
+- Create a base `ApiResponse` helper or trait for consistent JSON responses.
+
+---
+
+### Module 3: Authentication System (Backend)
+**Purpose:** Implement registration, login, logout, email verification (simulated), password reset (simulated), OAuth, and the CSRF endpoint.
+
+**Tasks:**
+- Create `AuthController` under `App\Http\Controllers\Auth` with:
+  - `register()`: validate strict password rules (`Password::min(8)->mixedCase()->numbers()->symbols()`), create user, generate email verification token, store in `sent_emails_log`, return user (with `is_premium` computed).
+  - `login()`: validate credentials, issue Sanctum cookie, return user.
+  - `logout()`: revoke current token, invalidate session.
+  - `me()`: return authenticated user with `is_premium` and subscription details.
+- Create `OAuthController::redirect($provider)`: generate OAuth URL and return it as JSON (frontend opens popup).
+- Create `OAuthController::callback($provider)`: exchange code for access token, get user details, find or create user by provider/provider_id, issue Sanctum cookie, return user.
+- Create `EmailVerificationController::verify($token)`: find token in `sent_emails_log`, mark `email_verified_at`, return response.
+- Create `PasswordResetController`: `forgot()` creates token and stores in `sent_emails_log` (type `password_reset`); `reset()` validates token, updates password, and deletes the log record.
+- Add CSRF cookie endpoint: `GET /api/auth/sanctum/csrf-cookie`.
+- Define all necessary form requests for validation.
+- The `AuthController` responses must include a computed `is_premium` attribute (derived from subscription plan).
+
+---
+
+### Module 4: Authentication Frontend (Pages & Store)
+**Purpose:** Build the login, register, forgot-password, reset-password, verify-email pages, and set up the Zustand auth store + React Query/Axios configuration.
+
+**Tasks:**
+- Initialize Zustand store `AuthStore`: `user`, `isAuthenticated`, `isPremium`, `subscription`, `login()`, `logout()`, `refreshUser()`.
+- Configure Axios instance:
+  - Base URL `/api/user/`, `withCredentials: true`.
+  - 401 interceptor → call `logout()` and redirect to `/login`.
+- Create `ProtectedRoute` HOC that checks `isAuthenticated`; show loading spinner while session is being verified (call `/api/auth/me` on app boot).
+- Create pages:
+  - `/login`: email/password form, Remember Me, OAuth buttons (Google, Apple, GitHub), client-side validation, error display.
+  - `/register`: name/email/password/password_confirmation, password strength indicator reflecting backend rules, OAuth buttons.
+  - `/forgot-password`: email input, dev note about `sent_emails_log`, success message.
+  - `/reset-password`: reads `?token=`, new password fields, submit, auto-redirect to `/login`.
+  - `/verify-email`: informational page with resend button.
+- OAuth flow: on click, open a popup to provider; after authorization, the popup sends the code to our backend `/api/auth/{provider}/callback` (or uses a postMessage pattern). On success, close popup and `refreshUser()`.
+- Implement `useAuth` hook that provides the entire Zustand state.
+
+---
+
+### Module 5: Subscription & Payments Infrastructure (Backend)
+**Purpose:** Build the plan listing, simulated payment processing, subscription upgrade/cancel, and premium gating logic.
+
+**Tasks:**
+- Create `SubscriptionController`:
+  - `current()`: return active subscription with related plan details.
+  - `upgrade(plan_slug)`: create `simulated_payments` record (status `pending`), create/update `subscriptions` with `plan` temporarily set to the target (or a `pending` approach), dispatch a queued job `ProcessSimulatedPayment`.
+  - `cancel()`: set `cancelled_at = now()` on active subscription.
+- Create `ProcessSimulatedPayment` job (database queue): after 3 seconds, update `simulated_payments.status = 'success'`, set `subscriptions.plan` to the intended slug (if not already), ensure `status = active`, set `expires_at` appropriately (1 month from now for monthly, null for lifetime).
+- Create `PlansController::index()` to return all plans with their features (from `plans` table).
+- Build `PlanQuotaService` with methods:
+  - `canCreateHabit($user)`: checks `max_active_habits` against current count of active habits (logic to be added in later phase, but the method exists and returns allowed/limit/used).
+  - `canJoinGroup($user)`, `canUploadPhoto($user, $habitLog)`, `canGeneratePdf($user)`.
+  - These methods will be fully implemented when habits/logs exist; for now they can return mock allowed structures.
+- The `EnsurePremium` middleware will call a helper on the user model: `isPremium()` checking subscription status.
+
+---
+
+### Module 6: Subscription & Plans Frontend (Pricing Page, Modal, Badge)
+**Purpose:** Build the `/plans` pricing page, simulated payment modal, and the premium badge for the header.
+
+**Tasks:**
+- Create `/plans` page:
+  - Fetch plans from `GET /api/plans`.
+  - Display three cards: Free, Premium Monthly, Lifetime.
+  - Highlight current plan.
+  - "Upgrade" button opens the Simulated Payment Modal.
+- Build Simulated Payment Modal:
+  - Overlay with 3-second countdown, spinner, processing text.
+  - On completion: show success animation, then close modal and `refreshUser()`.
+- Implement React Query mutations for upgrade and cancel.
+- In Layout `Header`, add a golden crown `Premium Badge` if `isPremium` from Zustand.
+
+---
+
+### Module 7: PWA Core Setup
+**Purpose:** Make the app a Progressive Web App with offline support and installability.
+
+**Tasks:**
+- Create `public/manifest.json` with the specified app name, icons, theme/background colors, `display: standalone`.
+- Create `public/sw.js`:
+  - `install`: cache static shell (HTML, JS, CSS, offline.html).
+  - `activate`: clean old caches.
+  - `fetch`: cache-first for static assets; network-first for `/api/user/` calls.
+- Create `public/offline.html`: branded offline fallback page.
+- Register service worker in `main.tsx` (React entry): `navigator.serviceWorker.register('/sw.js')`.
+- Add `<link rel="manifest">` to `index.html`.
+- Capture `beforeinstallprompt` event in React, store in a Zustand UI store or context.
+- Show an "Install App" button (e.g., in header or settings) that triggers the deferred prompt.
+
+---
+
+### Module 8: Global Layout & Navigation
+**Purpose:** Assemble the app shell, header, footer, and navigation structure.
+
+**Tasks:**
+- Create `Header` component: logo, navigation links (conditional on auth), premium badge, user dropdown (profile, settings, logout).
+- Set up React Router with routes for login, register, forgot-password, reset-password, verify-email, plans, and a placeholder dashboard (just a protected welcome screen).
+- Wrap app with `QueryClientProvider` (React Query), Zustand store provider.
+- Implement the app boot sequence: on load, fetch CSRF cookie (if not present) then call `/api/auth/me` to hydrate `AuthStore`.
+- Protect all main routes under `ProtectedRoute`.
+
+---
+
+## Final English Plan (as requested)
+
+```
+Phase 1 Implementation Plan
+
+Module 1: Database Schema & Configuration
+  - Migrations: users, password_resets, personal_access_tokens, subscriptions, plans, simulated_payments, sent_emails_log, user_settings
+  - Models: User, Subscription, Plan, SimulatedPayment, SentEmailLog, UserSetting
+  - Seed plans table (free, premium, lifetime)
+  - Create config/momentum.php
+  - Artisan command: subscriptions:clean-expired with SubscriptionExpired event
+
+Module 2: Core Backend Architecture & Middleware
+  - Create route files: api/auth.php, api/user.php, api/admin.php
+  - Register routes with middleware groups (auth:sanctum, verified, role:admin)
+  - Sanctum SPA configuration (SESSION_DRIVER=cookie)
+  - Middleware: RoleMiddleware, EnsurePremium
+  - Rate limiting: auth (5/1, 1/5), user (60/1), uploads (10/1)
+  - ApiResponse helper
+
+Module 3: Authentication System (Backend)
+  - AuthController: register, login, logout, me (with is_premium)
+  - OAuthController: redirect, callback (Google, GitHub, Apple)
+  - EmailVerificationController: verify (simulated)
+  - PasswordResetController: forgot, reset (simulated via sent_emails_log)
+  - CSRF cookie endpoint
+
+Module 4: Authentication Frontend (Pages & Store)
+  - Zustand AuthStore (user, isPremium, etc.)
+  - Axios instance with 401 interceptor
+  - ProtectedRoute HOC
+  - Pages: /login, /register, /forgot-password, /reset-password, /verify-email
+  - OAuth popup flow integration
+  - Password strength indicator
+
+Module 5: Subscription & Payments Infrastructure (Backend)
+  - SubscriptionController: current, upgrade, cancel
+  - ProcessSimulatedPayment job (3s delay)
+  - PlansController: index
+  - PlanQuotaService (stub methods for habit/photo limits)
+  - EnsurePremium middleware integration
+
+Module 6: Subscription & Plans Frontend
+  - /plans pricing page (3 cards)
+  - Simulated Payment Modal (countdown, success)
+  - React Query mutations for upgrade/cancel
+  - Premium badge in header
+
+Module 7: PWA Core Setup
+  - manifest.json
+  - sw.js (install, activate, fetch strategies)
+  - offline.html
+  - Service worker registration in main.tsx
+  - beforeinstallprompt listener and Install button
+
+Module 8: Global Layout & Navigation
+  - Header with logo, nav, premium badge, user menu
+  - React Router configuration
+  - App boot: CSRF cookie, fetch /me, hydrate store
+  - Placeholder dashboard as protected route
+```
