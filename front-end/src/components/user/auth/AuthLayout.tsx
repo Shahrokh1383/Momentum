@@ -13,7 +13,7 @@ const AuthLayout = ({ title, subtitle, children }: AuthLayoutProps) => {
       <ThemeToggle />
       <div className="auth-container glass-panel">
         <div className="text-center">
-          <img src="/assets/icon.jpg" alt="Momentum Logo" className="auth-logo" />
+          <img src="/assets/logo.jpg" alt="Momentum Logo" className="auth-logo" />
           <h1 className="auth-title">{title}</h1>
           <p className="auth-subtitle">{subtitle}</p>
         </div>
