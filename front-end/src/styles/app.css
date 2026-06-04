@@ -1,0 +1,166 @@
+/* assets/css/app.css */
+
+/* =========================================
+   1. CSS VARIABLES & THEMING
+   ========================================= */
+:root {
+  /* Brand Colors */
+  --primary: #11998e;
+  --primary-light: #38ef7d;
+  --primary-dark: #0d8a7a;
+  --primary-light-hover: #2dd86d;
+
+  /* Light Mode Defaults */
+  --bg-body: #f0f4f8;
+  --bg-gradient: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%);
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  
+  /* Glassmorphism (Light Mode) */
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-bg-hover: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+  
+  /* Form Elements */
+  --input-bg: rgba(255, 255, 255, 0.8);
+  --input-border: #cbd5e1;
+  --input-focus-ring: rgba(17, 153, 142, 0.25);
+
+  /* Accents & Animations */
+  --pulse-color: rgba(56, 239, 125, 0.7);
+  --shine-effect: rgba(255, 255, 255, 0.4);
+  --gradient-btn: linear-gradient(to right, var(--primary), var(--primary-light));
+  --gradient-btn-hover: linear-gradient(to right, var(--primary-dark), var(--primary-light-hover));
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"] {
+  --bg-body: #0f172a;
+  --bg-gradient: linear-gradient(135deg, #0d8a7a 0%, #11998e 50%, #38ef7d 100%);
+  --bg-gradient: linear-gradient(135deg, var(--primary-dark), var(--primary), var(--primary-light));
+  --text-main: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.7);
+  
+  --glass-bg: rgba(15, 23, 42, 0.6);
+  --glass-bg-hover: rgba(15, 23, 42, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  
+  --input-bg: rgba(0, 0, 0, 0.2);
+  --input-border: rgba(255, 255, 255, 0.1);
+  --input-focus-ring: rgba(56, 239, 125, 0.25);
+}
+
+/* =========================================
+   2. GLOBAL RESET & BASE
+   ========================================= */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-gradient);
+  background-size: 300% 300%;
+  animation: gradientShift 15s ease infinite;
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.5s ease, color 0.3s ease;
+  overflow-x: hidden;
+  padding: 1rem;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* =========================================
+   3. TYPOGRAPHY & LINKS
+   ========================================= */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-main);
+}
+
+.text-muted-custom {
+  color: var(--text-muted);
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: var(--primary-light);
+}
+
+/* =========================================
+   4. UTILITIES & COMPONENTS
+   ========================================= */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: var(--glass-shadow);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+/* Theme Toggle Button */
+.theme-toggle-btn {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  color: var(--text-main);
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  box-shadow: 0 4px 12px var(--glass-shadow);
+}
+
+.theme-toggle-btn:hover {
+  background: var(--glass-bg-hover);
+  transform: rotate(15deg) scale(1.1);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--input-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}

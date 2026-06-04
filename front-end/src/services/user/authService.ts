@@ -1,0 +1,69 @@
+import api from '@/services/api';
+import { User } from '@/types/user';
+
+interface LoginPayload {
+  email: string;
+  password: string;
+  remember: boolean;
+}
+
+interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
+interface ResetPasswordPayload {
+  token: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
+export const authService = {
+  login: async (payload: LoginPayload): Promise<User> => {
+    const { data } = await api.post('/api/auth/login', payload);
+    return data.data;
+  },
+
+  register: async (payload: RegisterPayload): Promise<User> => {
+    const { data } = await api.post('/api/auth/register', payload);
+    return data.data;
+  },
+
+  logout: async (): Promise<void> => {
+    await api.post('/api/user/logout');
+  },
+
+  getMe: async (): Promise<User> => {
+    const { data } = await api.get('/api/user/me');
+    return data.data;
+  },
+
+  forgotPassword: async (email: string): Promise<void> => {
+    await api.post('/api/auth/forgot-password', { email });
+  },
+
+  resetPassword: async (payload: ResetPasswordPayload): Promise<void> => {
+    await api.post('/api/auth/reset-password', payload);
+  },
+
+  verifyEmail: async (token: string): Promise<void> => {
+    await api.get(`/api/auth/verify-email/${token}`);
+  },
+
+  resendVerification: async (email: string): Promise<void> => {
+    await api.post('/api/auth/verify-email/resend', { email });
+  },
+
+  getOAuthRedirect: async (provider: string): Promise<string> => {
+    const { data } = await api.get(`/api/auth/oauth/${provider}`);
+    return data.data.url;
+  },
+
+  handleOAuthCallback: async (provider: string, code: string): Promise<User> => {
+    const { data } = await api.post(`/api/auth/oauth/${provider}/callback`, { code });
+    return data.data;
+  },
+};
