@@ -1,0 +1,441 @@
+عالی است! با بررسی فایل‌های `tsconfig.app.json` و `vite.config.ts`، اطلاعات من کامل شد. تنظیمات مسیردهی (Path Aliases) شما کاملاً صحیح است و مشکلی ندارد. ریشه ارورهای ما دقیقاً همان عدم هماهنگی در تایپ‌ها و نام‌گذاری متدها بود که در تحلیل قبلی اشاره کردم.
+
+حالا طبق قولم، با رعایت کامل اصول **SOLID، KISS، SRP و DRY** و با در نظر گرفتن شرط مهم شما (استفاده فقط از زبان انگلیسی در کدها)، اقدام به اصلاح فایل‌ها می‌کنم.
+
+### خلاصه اصلاحات انجام شده:
+1. **اصل SRP و DRY:** اینترفیس‌های `Payload` از فایل `authService.ts` به `@/types/user.ts` منتقل شدند تا در یک جای متمرکز تعریف شوند و سرویس فقط مسئولیت منطق API را داشته باشد.
+2. **حل ارور `cannot be named`:** با Export کردن اینترفیس‌ها از فایل تایپ، تایپ‌اسکریپت حالا می‌تواند آن‌ها را در لایه هوک به درستی شناسایی و نام‌گذاری کند.
+3. **حل ارور `remember` در LoginPage:** خاصیت `remember` در `LoginPayload` به `remember?: boolean` (اختیاری) تغییر یافت تا با خروجی Zod همخوانی کامل داشته باشد.
+4. **حل ارور `registerUser`:** نام متد بازگشتی در هوک از `register` به `registerUser` تغییر کرد تا هم با کامپوننت همخوانی داشته باشد و هم از تداخل نام (Name Shadowing) با تابع `register` مربوط به `react-hook-form` جلوگیری شود (اصل KISS).
+5. **حل ارور `resendVerification`:** متد و Mutation مربوطه به هوک اضافه شد تا در لایه View در دسترس باشد.
+
+در ادامه کدهای اصلاح‌شده هر فایل را قرار داده‌ام:
+
+---
+
+### 1. فایل `src/types/user.ts`
+تایپ‌های مربوط به Payload ها به اینجا منتقل شدند و `remember` اختیاری شد.
+
+```typescript
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  avatar: string | null;
+  role: 'user' | 'admin';
+  email_verified_at: string | null;
+  profile_visibility: 'public' | 'friends_only' | 'private';
+  is_premium: boolean;
+  subscription: Subscription | null;
+  created_at: string;
+}
+
+export interface Subscription {
+  plan: 'free' | 'premium' | 'lifetime';
+  status: 'active' | 'cancelled' | 'expired';
+  expires_at: string | null;
+}
+
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isPremium: boolean;
+  setUser: (user: User | null) => void;
+  logout: () => void;
+}
+
+// Moved from authService and aligned with Zod schemas
+export interface LoginPayload {
+  email: string;
+  password: string;
+  remember?: boolean; // Fixed: made optional to match LoginPage schema
+}
+
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
+export interface ResetPasswordPayload {
+  token: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+```
+
+---
+
+### 2. فایل `src/services/user/authService.ts`
+ایمپورت تایپ‌ها از فایل متمرکز انجام شد و سرویس فقط به منطق درخواست‌های HTTP می‌پردازد.
+
+```typescript
+import api from '@/services/api';
+import { User, LoginPayload, RegisterPayload, ResetPasswordPayload } from '@/types/user';
+
+export const authService = {
+  login: async (payload: LoginPayload): Promise<User> => {
+    const { data } = await api.post('/api/auth/login', payload);
+    return data.data;
+  },
+
+  register: async (payload: RegisterPayload): Promise<User> => {
+    const { data } = await api.post('/api/auth/register', payload);
+    return data.data;
+  },
+
+  logout: async (): Promise<void> => {
+    await api.post('/api/user/logout');
+  },
+
+  getMe: async (): Promise<User> => {
+    const { data } = await api.get('/api/user/me');
+    return data.data;
+  },
+
+  forgotPassword: async (email: string): Promise<void> => {
+    await api.post('/api/auth/forgot-password', { email });
+  },
+
+  resetPassword: async (payload: ResetPasswordPayload): Promise<void> => {
+    await api.post('/api/auth/reset-password', payload);
+  },
+
+  verifyEmail: async (token: string): Promise<void> => {
+    await api.get(`/api/auth/verify-email/${token}`);
+  },
+
+  resendVerification: async (email: string): Promise<void> => {
+    await api.post('/api/auth/verify-email/resend', { email });
+  },
+
+  getOAuthRedirect: async (provider: string): Promise<string> => {
+    const { data } = await api.get(`/api/auth/oauth/${provider}`);
+    return data.data.url;
+  },
+
+  handleOAuthCallback: async (provider: string, code: string): Promise<User> => {
+    const { data } = await api.post(`/api/auth/oauth/${provider}/callback`, { code });
+    return data.data;
+  },
+};
+```
+
+---
+
+### 3. فایل `src/hooks/user/useAuth.ts`
+متد `resendVerification` اضافه شد و نام خروجی `register` به `registerUser` تغییر یافت.
+
+```typescript
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { authService } from '@/services/user/authService';
+import { useAuthStore } from '@/context/user/authStore';
+import { useNavigate } from 'react-router-dom';
+
+export const useAuth = () => {
+  const { user, isAuthenticated, isPremium, setUser, logout: clearStore } = useAuthStore();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  // Fetch current user on app boot
+  const { isLoading: isFetchingUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
+      const user = await authService.getMe();
+      setUser(user);
+      return user;
+    },
+    retry: false,
+    enabled: !user && isAuthenticated === false, 
+  });
+
+  const loginMutation = useMutation({
+    mutationFn: authService.login,
+    onSuccess: (user) => {
+      setUser(user);
+      navigate('/dashboard');
+    },
+  });
+
+  const registerMutation = useMutation({
+    mutationFn: authService.register,
+    onSuccess: (user) => {
+      setUser(user);
+      navigate('/verify-email');
+    },
+  });
+
+  const logoutMutation = useMutation({
+    mutationFn: authService.logout,
+    onSuccess: () => {
+      clearStore();
+      queryClient.clear();
+      navigate('/login');
+    },
+  });
+
+  const forgotPasswordMutation = useMutation({
+    mutationFn: authService.forgotPassword,
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: authService.resetPassword,
+    onSuccess: () => navigate('/login'),
+  });
+
+  const resendVerificationMutation = useMutation({
+    mutationFn: authService.resendVerification,
+  });
+
+  const oauthCallbackMutation = useMutation({
+    mutationFn: ({ provider, code }: { provider: string; code: string }) => 
+      authService.handleOAuthCallback(provider, code),
+    onSuccess: (user) => {
+      setUser(user);
+      navigate('/dashboard');
+    },
+  });
+
+  return {
+    user,
+    isAuthenticated,
+    isPremium,
+    isFetchingUser,
+    
+    login: loginMutation.mutateAsync,
+    isLoggingIn: loginMutation.isPending,
+    loginError: loginMutation.error,
+    
+    // Fixed: Renamed to registerUser to match component usage and avoid naming conflicts
+    registerUser: registerMutation.mutateAsync,
+    isRegistering: registerMutation.isPending,
+    registerError: registerMutation.error,
+
+    logout: logoutMutation.mutateAsync,
+    
+    forgotPassword: forgotPasswordMutation.mutateAsync,
+    isForgotPasswordLoading: forgotPasswordMutation.isPending,
+    
+    resetPassword: resetPasswordMutation.mutateAsync,
+    isResetPasswordLoading: resetPasswordMutation.isPending,
+    
+    handleOAuthCallback: oauthCallbackMutation.mutateAsync,
+
+    // Fixed: Added missing resendVerification mutation
+    resendVerification: resendVerificationMutation.mutateAsync,
+    isResendingVerification: resendVerificationMutation.isPending,
+  };
+};
+```
+
+---
+
+### 4. فایل `src/routes/user/LoginPage.tsx`
+هیچ تغییری در منطق نیاز نیست، چون مشکل از تایپ `LoginPayload` بود که حل شد. فقط کد را برای اطمینان قرار می‌دهم.
+
+```typescript
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import AuthLayout from '@/components/user/auth/AuthLayout';
+import PasswordInput from '@/components/user/auth/PasswordInput';
+import OAuthButtons from '@/components/user/auth/OAuthButtons';
+import { useAuth } from '@/hooks/user/useAuth';
+import { Link } from 'react-router-dom';
+
+const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+  remember: z.boolean().optional(),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+
+const LoginPage = () => {
+  const { login, isLoggingIn, loginError } = useAuth();
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = async (data: LoginFormData) => {
+    await login(data);
+  };
+
+  return (
+    <AuthLayout title="Welcome Back" subtitle="Sign in to continue building your momentum.">
+      <form className="auth-form" noValidate onSubmit={handleSubmit(onSubmit)}>
+        {loginError && <div className="alert alert-danger">Invalid credentials</div>}
+        
+        <div className="form-floating mb-3">
+          <input type="email" className={`form-control ${errors.email ? 'is-invalid' : ''}`} id="email" placeholder="name@example.com" {...register('email')} />
+          <label htmlFor="email">Email address</label>
+          <div className="invalid-feedback">{errors.email?.message}</div>
+        </div>
+        
+        <PasswordInput id="password" label="Password" registration={register('password')} />
+        {errors.password && <div className="text-danger mb-3" style={{fontSize: '0.875rem', marginTop: '-0.5rem'}}>{errors.password.message}</div>}
+
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <div className="form-check">
+            <input className="form-check-input custom-checkbox" type="checkbox" id="remember" {...register('remember')} />
+            <label className="form-check-label text-muted-custom" htmlFor="remember" style={{fontSize: '0.9rem'}}>Remember me</label>
+          </div>
+          <Link to="/forgot-password" style={{fontSize: '0.9rem'}}>Forgot password?</Link>
+        </div>
+
+        <button type="submit" className="btn btn-momentum mb-3" disabled={isLoggingIn}>
+          {isLoggingIn ? <span className="spinner-border spinner-border-sm me-2"></span> : 'Sign In'}
+        </button>
+      </form>
+
+      <OAuthButtons />
+
+      <div className="text-center mt-4">
+        <span className="text-muted-custom">Don't have an account? </span>
+        <Link to="/register">Create one now</Link>
+      </div>
+    </AuthLayout>
+  );
+};
+
+export default LoginPage;
+```
+
+---
+
+### 5. فایل `src/routes/user/RegisterPage.tsx`
+کد شما از قبل درست بود و منتظر متد `registerUser` بود. حالا که این متد را در هوک اضافه کردیم، مشکل حل شده است.
+
+```typescript
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import AuthLayout from '@/components/user/auth/AuthLayout';
+import PasswordInput from '@/components/user/auth/PasswordInput';
+import PasswordStrengthMeter from '@/components/user/auth/PasswordStrengthMeter';
+import OAuthButtons from '@/components/user/auth/OAuthButtons';
+import { useAuth } from '@/hooks/user/useAuth';
+import { Link } from 'react-router-dom';
+
+const registerSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email address'),
+  password: z.string()
+    .min(8, 'Must be at least 8 characters')
+    .regex(/[a-z]/, 'Must contain a lowercase letter')
+    .regex(/[A-Z]/, 'Must contain an uppercase letter')
+    .regex(/[0-9]/, 'Must contain a number')
+    .regex(/[^A-Za-z0-9]/, 'Must contain a symbol'),
+  password_confirmation: z.string(),
+}).refine(data => data.password === data.password_confirmation, {
+  message: 'Passwords do not match',
+  path: ['password_confirmation'],
+});
+
+type RegisterFormData = z.infer<typeof registerSchema>;
+
+const RegisterPage = () => {
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+  });
+
+  const { registerUser, isRegistering } = useAuth();
+  const password = watch('password', '');
+
+  const onSubmit = async (data: RegisterFormData) => {
+    await registerUser(data);
+  };
+
+  return (
+    <AuthLayout title="Create Account" subtitle="Start your journey to better habits today.">
+      <form className="auth-form" noValidate onSubmit={handleSubmit(onSubmit)}>
+        <div className="form-floating mb-3">
+          <input type="text" className={`form-control ${errors.name ? 'is-invalid' : ''}`} id="name" placeholder="Full Name" {...register('name')} />
+          <label htmlFor="name">Full Name</label>
+          <div className="invalid-feedback">{errors.name?.message}</div>
+        </div>
+
+        <div className="form-floating mb-3">
+          <input type="email" className={`form-control ${errors.email ? 'is-invalid' : ''}`} id="email" placeholder="name@example.com" {...register('email')} />
+          <label htmlFor="email">Email address</label>
+          <div className="invalid-feedback">{errors.email?.message}</div>
+        </div>
+        
+        <PasswordInput id="password" label="Password" registration={register('password')} />
+        <PasswordStrengthMeter password={password} />
+        {errors.password && <div className="text-danger mb-3" style={{fontSize: '0.875rem', marginTop: '-0.5rem'}}>{errors.password.message}</div>}
+
+        <div className="form-floating mb-4">
+          <input type="password" className={`form-control ${errors.password_confirmation ? 'is-invalid' : ''}`} id="password_confirmation" placeholder="Confirm Password" {...register('password_confirmation')} />
+          <label htmlFor="password_confirmation">Confirm Password</label>
+          <div className="invalid-feedback">{errors.password_confirmation?.message}</div>
+        </div>
+
+        <button type="submit" className="btn btn-momentum mb-3" disabled={isRegistering}>
+          {isRegistering ? <span className="spinner-border spinner-border-sm me-2"></span> : 'Create Account'}
+        </button>
+      </form>
+
+      <OAuthButtons />
+
+      <div className="text-center mt-4">
+        <span className="text-muted-custom">Already have an account? </span>
+        <Link to="/login">Sign in</Link>
+      </div>
+    </AuthLayout>
+  );
+};
+
+export default RegisterPage;
+```
+
+---
+
+### 6. فایل `src/routes/user/VerifyEmailPage.tsx`
+متد `resendVerification` حالا در هوک وجود دارد. یک بهبود کوچک (اضافه کردن استیت لودینگ برای دکمه) برای تجربه کاربری بهتر اضافه شد تا اصل KISS رعایت شود.
+
+```typescript
+import { useState } from 'react';
+import AuthLayout from '@/components/user/auth/AuthLayout';
+import { useAuth } from '@/hooks/user/useAuth';
+
+const VerifyEmailPage = () => {
+  const { user, resendVerification, isResendingVerification } = useAuth();
+  const [message, setMessage] = useState('');
+
+  const handleResend = async () => {
+    if (user?.email) {
+      try {
+        await resendVerification(user.email);
+        setMessage('Verification link has been resent!');
+      } catch {
+        setMessage('Failed to resend verification link. Please try again.');
+      }
+    }
+  };
+
+  return (
+    <AuthLayout title="Verify Your Email" subtitle="Please check your email to verify your account.">
+      <div className="dev-note mb-4">
+        <i className="fas fa-code mt-1"></i>
+        <div>
+          <strong>Developer Note:</strong><br />
+          In this simulated environment, retrieve the verification link directly from the <code>sent_emails_log</code> database table.
+        </div>
+      </div>
+      
+      {message && <div className="alert alert-success">{message}</div>}
+
+      <button onClick={handleResend} className="btn btn-momentum mb-3" disabled={isResendingVerification}>
+        {isResendingVerification ? <span className="spinner-border spinner-border-sm me-2"></span> : 'Resend Verification Email'}
+      </button>
+    </AuthLayout>
+  );
+};
+
+export default VerifyEmailPage;
+```
+
+با اعمال این تغییرات، تمام ارورهای تایپ‌اسکریپت برطرف خواهد شد و ساختار کد شما از نظر اصول مهندسی نرم‌افزار بسیار تمیزتر و استانداردتر می‌شود. موفق باشید!

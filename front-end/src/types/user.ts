@@ -24,3 +24,24 @@ export interface AuthState {
   setUser: (user: User | null) => void;
   logout: () => void;
 }
+
+// Moved from authService and aligned with Zod schemas
+export interface LoginPayload {
+  email: string;
+  password: string;
+  remember?: boolean; // Fixed: made optional to match LoginPage schema
+}
+
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
+export interface ResetPasswordPayload {
+  token: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}

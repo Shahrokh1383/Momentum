@@ -17,7 +17,6 @@ export const useAuth = () => {
       return user;
     },
     retry: false,
-    // Only run if we don't have a user but might have a session
     enabled: !user && isAuthenticated === false, 
   });
 
@@ -25,7 +24,7 @@ export const useAuth = () => {
     mutationFn: authService.login,
     onSuccess: (user) => {
       setUser(user);
-      navigate('/dashboard'); // Will be implemented later
+      navigate('/dashboard');
     },
   });
 
@@ -55,6 +54,10 @@ export const useAuth = () => {
     onSuccess: () => navigate('/login'),
   });
 
+  const resendVerificationMutation = useMutation({
+    mutationFn: authService.resendVerification,
+  });
+
   const oauthCallbackMutation = useMutation({
     mutationFn: ({ provider, code }: { provider: string; code: string }) => 
       authService.handleOAuthCallback(provider, code),
@@ -69,11 +72,13 @@ export const useAuth = () => {
     isAuthenticated,
     isPremium,
     isFetchingUser,
+    
     login: loginMutation.mutateAsync,
     isLoggingIn: loginMutation.isPending,
     loginError: loginMutation.error,
     
-    register: registerMutation.mutateAsync,
+    // Fixed: Renamed to registerUser to match component usage and avoid naming conflicts
+    registerUser: registerMutation.mutateAsync,
     isRegistering: registerMutation.isPending,
     registerError: registerMutation.error,
 
@@ -86,5 +91,9 @@ export const useAuth = () => {
     isResetPasswordLoading: resetPasswordMutation.isPending,
     
     handleOAuthCallback: oauthCallbackMutation.mutateAsync,
+
+    // Fixed: Added missing resendVerification mutation
+    resendVerification: resendVerificationMutation.mutateAsync,
+    isResendingVerification: resendVerificationMutation.isPending,
   };
 };

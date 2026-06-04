@@ -1,25 +1,5 @@
 import api from '@/services/api';
-import { User } from '@/types/user';
-
-interface LoginPayload {
-  email: string;
-  password: string;
-  remember: boolean;
-}
-
-interface RegisterPayload {
-  name: string;
-  email: string;
-  password: string;
-  password_confirmation: string;
-}
-
-interface ResetPasswordPayload {
-  token: string;
-  email: string;
-  password: string;
-  password_confirmation: string;
-}
+import { User, LoginPayload, RegisterPayload, ResetPasswordPayload } from '@/types/user';
 
 export const authService = {
   login: async (payload: LoginPayload): Promise<User> => {
