@@ -58,4 +58,22 @@ class EmailVerificationController extends Controller
 
         return $this->successResponse(null, 'Verification email resent.');
     }
+
+    public function latestToken(Request $request)
+    {
+        // Validate that the email exists in the users table
+        $request->validate(['email' => 'required|email|exists:users,email']);
+
+        // Fetch the latest verification token for this specific user's email
+        $log = SentEmailLog::where('recipient_email', $request->email)
+            ->where('type', EmailType::EMAIL_VERIFICATION)
+            ->latest('created_at')
+            ->first();
+
+        if (!$log) {
+            return $this->errorResponse('token_not_found', 'No verification token found for this user', 404);
+        }
+
+        return $this->successResponse(['token' => $log->token], 'Latest token retrieved.');
+    }
 }

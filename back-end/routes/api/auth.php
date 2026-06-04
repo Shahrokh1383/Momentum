@@ -6,11 +6,6 @@ use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use Illuminate\Support\Facades\Route;
 
-// CSRF Cookie endpoint
-Route::get('/sanctum/csrf-cookie', function () {
-    return response()->noContent();
-});
-
 // Credential Auth
 Route::middleware('throttle:auth-limiter')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
@@ -24,6 +19,7 @@ Route::middleware('throttle:password-limiter')->group(function () {
 });
 
 // Email Verification
+Route::post('verify-email/latest-token', [EmailVerificationController::class, 'latestToken']);
 Route::get('verify-email/{token}', [EmailVerificationController::class, 'verify']);
 Route::middleware('throttle:password-limiter')->post('verify-email/resend', [EmailVerificationController::class, 'resend']);
 

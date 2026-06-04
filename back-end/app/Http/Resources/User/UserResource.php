@@ -18,11 +18,11 @@ class UserResource extends JsonResource
             'email_verified_at' => $this->email_verified_at,
             'profile_visibility' => $this->profile_visibility->value,
             'is_premium' => $this->is_premium,
-            'subscription' => [
-                'plan' => $this->whenLoaded('subscription', $this->subscription?->plan->value),
-                'status' => $this->whenLoaded('subscription', $this->subscription?->status->value),
-                'expires_at' => $this->whenLoaded('subscription', $this->subscription?->expires_at),
-            ],
+            'subscription' => $this->whenLoaded('subscription', fn() => [
+                'plan' => $this->subscription?->plan?->value,
+                'status' => $this->subscription?->status?->value,
+                'expires_at' => $this->subscription?->expires_at,
+            ]),
             'created_at' => $this->created_at,
         ];
     }

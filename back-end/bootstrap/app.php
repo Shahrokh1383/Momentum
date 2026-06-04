@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: 'api/auth',
         then: fn () => [
             Route::middleware('api')
+                ->prefix('api/auth')
+                ->group(base_path('routes/api/auth.php')),
+            Route::middleware('api')
                 ->prefix('api/user')
                 ->group(base_path('routes/api/user.php')),
             Route::middleware('api')

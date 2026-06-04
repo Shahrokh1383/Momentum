@@ -12,30 +12,37 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
     public function register(RegisterRequest $request)
     {
-        $user = User::create($request->validated());
+        // DB::transaction ensures data integrity. If any query fails, all are rolled back.
+        $user = DB::transaction(function () use ($request) {
+            $user = User::create($request->validated());
+
+            // Simulate email verification
+            $token = Str::random(60);
+            SentEmailLog::create([
+                'recipient_email' => $user->email,
+                'subject' => 'Verify Email Address',
+                'body' => "Please verify your email using token: {$token}",
+                'token' => $token,
+                'type' => EmailType::EMAIL_VERIFICATION,
+            ]);
+
+            return $user;
+        });
 
         // Auto-login the user immediately after registration (Crucial for SPA Sanctum)
+        // Kept outside the transaction as it deals with sessions, not DB records (SRP)
         Auth::login($user);
         $request->session()->regenerate();
 
-        // Simulate email verification
-        $token = Str::random(60);
-        SentEmailLog::create([
-            'recipient_email' => $user->email,
-            'subject' => 'Verify Email Address',
-            'body' => "Please verify your email using token: {$token}",
-            'token' => $token,
-            'type' => EmailType::EMAIL_VERIFICATION,
-        ]);
-
         return $this->successResponse(
             new UserResource($user->load('subscription')),
-            'Registration successful. Please verify your email.',
+            'Regeneration successfull. Please verify your email.',
             201
         );
     }

@@ -60,4 +60,9 @@ export const authService = {
     const { data } = await api.post(`/api/auth/oauth/${provider}/callback`, { code });
     return data.data;
   },
+
+  getLatestVerificationToken: async (email: string): Promise<string> => {
+    const { data } = await api.post('/api/auth/verify-email/latest-token', { email });
+    return data.data.token;
+  },
 };

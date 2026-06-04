@@ -67,6 +67,21 @@ export const useAuth = () => {
     },
   });
 
+  const devVerifyEmailMutation = useMutation({
+    mutationFn: async () => {
+      if (!user?.email) throw new Error("User email not found");
+      // 1. Fetch the latest token for the authenticated user
+      const token = await authService.getLatestVerificationToken(user.email);
+      // 2. Verify the email using the fetched token
+      return authService.verifyEmail(token);
+    },
+    onSuccess: () => {
+      // Refetch the current user to update `email_verified_at` in the global state
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      navigate('/dashboard');
+    },
+  });
+
   return {
     user,
     isAuthenticated,
@@ -95,5 +110,8 @@ export const useAuth = () => {
     // Fixed: Added missing resendVerification mutation
     resendVerification: resendVerificationMutation.mutateAsync,
     isResendingVerification: resendVerificationMutation.isPending,
+    devVerifyEmail: devVerifyEmailMutation.mutateAsync,
+    isDevVerifying: devVerifyEmailMutation.isPending,
+    devVerifyError: devVerifyEmailMutation.error,
   };
 };

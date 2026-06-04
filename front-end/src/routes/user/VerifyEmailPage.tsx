@@ -3,7 +3,7 @@ import AuthLayout from '@/components/user/auth/AuthLayout';
 import { useAuth } from '@/hooks/user/useAuth';
 
 const VerifyEmailPage = () => {
-  const { user, resendVerification } = useAuth();
+  const { user, resendVerification, isResendingVerification, devVerifyEmail, isDevVerifying } = useAuth();
   const [message, setMessage] = useState('');
 
   const handleResend = async () => {
@@ -11,6 +11,10 @@ const VerifyEmailPage = () => {
       await resendVerification(user.email);
       setMessage('Verification link has been resent!');
     }
+  };
+
+  const handleDevVerify = async () => {
+    await devVerifyEmail();
   };
 
   return (
@@ -25,8 +29,12 @@ const VerifyEmailPage = () => {
       
       {message && <div className="alert alert-success">{message}</div>}
 
-      <button onClick={handleResend} className="btn btn-momentum mb-3">
-        Resend Verification Email
+      <button onClick={handleDevVerify} disabled={isDevVerifying} className="btn btn-momentum mb-3" style={{width: '100%'}}>
+        {isDevVerifying ? 'Verifying...' : 'Verify Email (Dev)'}
+      </button>
+
+      <button onClick={handleResend} disabled={isResendingVerification} className="btn btn-outline-momentum mb-3" style={{width: '100%'}}>
+        {isResendingVerification ? 'Resending...' : 'Resend Verification Email'}
       </button>
     </AuthLayout>
   );

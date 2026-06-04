@@ -8,5 +8,19 @@ export default defineConfig({
   ],
   resolve: {
     tsconfigPaths: true // Native Vite support for tsconfig paths
+  },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/sanctum': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   }
 })
