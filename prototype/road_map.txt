@@ -1,9 +1,13 @@
 .
-index.html
+
 road.py
+road_map.txt
+verify-email.html
 assets
 assets\assets
 assets\assets\icon.jpg
 assets\assets\logo.jpg
 assets\css
+
 assets\js
+
