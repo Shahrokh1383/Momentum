@@ -1,6 +1,5 @@
-/* assets/css/auth.css */
+/* assets/css/auth.css – Responsive Version */
 
-/* assets/css/auth.css – new wrapper */
 .auth-page {
   display: flex;
   align-items: center;
@@ -300,4 +299,138 @@
 
 .custom-checkbox:focus {
   box-shadow: 0 0 0 4px var(--input-focus-ring) !important;
+}
+
+/* =========================================
+   RESPONSIVE DESIGN – MOBILE FIRST
+   ========================================= */
+
+/* ---------- Mobile (max-width: 575.98px) ---------- */
+@media (max-width: 575.98px) {
+  .auth-page {
+    width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+  }
+
+  .auth-container {
+    max-width: 100%;
+    padding: 2rem 1.25rem;
+    border-radius: 0;          /* optional, remove if you want full-width card */
+  }
+
+  .auth-container::before {
+    display: none;            /* disable shine on small screens for performance */
+  }
+
+  .auth-logo {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 1rem;
+  }
+
+  .auth-title {
+    font-size: 1.5rem;
+  }
+
+  .auth-subtitle {
+    font-size: 0.9rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .form-floating > .form-control {
+    height: 50px;
+    font-size: 0.9rem;
+  }
+
+  .form-floating > label {
+    font-size: 0.85rem;
+  }
+
+  .btn-momentum {
+    font-size: 0.95rem;
+    padding: 0.8rem;
+  }
+
+  .btn-oauth {
+    font-size: 0.9rem;
+    padding: 0.7rem;
+  }
+
+  .oauth-divider {
+    font-size: 0.8rem;
+    margin: 1.5rem 0 1.25rem;
+  }
+
+  .oauth-divider span {
+    padding: 0 0.75rem;
+  }
+
+  .password-toggle-btn {
+    right: 0.75rem;
+    padding: 0.4rem;
+  }
+
+  .dev-note {
+    font-size: 0.8rem;
+    padding: 0.75rem;
+  }
+
+  .verify-icon-wrapper {
+    width: 70px;
+    height: 70px;
+  }
+
+  .verify-icon-wrapper i {
+    font-size: 2rem;
+  }
+}
+
+/* ---------- Tablet (576px – 991.98px) ---------- */
+@media (min-width: 576px) and (max-width: 991.98px) {
+  .auth-page {
+    width: 100%;
+    max-width: 540px;         /* slightly wider than mobile but still centered */
+    padding: 1.5rem;
+  }
+
+  .auth-container {
+    padding: 2.5rem 2rem;
+  }
+
+  .auth-logo {
+    width: 64px;
+    height: 64px;
+  }
+
+  .auth-title {
+    font-size: 1.7rem;
+  }
+
+  .auth-subtitle {
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+  }
+
+  .form-floating > .form-control {
+    height: 54px;
+  }
+
+  .btn-momentum {
+    font-size: 1rem;
+    padding: 0.85rem;
+  }
+}
+
+/* ---------- Desktop (≥ 992px) – optional refinements ---------- */
+@media (min-width: 992px) {
+  .auth-page {
+    width: 500px;             /* original desktop width */
+  }
+
+  .auth-container {
+    padding: 3rem 2.5rem;
+  }
+
+  /* everything else stays as the base, no changes needed */
 }
