@@ -9,7 +9,7 @@ interface AuthLayoutProps {
 
 const AuthLayout = ({ title, subtitle, children }: AuthLayoutProps) => {
   return (
-    <>
+    <div className="auth-page">
       <ThemeToggle />
       <div className="auth-container glass-panel">
         <div className="text-center">
@@ -19,7 +19,7 @@ const AuthLayout = ({ title, subtitle, children }: AuthLayoutProps) => {
         </div>
         {children}
       </div>
-    </>
+    </div>
   );
 };
 

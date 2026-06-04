@@ -16,7 +16,7 @@ public\assets\icon.jpg
 public\assets\logo.jpg
 src
 src\App.tsx
-src\main.jsx
+src\main.tsx
 src\vite-env.d.ts
 src\components
 src\components\ProtectedRoute.tsx

@@ -36,7 +36,9 @@ const LoginPage = () => {
           <div className="invalid-feedback">{errors.email?.message}</div>
         </div>
         
-        <PasswordInput id="password" label="Password" registration={register('password')} />
+        <div className="mb-4">
+          <PasswordInput id="password" label="Password" registration={register('password')} />
+        </div>
         {errors.password && <div className="text-danger mb-3" style={{fontSize: '0.875rem', marginTop: '-0.5rem'}}>{errors.password.message}</div>}
 
         <div className="d-flex justify-content-between align-items-center mb-4">

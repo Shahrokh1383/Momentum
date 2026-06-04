@@ -1,5 +1,12 @@
 /* assets/css/auth.css */
 
+/* assets/css/auth.css – new wrapper */
+.auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 500px;
+}
 .auth-container {
   width: 100%;
   max-width: 460px;
