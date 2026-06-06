@@ -36,18 +36,27 @@ class OAuthController extends Controller
             return $this->errorResponse('oauth_failed', 'Could not authenticate with ' . $provider, 401);
         }
 
-        $user = User::updateOrCreate(
-            [
+        // Search by email to prevent duplicate entry constraints if user registered via email/password first
+        $user = User::where('email', $socialUser->getEmail())->first();
+
+        if ($user) {
+            // Update existing user, linking their OAuth provider
+            $user->update([
                 'provider' => $provider,
                 'provider_id' => $socialUser->getId(),
-            ],
-            [
+                'avatar' => $user->avatar ?? $socialUser->getAvatar(),
+            ]);
+        } else {
+            // Create brand new user
+            $user = User::create([
                 'name' => $socialUser->getName() ?? $socialUser->getNickname(),
                 'email' => $socialUser->getEmail(),
+                'provider' => $provider,
+                'provider_id' => $socialUser->getId(),
                 'avatar' => $socialUser->getAvatar(),
-                'email_verified_at' => now(), // Trust the OAuth provider's email verification
-            ]
-        );
+                'email_verified_at' => now(), 
+            ]);
+        }
 
         Auth::login($user);
         $request->session()->regenerate();

@@ -40,9 +40,10 @@
     "back-end\\app\\road_map.txt",
     "back-end\\app\\road.py",
     "back-end\\bootstrap\\cache",
-    "back-end\\config",
-    "front-end\\public"
+    "front-end\\public",
+    "roadmap.txt",
+    "content.txt"
   ],
-  "lastModified": "2026-06-06T12:01:16.970Z",
+  "lastModified": "2026-06-06T14:03:10.251Z",
   "version": 1
 }
