@@ -42,8 +42,9 @@
     "back-end\\bootstrap\\cache",
     "front-end\\public",
     "roadmap.txt",
-    "content.txt"
+    "content.txt",
+    "back-end\\config"
   ],
-  "lastModified": "2026-06-06T14:03:10.251Z",
+  "lastModified": "2026-06-06T16:35:38.477Z",
   "version": 1
 }

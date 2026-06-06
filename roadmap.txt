@@ -1,4 +1,3 @@
-PROJECT STRUCTURE
 
 📁 back-end/
 ├── 📁 app/
@@ -24,6 +23,9 @@ PROJECT STRUCTURE
 │   │   │   │   ├── 📄 OAuthController.php
 │   │   │   │   └── 📄 PasswordResetController.php
 │   │   │   ├── 📁 User/
+│   │   │   │   └── 📁 Subscription/
+│   │   │   │       ├── 📄 PlansController.php
+│   │   │   │       └── 📄 SubscriptionController.php
 │   │   │   └── 📄 Controller.php
 │   │   ├── 📁 middleware/
 │   │   │   ├── 📄 EnsurePremium.php
@@ -37,10 +39,16 @@ PROJECT STRUCTURE
 │   │   │   │   ├── 📄 RegisterRequest.php
 │   │   │   │   └── 📄 ResetPasswordRequest.php
 │   │   │   └── 📁 User/
+│   │   │       └── 📁 Subscription/
+│   │   │           └── 📄 UpgradeSubscriptionRequest.php
 │   │   └── 📁 Resources/
 │   │       ├── 📁 Admin/
 │   │       └── 📁 User/
+│   │           ├── 📄 PlanResource.php
+│   │           ├── 📄 SubscriptionResource.php
 │   │           └── 📄 UserResource.php
+│   ├── 📁 Jobs/
+│   │   └── 📄 ProcessSimulatedPayment.php
 │   ├── 📁 Models/
 │   │   ├── 📄 Plan.php
 │   │   ├── 📄 SentEmailLog.php
@@ -55,25 +63,15 @@ PROJECT STRUCTURE
 │   │   ├── 📁 Auth/
 │   │   │   └── 📄 OAuthService.php
 │   │   └── 📁 User/
+│   │       └── 📁 Subscription/
+│   │           ├── 📄 PlanQuotaService.php
+│   │           ├── 📄 SimulatedPaymentService.php
+│   │           └── 📄 SubscriptionService.php
 │   └── 📁 Traits/
 │       └── 📄 HasApiResponse.php
 ├── 📁 bootstrap/
 │   ├── 📄 app.php
 │   └── 📄 providers.php
-├── 📁 config/
-│   ├── 📄 app.php
-│   ├── 📄 auth.php
-│   ├── 📄 cache.php
-│   ├── 📄 cors.php
-│   ├── 📄 database.php
-│   ├── 📄 filesystems.php
-│   ├── 📄 logging.php
-│   ├── 📄 mail.php
-│   ├── 📄 momentum.php
-│   ├── 📄 queue.php
-│   ├── 📄 sanctum.php
-│   ├── 📄 services.php
-│   └── 📄 session.php
 ├── 📁 database/
 │   └── 📁 migrations/
 │       ├── 📄 0001_01_01_000000_create_users_table.php
@@ -139,5 +137,3 @@ PROJECT STRUCTURE
 │   ├── 📄 App.tsx
 │   └── 📄 main.tsx
 └── 📄 index.html
-
-END OF ROADMAP

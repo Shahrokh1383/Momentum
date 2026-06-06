@@ -19,4 +19,6 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
         Route::post('/upgrade', [SubscriptionController::class, 'upgrade']);
         Route::delete('/', [SubscriptionController::class, 'cancel']);
     });
+
+    Route::middleware('premium')->get('premium-test', fn () => response()->json(['secret' => 'premium-data']));
 });
