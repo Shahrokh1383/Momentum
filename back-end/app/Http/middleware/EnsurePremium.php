@@ -15,6 +15,7 @@ class EnsurePremium
 
         if (! $user || ! $user->subscription?->isActive() || $user->subscription->plan === PlanSlug::FREE) {
             return response()->json([
+                'success' => false,
                 'error' => 'subscription_required',
                 'message' => 'Premium subscription required.',
             ], 403);

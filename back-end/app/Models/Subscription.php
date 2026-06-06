@@ -44,4 +44,9 @@ class Subscription extends Model
         return $this->status === SubscriptionStatus::ACTIVE 
             && ($this->expires_at === null || $this->expires_at->isFuture());
     }
+
+    public function planDetails()
+    {
+        return $this->belongsTo(Plan::class, 'plan', 'slug');
+    }
 }

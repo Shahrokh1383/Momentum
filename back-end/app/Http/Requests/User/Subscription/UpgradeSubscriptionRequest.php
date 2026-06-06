@@ -1,0 +1,28 @@
+<?php
+
+namespace App\Http\Requests\User\Subscription;
+
+use App\Enums\PlanSlug;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class UpgradeSubscriptionRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'plan_slug' => ['required', 'string', Rule::enum(PlanSlug::class)],
+            'payment_method' => ['nullable', 'string', 'in:simulated,card,paypal'],
+        ];
+    }
+
+    public function plan(): PlanSlug
+    {
+        return PlanSlug::from($this->validated('plan_slug'));
+    }
+}
