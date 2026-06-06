@@ -13,10 +13,8 @@ Route::middleware('throttle:auth-limiter')->group(function () {
 });
 
 // Password Reset
-Route::middleware('throttle:password-limiter')->group(function () {
-    Route::post('forgot-password', [PasswordResetController::class, 'forgot']);
-    Route::post('reset-password', [PasswordResetController::class, 'reset']);
-});
+Route::middleware('throttle:password-limiter')->post('forgot-password', [PasswordResetController::class, 'forgot']);
+Route::middleware('throttle:reset-limiter')->post('reset-password', [PasswordResetController::class, 'reset']);
 
 // Email Verification
 Route::post('verify-email/latest-token', [EmailVerificationController::class, 'latestToken']);

@@ -8,8 +8,8 @@ import { useAuth } from '@/hooks/user/useAuth';
 import { useSearchParams, Link } from 'react-router-dom';
 
 const resetSchema = z.object({
-  token: z.string().min(1, 'Token is missing'),
-  email: z.string().email('Invalid email address'),
+  token: z.string().min(1, 'Token is missing from URL'),
+  email: z.string().email('Valid email is missing from URL'),
   password: z.string()
     .min(8, 'Must be at least 8 characters')
     .regex(/[a-z]/, 'Must contain a lowercase letter')
@@ -27,11 +27,15 @@ type ResetFormData = z.infer<typeof resetSchema>;
 const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
   const { resetPassword, isResetPasswordLoading } = useAuth();
+  
+  const tokenFromUrl = searchParams.get('token');
+  const emailFromUrl = searchParams.get('email');
+
   const { register, handleSubmit, watch, formState: { errors } } = useForm<ResetFormData>({
     resolver: zodResolver(resetSchema),
     defaultValues: {
-      token: searchParams.get('token') || '',
-      email: searchParams.get('email') || '',
+      token: tokenFromUrl || '',
+      email: emailFromUrl || '',
     }
   });
 
@@ -41,15 +45,33 @@ const ResetPasswordPage = () => {
     await resetPassword(data);
   };
 
+  // Production UX - Do not render the form if the URL is invalid
+  if (!tokenFromUrl || !emailFromUrl) {
+    return (
+      <AuthLayout title="Invalid Link" subtitle="The password reset link is invalid or missing required parameters.">
+        <div className="alert alert-danger mb-3">
+          Please ensure you clicked the correct link from your email.
+        </div>
+        <div className="text-center mt-3">
+          <Link to="/forgot-password"><i className="fas fa-arrow-left me-1"></i> Request a new link</Link>
+        </div>
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout title="Set New Password" subtitle="Create a strong password to secure your account.">
       <form className="auth-form" noValidate onSubmit={handleSubmit(onSubmit)}>
         <input type="hidden" {...register('token')} />
-        <div className="form-floating mb-3">
-          <input type="email" className={`form-control ${errors.email ? 'is-invalid' : ''}`} id="email" placeholder="name@example.com" {...register('email')} />
-          <label htmlFor="email">Email address</label>
-          <div className="invalid-feedback">{errors.email?.message}</div>
-        </div>
+        <input type="hidden" {...register('email')} />
+
+        {/* Visible alert for any hidden field validation anomalies */}
+        {(errors.token || errors.email) && (
+          <div className="alert alert-danger mb-3">
+            {errors.token?.message && <div>{errors.token.message}</div>}
+            {errors.email?.message && <div>{errors.email.message}</div>}
+          </div>
+        )}
 
         <PasswordInput id="password" label="New Password" registration={register('password')} />
         <PasswordStrengthMeter password={password} />

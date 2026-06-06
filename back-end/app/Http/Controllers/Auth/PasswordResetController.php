@@ -16,10 +16,17 @@ class PasswordResetController extends Controller
     {
         $token = Str::random(60);
 
+        // Generate a production-ready frontend URL with proper query parameters
+        $frontendUrl = config('app.frontend_url', 'http://localhost:5173');
+        $resetUrl = $frontendUrl . '/reset-password?' . http_build_query([
+            'token' => $token,
+            'email' => $request->email,
+        ]);
+
         SentEmailLog::create([
             'recipient_email' => $request->email,
             'subject' => 'Reset Password Notification',
-            'body' => "You are receiving this email because we received a password reset request for your account. Reset token: {$token}",
+            'body' => "You are receiving this email because we received a password reset request for your account. Click the link to reset your password: {$resetUrl}",
             'token' => $token,
             'type' => EmailType::PASSWORD_RESET,
         ]);

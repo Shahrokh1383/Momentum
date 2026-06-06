@@ -3,17 +3,13 @@ import { User, LoginPayload, RegisterPayload, ResetPasswordPayload } from '@/typ
 
 export const authService = {
   login: async (payload: LoginPayload): Promise<User> => {
-    // SRP: Fetch CSRF explicitly before the authentication attempt
     await api.get('/sanctum/csrf-cookie');
-    
     const { data } = await api.post('/api/auth/login', payload);
     return data.data;
   },
 
   register: async (payload: RegisterPayload): Promise<User> => {
-    // Also needed for registration if your endpoint is protected by CSRF
     await api.get('/sanctum/csrf-cookie');
-    
     const { data } = await api.post('/api/auth/register', payload);
     return data.data;
   },
@@ -28,18 +24,19 @@ export const authService = {
       return data.data;
     } catch (error: any) {
       if (error.response?.status === 401) {
-        // Not authenticated → treat as “no user”
         return null;
       }
-      throw error; // re-throw other errors
+      throw error;
     }
   },
 
   forgotPassword: async (email: string): Promise<void> => {
+    await api.get('/sanctum/csrf-cookie');
     await api.post('/api/auth/forgot-password', { email });
   },
 
   resetPassword: async (payload: ResetPasswordPayload): Promise<void> => {
+    await api.get('/sanctum/csrf-cookie');
     await api.post('/api/auth/reset-password', payload);
   },
 
@@ -48,6 +45,7 @@ export const authService = {
   },
 
   resendVerification: async (email: string): Promise<void> => {
+    await api.get('/sanctum/csrf-cookie');
     await api.post('/api/auth/verify-email/resend', { email });
   },
 
