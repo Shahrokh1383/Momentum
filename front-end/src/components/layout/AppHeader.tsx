@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/user/useAuth';
 import PremiumBadge from '@/components/user/subscription/PremiumBadge';
+import InstallPWA from '@/components/user/pwa/InstallPWA';
 
 const AppHeader: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -26,6 +27,7 @@ const AppHeader: React.FC = () => {
         <div className="app-header__actions">
           {isAuthenticated && user ? (
             <>
+              <InstallPWA />
               <PremiumBadge planSlug={user.subscription?.plan} />
               <div className="app-header__user">
                 <img 
@@ -41,6 +43,7 @@ const AppHeader: React.FC = () => {
             </>
           ) : (
             <div className="app-header__auth">
+              <InstallPWA />
               <Link to="/login" className="app-header__link">Sign In</Link>
               <Link to="/register" className="btn btn-sm btn-momentum">Get Started</Link>
             </div>

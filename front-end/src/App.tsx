@@ -12,6 +12,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import '@/styles/app.css';
 import '@/styles/auth.css';
 import '@/styles/subscription.css';
+import '@/styles/pwa.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
