@@ -1,0 +1,816 @@
+/* =========================================
+   PLANS PAGE
+   ========================================= */
+
+.plans-page {
+  min-height: calc(100vh - 70px);
+  padding: 3rem 1rem;
+  background: var(--bg-main, #f8f9fa);
+}
+
+[data-theme="dark"] .plans-page {
+  background: var(--bg-main, #0f172a);
+}
+
+.plans-page__container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.plans-page__header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.plans-page__title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: var(--text-main, #1a1a2e);
+}
+
+.plans-page__subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted, #6c757d);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.plans-page__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 1rem;
+}
+
+/* =========================================
+   SUBSCRIPTION STATUS BANNER
+   ========================================= */
+
+.subscription-banner {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 16px;
+  margin-bottom: 2.5rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid;
+  animation: slideUpFade 0.5s ease forwards;
+}
+
+.subscription-banner--none {
+  background: var(--glass-bg, rgba(255, 255, 255, 0.6));
+  border-color: var(--glass-border, rgba(255, 255, 255, 0.3));
+}
+
+.subscription-banner--active {
+  background: linear-gradient(135deg, rgba(17, 153, 142, 0.1), rgba(56, 239, 125, 0.1));
+  border-color: rgba(17, 153, 142, 0.3);
+}
+
+.subscription-banner--inactive {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.05), rgba(255, 193, 7, 0.05));
+  border-color: rgba(220, 53, 69, 0.2);
+}
+
+.subscription-banner--loading {
+  background: var(--glass-bg, rgba(255, 255, 255, 0.6));
+  border-color: var(--glass-border, rgba(255, 255, 255, 0.3));
+}
+
+.subscription-banner__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--gradient-btn, linear-gradient(135deg, #11998e, #38ef7d));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.subscription-banner__content {
+  flex: 1;
+}
+
+.subscription-banner__content h4 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--text-main, #1a1a2e);
+}
+
+.subscription-banner__content p {
+  font-size: 0.95rem;
+  color: var(--text-muted, #6c757d);
+  margin-bottom: 0;
+}
+
+.subscription-banner__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.subscription-banner__ref {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--text-muted, #6c757d);
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.subscription-banner__cancel {
+  margin-top: 1rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: 8px;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  background: transparent;
+  color: #dc3545;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.subscription-banner__cancel:hover:not(:disabled) {
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.subscription-banner__cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =========================================
+   PLANS GRID
+   ========================================= */
+
+.plans-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
+}
+
+/* =========================================
+   PLAN CARD
+   ========================================= */
+
+.plan-card {
+  background: var(--glass-bg, rgba(255, 255, 255, 0.7));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.3));
+  border-radius: 20px;
+  padding: 2rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.plan-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px var(--glass-shadow, rgba(0, 0, 0, 0.08));
+  border-color: var(--primary, #11998e);
+}
+
+.plan-card--featured {
+  border: 2px solid var(--primary, #11998e);
+  box-shadow: 0 8px 32px rgba(17, 153, 142, 0.15);
+}
+
+.plan-card--featured::before {
+  content: 'Most Popular';
+  position: absolute;
+  top: 12px;
+  right: -28px;
+  background: var(--gradient-btn, linear-gradient(135deg, #11998e, #38ef7d));
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 2rem;
+  transform: rotate(45deg);
+  box-shadow: 0 2px 8px rgba(17, 153, 142, 0.3);
+}
+
+.plan-card--current {
+  border-color: var(--primary, #11998e);
+  background: linear-gradient(135deg, rgba(17, 153, 142, 0.05), rgba(56, 239, 125, 0.05));
+}
+
+.plan-card__header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--input-border, rgba(0, 0, 0, 0.1));
+}
+
+.plan-card__name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--text-main, #1a1a2e);
+}
+
+.plan-card__price {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--primary, #11998e);
+  line-height: 1;
+}
+
+.plan-card__limits {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.plan-card__limit-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--input-border, rgba(0, 0, 0, 0.05));
+}
+
+.plan-card__limit-label {
+  color: var(--text-muted, #6c757d);
+}
+
+.plan-card__limit-value {
+  font-weight: 600;
+  color: var(--text-main, #1a1a2e);
+}
+
+.plan-card__features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.plan-card__feature-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-muted, #6c757d);
+}
+
+.plan-card__feature-item--active {
+  color: var(--text-main, #1a1a2e);
+}
+
+.plan-card__feature-item--active i {
+  color: var(--primary, #11998e);
+  width: 20px;
+  text-align: center;
+}
+
+.plan-card__feature-item--inactive i {
+  color: var(--text-muted, #6c757d);
+  opacity: 0.5;
+  width: 20px;
+  text-align: center;
+}
+
+.plan-card__cta {
+  margin-top: auto;
+  width: 100%;
+  padding: 0.9rem;
+  border-radius: 12px;
+  border: none;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--gradient-btn, linear-gradient(135deg, #11998e, #38ef7d));
+  color: white;
+  box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+}
+
+.plan-card__cta:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+}
+
+.plan-card__cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.plan-card__cta--current {
+  background: var(--input-bg, #e9ecef);
+  color: var(--text-muted, #6c757d);
+  box-shadow: none;
+}
+
+.plan-card__cta--current:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* =========================================
+   PAYMENT MODAL
+   ========================================= */
+
+.payment-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.payment-modal__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+.payment-modal__content {
+  position: relative;
+  background: var(--glass-bg, rgba(255, 255, 255, 0.9));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.4));
+  border-radius: 24px;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 480px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.15);
+  animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.payment-modal__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  color: var(--text-main, #1a1a2e);
+}
+
+.payment-modal__subtitle {
+  text-align: center;
+  color: var(--text-muted, #6c757d);
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+}
+
+.payment-modal__subtitle strong {
+  color: var(--primary, #11998e);
+}
+
+.payment-modal__details {
+  background: var(--input-bg, rgba(0, 0, 0, 0.03));
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.payment-modal__detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  font-size: 0.95rem;
+  border-bottom: 1px solid var(--input-border, rgba(0, 0, 0, 0.05));
+}
+
+.payment-modal__detail-row:last-child {
+  border-bottom: none;
+}
+
+.payment-modal__detail-row span:first-child {
+  color: var(--text-muted, #6c757d);
+}
+
+.payment-modal__detail-row span:last-child {
+  font-weight: 600;
+  color: var(--text-main, #1a1a2e);
+}
+
+.payment-modal__actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.payment-modal__actions .btn {
+  flex: 1;
+  padding: 0.9rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary {
+  background: var(--input-bg, #e9ecef);
+  color: var(--text-main, #1a1a2e);
+}
+
+.btn-secondary:hover {
+  background: var(--input-border, #dee2e6);
+}
+
+/* Processing State */
+
+.payment-modal__processing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 0;
+}
+
+.countdown-ring {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin-bottom: 1.5rem;
+}
+
+.countdown-ring__svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.countdown-ring__bg {
+  fill: none;
+  stroke: var(--input-border, #e9ecef);
+  stroke-width: 4;
+}
+
+.countdown-ring__progress {
+  fill: none;
+  stroke: var(--primary, #11998e);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.countdown-ring__text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary, #11998e);
+}
+
+.payment-modal__processing-text {
+  font-size: 1.1rem;
+  color: var(--text-muted, #6c757d);
+  animation: pulse 1.5s infinite;
+}
+
+/* Success State */
+
+.payment-modal__success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 0;
+  animation: slideUpFade 0.4s ease forwards;
+}
+
+.payment-success__icon {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 1.5rem;
+}
+
+.payment-success__circle {
+  stroke: var(--primary, #11998e);
+  stroke-width: 3;
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.payment-success__check {
+  stroke: var(--primary, #11998e);
+  stroke-width: 3;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+}
+
+@keyframes stroke {
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* =========================================
+   PREMIUM BADGE
+   ========================================= */
+
+.premium-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.premium-badge--free {
+  background: var(--input-bg, #e9ecef);
+  color: var(--text-muted, #6c757d);
+}
+
+.premium-badge--premium {
+  background: linear-gradient(135deg, rgba(17, 153, 142, 0.15), rgba(56, 239, 125, 0.15));
+  color: var(--primary, #11998e);
+  border: 1px solid rgba(17, 153, 142, 0.3);
+}
+
+.premium-badge--lifetime {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 160, 0, 0.15));
+  color: #d97706;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+/* =========================================
+   APP HEADER
+   ========================================= */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--glass-bg, rgba(255, 255, 255, 0.8));
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.3));
+}
+
+.app-header__container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-header__logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: var(--text-main, #1a1a2e);
+}
+
+.app-header__logo-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.app-header__logo-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.app-header__nav {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.app-header__link {
+  color: var(--text-muted, #6c757d);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.app-header__link:hover {
+  color: var(--primary, #11998e);
+}
+
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.app-header__user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.app-header__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--glass-border, rgba(255, 255, 255, 0.5));
+}
+
+.app-header__username {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main, #1a1a2e);
+}
+
+.app-header__logout {
+  background: none;
+  border: none;
+  color: var(--text-muted, #6c757d);
+  cursor: pointer;
+  padding: 0.5rem;
+  font-size: 1rem;
+  transition: color 0.3s ease;
+}
+
+.app-header__logout:hover {
+  color: #dc3545;
+}
+
+.app-header__auth {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.app-header__mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: var(--text-main, #1a1a2e);
+  cursor: pointer;
+}
+
+/* =========================================
+   DASHBOARD LAYOUT
+   ========================================= */
+
+.dashboard-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-layout__main {
+  flex: 1;
+}
+
+/* =========================================
+   ANIMATIONS
+   ========================================= */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* =========================================
+   RESPONSIVE DESIGN
+   ========================================= */
+
+/* Tablet */
+@media (min-width: 768px) {
+  .plans-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .plan-card--lifetime {
+    grid-column: span 2;
+    max-width: 50%;
+    margin: 0 auto;
+  }
+}
+
+/* Desktop */
+@media (min-width: 992px) {
+  .plans-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .plan-card--lifetime {
+    grid-column: span 1;
+    max-width: none;
+    margin: 0;
+  }
+
+  .plan-card--featured {
+    transform: translateY(-12px);
+  }
+
+  .plans-page {
+    padding: 4rem 2rem;
+  }
+
+  .plans-page__title {
+    font-size: 2.75rem;
+  }
+}
+
+/* Mobile */
+@media (max-width: 767.98px) {
+  .app-header__nav,
+  .app-header__username {
+    display: none;
+  }
+
+  .app-header__mobile-toggle {
+    display: block;
+  }
+
+  .app-header__container {
+    padding: 0 1rem;
+  }
+
+  .plans-page {
+    padding: 2rem 1rem;
+  }
+
+  .plans-page__title {
+    font-size: 1.75rem;
+  }
+
+  .plan-card {
+    padding: 1.5rem;
+  }
+
+  .plan-card__price {
+    font-size: 1.75rem;
+  }
+
+  .payment-modal__content {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+
+  .subscription-banner {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+  }
+
+  .subscription-banner__header {
+    justify-content: center;
+  }
+}
+
+/* Small Mobile */
+@media (max-width: 575.98px) {
+  .plans-page__title {
+    font-size: 1.5rem;
+  }
+
+  .plans-page__subtitle {
+    font-size: 0.95rem;
+  }
+
+  .plan-card__name {
+    font-size: 1.25rem;
+  }
+
+  .plan-card__cta {
+    font-size: 0.95rem;
+    padding: 0.8rem;
+  }
+
+  .app-header__logo-text {
+    font-size: 1.1rem;
+  }
+
+  .app-header__logo-img {
+    width: 32px;
+    height: 32px;
+  }
+}

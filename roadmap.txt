@@ -1,4 +1,5 @@
 
+
 📁 back-end/
 ├── 📁 app/
 │   ├── 📁 Console/
@@ -94,13 +95,21 @@
 ├── 📁 src/
 │   ├── 📁 components/
 │   │   ├── 📁 admin/
+│   │   ├── 📁 layout/
+│   │   │   ├── 📄 AppHeader.tsx
+│   │   │   └── 📄 DashboardLayout.tsx
 │   │   ├── 📁 user/
-│   │   │   └── 📁 auth/
-│   │   │       ├── 📄 AuthLayout.tsx
-│   │   │       ├── 📄 OAuthButtons.tsx
-│   │   │       ├── 📄 PasswordInput.tsx
-│   │   │       ├── 📄 PasswordStrengthMeter.tsx
-│   │   │       └── 📄 ThemeToggle.tsx
+│   │   │   ├── 📁 auth/
+│   │   │   │   ├── 📄 AuthLayout.tsx
+│   │   │   │   ├── 📄 OAuthButtons.tsx
+│   │   │   │   ├── 📄 PasswordInput.tsx
+│   │   │   │   ├── 📄 PasswordStrengthMeter.tsx
+│   │   │   │   └── 📄 ThemeToggle.tsx
+│   │   │   └── 📁 subscription/
+│   │   │       ├── 📄 PaymentModal.tsx
+│   │   │       ├── 📄 PlanCard.tsx
+│   │   │       ├── 📄 PremiumBadge.tsx
+│   │   │       └── 📄 SubscriptionStatusBanner.tsx
 │   │   └── 📄 ProtectedRoute.tsx
 │   ├── 📁 context/
 │   │   ├── 📁 admin/
@@ -109,27 +118,31 @@
 │   ├── 📁 hooks/
 │   │   ├── 📁 admin/
 │   │   └── 📁 user/
-│   │       └── 📄 useAuth.ts
+│   │       ├── 📄 useAuth.ts
+│   │       └── 📄 useSubscription.ts
 │   ├── 📁 routes/
 │   │   ├── 📁 admin/
 │   │   └── 📁 user/
 │   │       ├── 📄 ForgotPasswordPage.tsx
 │   │       ├── 📄 LoginPage.tsx
 │   │       ├── 📄 OAuthCallbackPage.tsx
+│   │       ├── 📄 PlansPage.tsx
 │   │       ├── 📄 RegisterPage.tsx
 │   │       ├── 📄 ResetPasswordPage.tsx
 │   │       └── 📄 VerifyEmailPage.tsx
 │   ├── 📁 services/
 │   │   ├── 📁 admin/
 │   │   ├── 📁 user/
-│   │   │   └── 📄 authService.ts
+│   │   │   ├── 📄 authService.ts
+│   │   │   └── 📄 subscriptionService.ts
 │   │   └── 📄 api.ts
 │   ├── 📁 styles/
 │   │   ├── 📁 admin/
-│   │   ├── 📁 user/
 │   │   ├── 📄 app.css
-│   │   └── 📄 auth.css
+│   │   ├── 📄 auth.css
+│   │   └── 📄 subscription.css
 │   ├── 📁 types/
+│   │   ├── 📄 subscription.ts
 │   │   └── 📄 user.ts
 │   ├── 📁 utils/
 │   │   ├── 📁 admin/

@@ -6,9 +6,12 @@ import ForgotPasswordPage from '@/routes/user/ForgotPasswordPage';
 import ResetPasswordPage from '@/routes/user/ResetPasswordPage';
 import VerifyEmailPage from '@/routes/user/VerifyEmailPage';
 import OAuthCallbackPage from '@/routes/user/OAuthCallbackPage';
+import PlansPage from '@/routes/user/PlansPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 import '@/styles/app.css';
 import '@/styles/auth.css';
+import '@/styles/subscription.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,7 +27,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          {/* Root Redirect - Fixes the blank screen issue */}
+          {/* Root Redirect */}
           <Route path="/" element={<Navigate to="/login" replace />} />
 
           {/* Public Auth Routes */}
@@ -35,11 +38,14 @@ function App() {
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/auth/callback/:provider" element={<OAuthCallbackPage />} />
           
-          {/* Protected Routes Placeholder */}
-          <Route 
-            path="/dashboard" 
-            element={<ProtectedRoute><div>Dashboard Coming Soon</div></ProtectedRoute>} 
-          />
+          {/* App Routes with Dashboard Layout */}
+          <Route element={<DashboardLayout />}>
+            <Route path="/plans" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
+            <Route 
+              path="/dashboard" 
+              element={<ProtectedRoute><div>Dashboard Coming Soon</div></ProtectedRoute>} 
+            />
+          </Route>
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
