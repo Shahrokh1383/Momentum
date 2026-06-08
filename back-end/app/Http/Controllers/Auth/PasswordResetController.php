@@ -2,53 +2,52 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Enums\EmailType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
-use App\Models\SentEmailLog;
-use App\Models\User;
-use Illuminate\Support\Str;
+use App\Services\Auth\PasswordResetService;
+use Illuminate\Http\JsonResponse;
 
 class PasswordResetController extends Controller
 {
-    public function forgot(ForgotPasswordRequest $request)
+    public function __construct(
+        private readonly PasswordResetService $passwordResetService
+    ) {}
+
+    /**
+     * Send password reset email.
+     * Always returns a generic success message to prevent email enumeration attacks.
+     */
+    public function forgot(ForgotPasswordRequest $request): JsonResponse
     {
-        $token = Str::random(60);
+        // The service handles token generation, persistence, and email dispatch (SRP)
+        $this->passwordResetService->sendResetEmail($request->email);
 
-        // Generate a production-ready frontend URL with proper query parameters
-        $frontendUrl = config('app.frontend_url', 'http://localhost:5173');
-        $resetUrl = $frontendUrl . '/reset-password?' . http_build_query([
-            'token' => $token,
-            'email' => $request->email,
-        ]);
-
-        SentEmailLog::create([
-            'recipient_email' => $request->email,
-            'subject' => 'Reset Password Notification',
-            'body' => "You are receiving this email because we received a password reset request for your account. Click the link to reset your password: {$resetUrl}",
-            'token' => $token,
-            'type' => EmailType::PASSWORD_RESET,
-        ]);
-
-        return $this->successResponse(null, 'If the email exists, reset instructions have been sent.');
+        return $this->successResponse(
+            null,
+            'If an account with that email exists, a password reset link has been sent.'
+        );
     }
 
-    public function reset(ResetPasswordRequest $request)
+    /**
+     * Reset the user's password using a valid token.
+     */
+    public function reset(ResetPasswordRequest $request): JsonResponse
     {
-        $log = SentEmailLog::where('token', $request->token)
-            ->where('type', EmailType::PASSWORD_RESET)
-            ->where('recipient_email', $request->email)
-            ->first();
+        $success = $this->passwordResetService->resetPassword(
+            $request->token,
+            $request->email,
+            $request->password
+        );
 
-        if (!$log) {
-            return $this->errorResponse('invalid_token', 'Invalid or expired reset token', 400);
+        if (!$success) {
+            return $this->errorResponse(
+                'invalid_token',
+                'The password reset link is invalid or has expired. Please request a new one.',
+                422
+            );
         }
 
-        $user = User::where('email', $request->email)->first();
-        $user->update(['password' => $request->password]);
-        $log->delete();
-
-        return $this->successResponse(null, 'Password reset successfully.');
+        return $this->successResponse(null, 'Password reset successfully. You can now log in with your new password.');
     }
 }

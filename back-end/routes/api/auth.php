@@ -6,21 +6,28 @@ use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use Illuminate\Support\Facades\Route;
 
-// Credential Auth
+// ─── Credential Auth ──────────────────────────────────────────────────────────
 Route::middleware('throttle:auth-limiter')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
-    Route::post('login', [AuthController::class, 'login']);
+    Route::post('login',    [AuthController::class, 'login']);
 });
 
-// Password Reset
-Route::middleware('throttle:password-limiter')->post('forgot-password', [PasswordResetController::class, 'forgot']);
-Route::middleware('throttle:reset-limiter')->post('reset-password', [PasswordResetController::class, 'reset']);
+// ─── Password Reset ───────────────────────────────────────────────────────────
+Route::middleware('throttle:password-limiter')
+    ->post('forgot-password', [PasswordResetController::class, 'forgot']);
 
-// Email Verification
-Route::post('verify-email/latest-token', [EmailVerificationController::class, 'latestToken']);
-Route::get('verify-email/{token}', [EmailVerificationController::class, 'verify']);
-Route::middleware('throttle:password-limiter')->post('verify-email/resend', [EmailVerificationController::class, 'resend']);
+Route::middleware('throttle:reset-limiter')
+    ->post('reset-password', [PasswordResetController::class, 'reset']);
 
-// OAuth
-Route::get('oauth/{provider}', [OAuthController::class, 'redirect']);
-Route::post('oauth/{provider}/callback', [OAuthController::class, 'callback']);
+// ─── Email Verification ───────────────────────────────────────────────────────
+// POST: verify token sent from frontend after user clicks email link
+Route::middleware('throttle:reset-limiter')
+    ->post('verify-email', [EmailVerificationController::class, 'verify']);
+
+// POST: resend verification email
+Route::middleware('throttle:password-limiter')
+    ->post('verify-email/resend', [EmailVerificationController::class, 'resend']);
+
+// ─── OAuth ────────────────────────────────────────────────────────────────────
+Route::get('oauth/{provider}',          [OAuthController::class, 'redirect']);
+Route::post('oauth/{provider}/callback',[OAuthController::class, 'callback']);

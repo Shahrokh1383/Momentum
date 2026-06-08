@@ -1,5 +1,11 @@
 import api from '@/services/api';
-import { User, LoginPayload, RegisterPayload, ResetPasswordPayload } from '@/types/user';
+import {
+  User,
+  LoginPayload,
+  RegisterPayload,
+  ResetPasswordPayload,
+  VerifyEmailPayload,
+} from '@/types/user';
 
 export const authService = {
   login: async (payload: LoginPayload): Promise<User> => {
@@ -23,9 +29,7 @@ export const authService = {
       const { data } = await api.get('/api/user/me');
       return data.data;
     } catch (error: any) {
-      if (error.response?.status === 401) {
-        return null;
-      }
+      if (error.response?.status === 401) return null;
       throw error;
     }
   },
@@ -40,8 +44,12 @@ export const authService = {
     await api.post('/api/auth/reset-password', payload);
   },
 
-  verifyEmail: async (token: string): Promise<void> => {
-    await api.get(`/api/auth/verify-email/${token}`);
+  /**
+   * Called by the frontend when the user lands on /verify-email?token=xxx&email=xxx
+   * Sends the token + email to the backend for verification.
+   */
+  verifyEmail: async (payload: VerifyEmailPayload): Promise<void> => {
+    await api.post('/api/auth/verify-email', payload);
   },
 
   resendVerification: async (email: string): Promise<void> => {
@@ -57,10 +65,5 @@ export const authService = {
   handleOAuthCallback: async (provider: string, code: string): Promise<User> => {
     const { data } = await api.post(`/api/auth/oauth/${provider}/callback`, { code });
     return data.data;
-  },
-
-  getLatestVerificationToken: async (email: string): Promise<string> => {
-    const { data } = await api.post('/api/auth/verify-email/latest-token', { email });
-    return data.data.token;
   },
 };

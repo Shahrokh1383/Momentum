@@ -2,22 +2,23 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authService } from '@/services/user/authService';
 import { useAuthStore } from '@/context/user/authStore';
 import { useNavigate } from 'react-router-dom';
+import { VerifyEmailPayload } from '@/types/user';
 
 export const useAuth = () => {
   const { user, isAuthenticated, isPremium, setUser, logout: clearStore } = useAuthStore();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  // Fetch current user on app boot
+  // Fetch current user on app boot (runs once, only when not authenticated)
   const { isLoading: isFetchingUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
-      const user = await authService.getMe();
-      setUser(user);
-      return user;
+      const fetchedUser = await authService.getMe();
+      setUser(fetchedUser);
+      return fetchedUser;
     },
     retry: false,
-    enabled: !user && isAuthenticated === false, 
+    enabled: !user && isAuthenticated === false,
   });
 
   const loginMutation = useMutation({
@@ -58,26 +59,23 @@ export const useAuth = () => {
     mutationFn: authService.resendVerification,
   });
 
-  const oauthCallbackMutation = useMutation({
-    mutationFn: ({ provider, code }: { provider: string; code: string }) => 
-      authService.handleOAuthCallback(provider, code),
-    onSuccess: (user) => {
-      setUser(user);
+  /**
+   * Called from VerifyEmailPage when token + email are present in the URL.
+   * On success, refetch current user to update email_verified_at in global state.
+   */
+  const verifyEmailMutation = useMutation({
+    mutationFn: (payload: VerifyEmailPayload) => authService.verifyEmail(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       navigate('/dashboard');
     },
   });
 
-  const devVerifyEmailMutation = useMutation({
-    mutationFn: async () => {
-      if (!user?.email) throw new Error("User email not found");
-      // 1. Fetch the latest token for the authenticated user
-      const token = await authService.getLatestVerificationToken(user.email);
-      // 2. Verify the email using the fetched token
-      return authService.verifyEmail(token);
-    },
-    onSuccess: () => {
-      // Refetch the current user to update `email_verified_at` in the global state
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+  const oauthCallbackMutation = useMutation({
+    mutationFn: ({ provider, code }: { provider: string; code: string }) =>
+      authService.handleOAuthCallback(provider, code),
+    onSuccess: (user) => {
+      setUser(user);
       navigate('/dashboard');
     },
   });
@@ -87,31 +85,30 @@ export const useAuth = () => {
     isAuthenticated,
     isPremium,
     isFetchingUser,
-    
+
     login: loginMutation.mutateAsync,
     isLoggingIn: loginMutation.isPending,
     loginError: loginMutation.error,
-    
-    // Fixed: Renamed to registerUser to match component usage and avoid naming conflicts
+
     registerUser: registerMutation.mutateAsync,
     isRegistering: registerMutation.isPending,
     registerError: registerMutation.error,
 
     logout: logoutMutation.mutateAsync,
-    
+
     forgotPassword: forgotPasswordMutation.mutateAsync,
     isForgotPasswordLoading: forgotPasswordMutation.isPending,
-    
+
     resetPassword: resetPasswordMutation.mutateAsync,
     isResetPasswordLoading: resetPasswordMutation.isPending,
-    
-    handleOAuthCallback: oauthCallbackMutation.mutateAsync,
 
-    // Fixed: Added missing resendVerification mutation
+    verifyEmail: verifyEmailMutation.mutateAsync,
+    isVerifyingEmail: verifyEmailMutation.isPending,
+    verifyEmailError: verifyEmailMutation.error,
+
     resendVerification: resendVerificationMutation.mutateAsync,
     isResendingVerification: resendVerificationMutation.isPending,
-    devVerifyEmail: devVerifyEmailMutation.mutateAsync,
-    isDevVerifying: devVerifyEmailMutation.isPending,
-    devVerifyError: devVerifyEmailMutation.error,
+
+    handleOAuthCallback: oauthCallbackMutation.mutateAsync,
   };
 };
