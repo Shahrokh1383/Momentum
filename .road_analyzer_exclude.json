@@ -32,9 +32,7 @@
     "back-end\\tests",
     "back-end\\storage",
     "back-end\\routes\\api.php",
-    "back-end\\resources\\views",
     "back-end\\public",
-    "back-end\\resources",
     "back-end\\database\\seeders",
     "back-end\\database\\factories",
     "back-end\\app\\road_map.txt",
@@ -46,8 +44,10 @@
     "fix-strategy.txt",
     "front-end\\public\\assets",
     "front-end\\public\\bootstrap-pack",
-    "front-end\\public\\FontAwesome"
+    "front-end\\public\\FontAwesome",
+    "back-end\\resources\\js",
+    "back-end\\resources\\css"
   ],
-  "lastModified": "2026-06-08T17:42:52.604Z",
+  "lastModified": "2026-06-08T18:54:08.944Z",
   "version": 1
 }

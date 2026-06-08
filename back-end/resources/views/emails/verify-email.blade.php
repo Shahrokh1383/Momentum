@@ -8,20 +8,23 @@
         body {
             margin: 0;
             padding: 0;
-            background-color: #0f0f1a;
+            background-color: #f0f4f8; /* --bg-body */
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #e2e8f0;
+            color: #1e293b; /* --text-main */
         }
         .wrapper {
             max-width: 600px;
             margin: 40px auto;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background-color: #ffffff; /* Fallback for glass-bg */
             border-radius: 16px;
-            border: 1px solid rgba(99, 102, 241, 0.3);
+            border: 1px solid #e2e8f0; /* Simulating glass-border */
             overflow: hidden;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1); /* --glass-shadow */
         }
         .header {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            /* Gradient with fallback for Outlook */
+            background-color: #11998e; /* --primary */
+            background: linear-gradient(to right, #11998e, #38ef7d); /* --gradient-btn */
             padding: 40px 32px;
             text-align: center;
         }
@@ -34,7 +37,7 @@
         }
         .header p {
             margin: 8px 0 0;
-            color: rgba(255,255,255,0.85);
+            color: rgba(255,255,255,0.9);
             font-size: 15px;
         }
         .body {
@@ -43,7 +46,7 @@
         .body p {
             font-size: 16px;
             line-height: 1.7;
-            color: #cbd5e1;
+            color: #64748b; /* --text-muted */
             margin: 0 0 20px;
         }
         .btn-wrapper {
@@ -52,7 +55,9 @@
         }
         .btn {
             display: inline-block;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            /* Gradient with fallback for Outlook */
+            background-color: #11998e; /* --primary */
+            background: linear-gradient(to right, #11998e, #38ef7d); /* --gradient-btn */
             color: #ffffff !important;
             text-decoration: none;
             padding: 14px 36px;
@@ -62,21 +67,21 @@
             letter-spacing: 0.3px;
         }
         .url-fallback {
-            background: rgba(99, 102, 241, 0.1);
-            border: 1px solid rgba(99, 102, 241, 0.2);
+            background-color: #f0f4f8; /* --bg-body */
+            border: 1px solid #e2e8f0; /* --input-border */
             border-radius: 8px;
             padding: 14px 18px;
             font-size: 13px;
-            color: #94a3b8;
+            color: #64748b; /* --text-muted */
             word-break: break-all;
             margin-top: 24px;
         }
         .footer {
             text-align: center;
             padding: 24px 32px;
-            border-top: 1px solid rgba(99, 102, 241, 0.15);
+            border-top: 1px solid #e2e8f0;
             font-size: 13px;
-            color: #64748b;
+            color: #64748b; /* --text-muted */
         }
     </style>
 </head>
