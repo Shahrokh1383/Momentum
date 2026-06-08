@@ -10,8 +10,9 @@ import SubscriptionStatusBanner from '@/components/user/subscription/Subscriptio
 const PlansPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const { 
-    plans, 
-    isLoadingPlans, 
+    plans,
+    plansError,
+    isLoadingPlans,
     currentSubscription, 
     isLoadingSubscription, 
     upgrade, 
@@ -67,6 +68,25 @@ const PlansPage: React.FC = () => {
   const isCurrentPlan = (planSlug: string): boolean => {
     return currentSubscription?.plan_slug === planSlug && currentSubscription?.status === 'active';
   };
+
+  if (plansError && !plans) {
+    return (
+      <div className="plans-page">
+        <div className="plans-page__loading">
+          <div className="card" style={{ background: 'rgba(255,255,255,0.1)', padding: '2rem', borderRadius: '16px', textAlign: 'center' }}>
+            <h1>📡 You are Offline</h1>
+            <p>Could not load plans. Please check your connection and try again.</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              style={{ background: '#11998e', color: '#fff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoadingPlans) {
     return (
