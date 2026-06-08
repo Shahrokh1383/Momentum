@@ -1,5 +1,7 @@
+// src/components/user/pwa/InstallPWA.tsx
 import React from 'react';
-import { usePWA } from '@/hooks/user/usePWA';
+// Update this import path:
+import { usePWA } from '@/context/user/pwaStore'; 
 
 const InstallPWA: React.FC = () => {
   const { isInstallable, install } = usePWA();

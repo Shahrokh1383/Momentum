@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+// src/context/user/pwaStore.tsx
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -6,14 +7,17 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
-interface PWAState {
+interface PWAContextType {
   isInstallable: boolean;
   isStandalone: boolean;
   isOffline: boolean;
   install: () => Promise<void>;
 }
 
-export const usePWA = (): PWAState => {
+const PWAContext = createContext<PWAContextType | undefined>(undefined);
+
+// SRP: This provider is solely responsible for managing the PWA lifecycle globally.
+export const PWAProvider = ({ children }: { children: ReactNode }) => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -29,6 +33,7 @@ export const usePWA = (): PWAState => {
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
+      // Store the event globally so it isn't lost on route change
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
@@ -36,6 +41,7 @@ export const usePWA = (): PWAState => {
     const handleOffline = () => setIsOffline(true);
     const handleAppInstalled = () => setDeferredPrompt(null);
 
+    // DRY: Listeners attached once at the root level
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -58,10 +64,21 @@ export const usePWA = (): PWAState => {
     }
   }, [deferredPrompt]);
 
-  return {
+  const value = {
     isInstallable: !!deferredPrompt && !isStandalone,
     isStandalone,
     isOffline,
     install,
   };
+
+  return <PWAContext.Provider value={value}>{children}</PWAContext.Provider>;
+};
+
+// Custom hook to consume the context easily
+export const usePWA = (): PWAContextType => {
+  const context = useContext(PWAContext);
+  if (!context) {
+    throw new Error('usePWA must be used within a PWAProvider');
+  }
+  return context;
 };

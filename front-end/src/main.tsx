@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import { PWAProvider } from './context/user/pwaStore'
 
 // Register Service Worker for PWA support
 if ('serviceWorker' in navigator) {
@@ -32,6 +33,8 @@ if ('serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <PWAProvider>
+      <App />
+    </PWAProvider>
   </StrictMode>,
 )
