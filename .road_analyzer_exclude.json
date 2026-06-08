@@ -40,11 +40,14 @@
     "back-end\\app\\road_map.txt",
     "back-end\\app\\road.py",
     "back-end\\bootstrap\\cache",
-    "front-end\\public",
     "roadmap.txt",
     "content.txt",
-    "back-end\\config"
+    "back-end\\config",
+    "fix-strategy.txt",
+    "front-end\\public\\assets",
+    "front-end\\public\\bootstrap-pack",
+    "front-end\\public\\FontAwesome"
   ],
-  "lastModified": "2026-06-07T15:46:28.381Z",
+  "lastModified": "2026-06-08T10:32:40.180Z",
   "version": 1
 }

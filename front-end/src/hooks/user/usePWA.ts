@@ -14,7 +14,7 @@ interface PWAState {
 }
 
 export const usePWA = (): PWAState => {
-  const [deferredPrompt, setDeferredPrompt] = useState<<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
