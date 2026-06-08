@@ -11,41 +11,46 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import '@/styles/app.css';
 import '@/styles/auth.css';
+import '@/styles/dashboard.css';
 import '@/styles/subscription.css';
 import '@/styles/pwa.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
+    queries: { refetchOnWindowFocus: false, retry: 1 },
   },
 });
+
+const DashboardPlaceholder = () => (
+  <section className="dashboard-page">
+    <div className="dashboard-page__welcome">
+      <h1 className="dashboard-page__title">Welcome to Momentum</h1>
+      <p className="dashboard-page__subtitle">
+        Your dashboard is coming soon. Stay tuned for habit tracking, insights, and more.
+      </p>
+    </div>
+  </section>
+);
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          {/* Root Redirect */}
           <Route path="/" element={<Navigate to="/login" replace />} />
 
-          {/* Public Auth Routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
-          <Route path="/auth/callback/:provider" element={<OAuthCallbackPage />} />
-          
-          {/* App Routes with Dashboard Layout */}
+          {/* Public Auth Routes (centered layout) */}
+          <Route path="/login" element={<div className="auth-page-wrapper"><LoginPage /></div>} />
+          <Route path="/register" element={<div className="auth-page-wrapper"><RegisterPage /></div>} />
+          <Route path="/forgot-password" element={<div className="auth-page-wrapper"><ForgotPasswordPage /></div>} />
+          <Route path="/reset-password" element={<div className="auth-page-wrapper"><ResetPasswordPage /></div>} />
+          <Route path="/verify-email" element={<div className="auth-page-wrapper"><VerifyEmailPage /></div>} />
+          <Route path="/auth/callback/:provider" element={<div className="auth-page-wrapper"><OAuthCallbackPage /></div>} />
+
+          {/* Dashboard Routes (full-width layout) */}
           <Route element={<DashboardLayout />}>
             <Route path="/plans" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
-            <Route 
-              path="/dashboard" 
-              element={<ProtectedRoute><div>Dashboard Coming Soon</div></ProtectedRoute>} 
-            />
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardPlaceholder /></ProtectedRoute>} />
           </Route>
         </Routes>
       </BrowserRouter>

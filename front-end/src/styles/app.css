@@ -1,59 +1,65 @@
-/* assets/css/app.css */
+/* =========================================
+   MOMENTUM — GLOBAL APP STYLES
+   ========================================= */
 
 /* =========================================
    1. CSS VARIABLES & THEMING
    ========================================= */
 :root {
-  /* Brand Colors */
+  /* Brand */
   --primary: #11998e;
   --primary-light: #38ef7d;
   --primary-dark: #0d8a7a;
   --primary-light-hover: #2dd86d;
 
-  /* Light Mode Defaults */
+  /* Light Mode */
   --bg-body: #f0f4f8;
   --bg-gradient: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%);
   --text-main: #1e293b;
   --text-muted: #64748b;
-  
-  /* Glassmorphism (Light Mode) */
+
+  /* Glassmorphism */
   --glass-bg: rgba(255, 255, 255, 0.65);
   --glass-bg-hover: rgba(255, 255, 255, 0.85);
   --glass-border: rgba(255, 255, 255, 0.5);
   --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
-  
-  /* Form Elements */
+
+  /* Forms */
   --input-bg: rgba(255, 255, 255, 0.8);
   --input-border: #cbd5e1;
   --input-focus-ring: rgba(17, 153, 142, 0.25);
 
-  /* Accents & Animations */
+  /* Accents */
   --pulse-color: rgba(56, 239, 125, 0.7);
   --shine-effect: rgba(255, 255, 255, 0.4);
   --gradient-btn: linear-gradient(to right, var(--primary), var(--primary-light));
   --gradient-btn-hover: linear-gradient(to right, var(--primary-dark), var(--primary-light-hover));
+
+  /* Layout */
+  --header-height: 72px;
+  --container-max: 1280px;
+  --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Dark Mode Overrides */
 [data-theme="dark"] {
   --bg-body: #0f172a;
-  --bg-gradient: linear-gradient(135deg, #0d8a7a 0%, #11998e 50%, #38ef7d 100%);
   --bg-gradient: linear-gradient(135deg, var(--primary-dark), var(--primary), var(--primary-light));
   --text-main: #ffffff;
   --text-muted: rgba(255, 255, 255, 0.7);
-  
+
   --glass-bg: rgba(15, 23, 42, 0.6);
   --glass-bg-hover: rgba(15, 23, 42, 0.8);
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  
+
   --input-bg: rgba(0, 0, 0, 0.2);
   --input-border: rgba(255, 255, 255, 0.1);
   --input-focus-ring: rgba(56, 239, 125, 0.25);
 }
 
 /* =========================================
-   2. GLOBAL RESET & BASE
+   2. RESET & BASE
    ========================================= */
 *, *::before, *::after {
   margin: 0;
@@ -61,9 +67,7 @@
   box-sizing: border-box;
 }
 
-html {
-  scroll-behavior: smooth;
-}
+html { scroll-behavior: smooth; }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -72,22 +76,20 @@ body {
   animation: gradientShift 15s ease infinite;
   color: var(--text-main);
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   transition: background 0.5s ease, color 0.3s ease;
   overflow-x: hidden;
-  padding: 1rem;
 }
 
+body.no-scroll { overflow: hidden; }
+
 @keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
 
 /* =========================================
-   3. TYPOGRAPHY & LINKS
+   3. TYPOGRAPHY
    ========================================= */
 h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
@@ -95,9 +97,7 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-main);
 }
 
-.text-muted-custom {
-  color: var(--text-muted);
-}
+.text-muted-custom { color: var(--text-muted); }
 
 a {
   color: var(--primary);
@@ -105,13 +105,10 @@ a {
   font-weight: 500;
   transition: color 0.3s ease;
 }
-
-a:hover {
-  color: var(--primary-light);
-}
+a:hover { color: var(--primary-light); }
 
 /* =========================================
-   4. UTILITIES & COMPONENTS
+   4. SHARED UTILITIES
    ========================================= */
 .glass-panel {
   background: var(--glass-bg);
@@ -123,7 +120,23 @@ a:hover {
   transition: background 0.3s ease, border-color 0.3s ease;
 }
 
-/* Theme Toggle Button */
+/* =========================================
+   5. AUTH PAGE WRAPPER
+   Only auth pages center themselves
+   ========================================= */
+.auth-page-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+/* =========================================
+   6. THEME TOGGLE
+   ========================================= */
+
+/* Floating variant (for auth pages) */
 .theme-toggle-btn {
   position: fixed;
   top: 1.5rem;
@@ -140,27 +153,589 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s var(--transition-smooth);
   z-index: 1000;
   box-shadow: 0 4px 12px var(--glass-shadow);
 }
-
 .theme-toggle-btn:hover {
   background: var(--glass-bg-hover);
   transform: rotate(15deg) scale(1.1);
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+/* Inline header variant (for app header & drawer) */
+.header-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  background: var(--input-bg);
+  color: var(--text-main);
+  font-size: 1rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s var(--transition-smooth);
+  flex-shrink: 0;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+.header-icon-btn:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: rotate(15deg);
 }
+
+/* =========================================
+   7. SCROLLBAR
+   ========================================= */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: var(--input-border);
   border-radius: 4px;
 }
-::-webkit-scrollbar-thumb:hover {
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+/* =========================================
+   8. BOOTSTRAP OVERRIDES
+   ========================================= */
+.btn:focus,
+.btn:focus-visible {
+  box-shadow: 0 0 0 4px var(--input-focus-ring) !important;
+  outline: none !important;
+}
+
+.spinner-border.text-primary {
+  color: var(--primary) !important;
+}
+
+/* =========================================
+   9. DASHBOARD LAYOUT SHELL
+   ========================================= */
+.dashboard-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.dashboard-layout__main {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* =========================================
+   10. APP HEADER (Full-width Glass)
+   ========================================= */
+.app-header {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  width: 100%;
+  height: var(--header-height);
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: 0 1px 0 0 var(--glass-border), 0 4px 24px rgba(0, 0, 0, 0.04);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.app-header__container {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 2rem;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+/* Logo */
+.app-header__logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: var(--text-main);
+  flex-shrink: 0;
+  transition: transform 0.3s var(--transition-smooth);
+}
+.app-header__logo:hover { transform: translateY(-1px); color: var(--text-main); }
+
+.app-header__logo-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(17, 153, 142, 0.25);
+}
+
+.app-header__logo-text {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: var(--gradient-btn);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Desktop Nav */
+.app-header__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  justify-content: center;
+}
+
+.app-header__link {
+  position: relative;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  transition: all 0.3s var(--transition-smooth);
+}
+.app-header__link::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--gradient-btn);
+  border-radius: 2px;
+  transition: all 0.3s var(--transition-smooth);
+  transform: translateX(-50%);
+}
+.app-header__link:hover {
+  color: var(--primary);
+  background: rgba(17, 153, 142, 0.06);
+}
+.app-header__link:hover::after { width: 24px; }
+
+/* Actions Group */
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  flex-shrink: 0;
+}
+
+.app-header__user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0.85rem 0.35rem 0.35rem;
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  transition: all 0.3s var(--transition-smooth);
+}
+.app-header__user:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--primary);
+}
+
+.app-header__avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--primary-light);
+}
+
+.app-header__username {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-header__logout {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.5rem 0.65rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  transition: all 0.3s var(--transition-smooth);
+}
+.app-header__logout:hover {
+  color: #dc3545;
+  background: rgba(220, 53, 69, 0.1);
+  transform: translateX(2px);
+}
+
+.app-header__auth {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+/* =========================================
+   11. HAMBURGER BUTTON (Animated)
+   ========================================= */
+.hamburger-btn {
+  display: none;
+  width: 44px;
+  height: 44px;
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+  z-index: 1001;
+  transition: all 0.3s var(--transition-smooth);
+}
+.hamburger-btn:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--primary);
+}
+
+.hamburger-btn__lines {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+}
+
+.hamburger-btn__lines span {
+  display: block;
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--text-main);
+  border-radius: 2px;
+  transition: all 0.4s var(--transition-bounce);
+  transform-origin: center;
+}
+
+.hamburger-btn__lines span:nth-child(1) { top: 0; }
+.hamburger-btn__lines span:nth-child(2) { top: 50%; transform: translateY(-50%); }
+.hamburger-btn__lines span:nth-child(3) { bottom: 0; }
+
+.hamburger-btn--open .hamburger-btn__lines span:nth-child(1) {
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
   background: var(--primary);
+}
+.hamburger-btn--open .hamburger-btn__lines span:nth-child(2) {
+  opacity: 0;
+  transform: translateY(-50%) scaleX(0);
+}
+.hamburger-btn--open .hamburger-btn__lines span:nth-child(3) {
+  bottom: 50%;
+  transform: translateY(50%) rotate(-45deg);
+  background: var(--primary);
+}
+
+/* =========================================
+   12. MOBILE DRAWER (Right Slide-In)
+   ========================================= */
+.mobile-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s var(--transition-smooth);
+}
+.mobile-drawer-backdrop--open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mobile-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  max-width: 85vw;
+  height: 100vh;
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-left: 1px solid var(--glass-border);
+  box-shadow: -16px 0 48px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  transform: translateX(100%);
+  transition: transform 0.45s var(--transition-bounce);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.mobile-drawer--open { transform: translateX(0); }
+
+.mobile-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--glass-border);
+  min-height: var(--header-height);
+}
+
+.mobile-drawer__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mobile-drawer__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  background: var(--gradient-btn);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.mobile-drawer__brand img {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.mobile-drawer__close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--input-bg);
+  color: var(--text-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  transition: all 0.3s var(--transition-smooth);
+}
+.mobile-drawer__close:hover {
+  background: var(--glass-bg-hover);
+  transform: rotate(90deg);
+  color: var(--primary);
+}
+
+/* User Card inside Drawer */
+.mobile-drawer__user-card {
+  margin: 1.25rem 1.5rem;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, rgba(17, 153, 142, 0.1), rgba(56, 239, 125, 0.08));
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.mobile-drawer__user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--primary-light);
+  flex-shrink: 0;
+}
+
+.mobile-drawer__user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.mobile-drawer__user-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Nav Links */
+.mobile-drawer__nav {
+  padding: 0.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mobile-drawer__link {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  border-radius: 12px;
+  color: var(--text-main);
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  opacity: 0;
+  transform: translateX(20px);
+  transition:
+    background 0.3s var(--transition-smooth),
+    color 0.3s var(--transition-smooth);
+}
+
+.mobile-drawer__link i {
+  width: 22px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  transition: color 0.3s var(--transition-smooth);
+}
+
+.mobile-drawer__link:hover {
+  background: rgba(17, 153, 142, 0.1);
+  color: var(--primary);
+}
+.mobile-drawer__link:hover i { color: var(--primary); }
+
+/* Stagger animation when drawer opens */
+.mobile-drawer--open .mobile-drawer__link {
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity 0.4s var(--transition-smooth),
+    transform 0.4s var(--transition-bounce),
+    background 0.3s var(--transition-smooth),
+    color 0.3s var(--transition-smooth);
+}
+.mobile-drawer--open .mobile-drawer__link:nth-child(1) { transition-delay: 0.1s; }
+.mobile-drawer--open .mobile-drawer__link:nth-child(2) { transition-delay: 0.18s; }
+.mobile-drawer--open .mobile-drawer__link:nth-child(3) { transition-delay: 0.26s; }
+.mobile-drawer--open .mobile-drawer__link:nth-child(4) { transition-delay: 0.34s; }
+
+/* Footer Actions */
+.mobile-drawer__footer {
+  margin-top: auto;
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mobile-drawer__logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  background: rgba(220, 53, 69, 0.05);
+  color: #dc3545;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s var(--transition-smooth);
+}
+.mobile-drawer__logout:hover {
+  background: rgba(220, 53, 69, 0.12);
+  transform: translateY(-1px);
+}
+
+/* =========================================
+   13. INSTALL PWA BUTTON
+   ========================================= */
+.btn-install-pwa {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.95rem;
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text-main);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s var(--transition-smooth);
+}
+.btn-install-pwa:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+/* =========================================
+   14. RESPONSIVE
+   ========================================= */
+
+/* Tablet & below — Hide desktop nav, show hamburger */
+@media (max-width: 991.98px) {
+  .app-header__nav {
+    display: none;
+  }
+  .app-header__user .app-header__username {
+    display: none;
+  }
+  .app-header__auth .app-header__link {
+    display: none;
+  }
+  /* Hide secondary desktop-only actions, keep only theme toggle + hamburger visible
+     Actually we WANT to keep ThemeToggle reachable via drawer, so hide it from header too */
+  .app-header__actions > .header-icon-btn,
+  .app-header__actions > .btn-install-pwa,
+  .app-header__actions > .premium-badge,
+  .app-header__actions > .app-header__user,
+  .app-header__actions > .app-header__auth {
+    display: none;
+  }
+  .hamburger-btn {
+    display: block;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 767.98px) {
+  .app-header__container {
+    padding: 0 1rem;
+    gap: 0.75rem;
+  }
+  .app-header__logo-text {
+    font-size: 1.15rem;
+  }
+  .app-header__logo-img {
+    width: 36px;
+    height: 36px;
+  }
+  :root {
+    --header-height: 64px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobile-drawer {
+    width: 100%;
+    max-width: 100%;
+  }
 }

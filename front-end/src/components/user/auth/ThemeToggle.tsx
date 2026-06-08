@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 
-const ThemeToggle = () => {
-  const [theme, setTheme] = useState<string>(localStorage.getItem('momentum-theme') || 'dark');
+interface ThemeToggleProps {
+  className?: string;
+}
+
+const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = 'theme-toggle-btn' }) => {
+  const [theme, setTheme] = useState<string>(
+    () => localStorage.getItem('momentum-theme') || 'dark'
+  );
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -9,12 +15,20 @@ const ThemeToggle = () => {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
+  const isDark = theme === 'dark';
+
   return (
-    <button id="theme-toggle" className="theme-toggle-btn" aria-label="Toggle Theme" onClick={toggleTheme}>
-      <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`}></i>
+    <button
+      className={className}
+      aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+      title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+      onClick={toggleTheme}
+      type="button"
+    >
+      <i className={`fas ${isDark ? 'fa-sun' : 'fa-moon'}`} />
     </button>
   );
 };
