@@ -16,6 +16,8 @@
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 8px rgba(17, 153, 142, 0.3);
+  /* Ensure it shrinks properly on flex containers */
+  flex-shrink: 0; 
 }
 
 .btn-install-pwa:hover {
@@ -59,5 +61,21 @@
   .btn-install-pwa {
     padding: 0.4rem 0.75rem;
     font-size: 0.8rem;
+  }
+}
+
+/* NEW: Convert to Icon-only button on Tablet/Mobile to sit nicely next to Hamburger */
+@media (max-width: 991.98px) {
+  .btn-install-pwa {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 12px; /* Match hamburger button radius */
+    gap: 0;
+  }
+  
+  .btn-install-pwa span {
+    display: none; /* Hide text, show only icon */
   }
 }

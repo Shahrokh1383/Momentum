@@ -62,7 +62,6 @@ const AppHeader: React.FC = () => {
           <div className="app-header__actions">
             {isAuthenticated && user ? (
               <>
-                <InstallPWA />
                 <ThemeToggle className="header-icon-btn" />
                 <PremiumBadge planSlug={user.subscription?.plan} />
                 <div className="app-header__user">
@@ -90,6 +89,9 @@ const AppHeader: React.FC = () => {
                 <Link to="/register" className="btn btn-sm btn-momentum">Get Started</Link>
               </div>
             )}
+
+            {/* PWA Install Button */}
+            <InstallPWA />
 
             {/* Hamburger */}
             <button
