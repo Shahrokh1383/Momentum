@@ -21,7 +21,14 @@ export const authService = {
   },
 
   logout: async (): Promise<void> => {
-    await api.post('/api/user/logout');
+    try {
+      // Always get a fresh CSRF token before a POST request to prevent 419s
+      await api.get('/sanctum/csrf-cookie');
+      await api.post('/api/user/logout');
+    } catch (error) {
+      // Silently fail - we will force clear the frontend state anyway
+      console.error('Logout API failed, forcing local logout:', error);
+    }
   },
 
   getMe: async (): Promise<User | null> => {
@@ -44,10 +51,6 @@ export const authService = {
     await api.post('/api/auth/reset-password', payload);
   },
 
-  /**
-   * Called by the frontend when the user lands on /verify-email?token=xxx&email=xxx
-   * Sends the token + email to the backend for verification.
-   */
   verifyEmail: async (payload: VerifyEmailPayload): Promise<void> => {
     await api.post('/api/auth/verify-email', payload);
   },

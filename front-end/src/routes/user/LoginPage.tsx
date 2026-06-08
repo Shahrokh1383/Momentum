@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Navigate } from 'react-router-dom'; // Import Navigate
 import AuthLayout from '@/components/user/auth/AuthLayout';
 import PasswordInput from '@/components/user/auth/PasswordInput';
 import OAuthButtons from '@/components/user/auth/OAuthButtons';
@@ -16,10 +17,15 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 const LoginPage = () => {
-  const { login, isLoggingIn, loginError } = useAuth();
+  const { login, isLoggingIn, loginError, isAuthenticated, isFetchingUser } = useAuth();
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
+
+  // If the user is already authenticated, redirect them to dashboard immediately
+  if (!isFetchingUser && isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const onSubmit = async (data: LoginFormData) => {
     await login(data);

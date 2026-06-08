@@ -5,18 +5,21 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   isPremium: false,
+  hasInitiallyLoaded: false,
   
   setUser: (user: User | null) => 
     set({ 
       user, 
       isAuthenticated: !!user, 
-      isPremium: user?.is_premium || false 
+      isPremium: user?.is_premium || false,
+      hasInitiallyLoaded: true,
     }),
     
   logout: () => 
     set({ 
       user: null, 
       isAuthenticated: false, 
-      isPremium: false 
+      isPremium: false,
+      hasInitiallyLoaded: true,
     }),
 }));

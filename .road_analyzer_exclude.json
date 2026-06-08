@@ -46,8 +46,9 @@
     "front-end\\public\\bootstrap-pack",
     "front-end\\public\\FontAwesome",
     "back-end\\resources\\js",
-    "back-end\\resources\\css"
+    "back-end\\resources\\css",
+    "back-end\\resources"
   ],
-  "lastModified": "2026-06-08T18:54:08.944Z",
+  "lastModified": "2026-06-08T19:22:24.009Z",
   "version": 1
 }

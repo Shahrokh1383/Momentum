@@ -21,6 +21,7 @@ export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isPremium: boolean;
+  hasInitiallyLoaded: boolean; // <--- Added this line
   setUser: (user: User | null) => void;
   logout: () => void;
 }

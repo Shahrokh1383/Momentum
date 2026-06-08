@@ -5,20 +5,20 @@ import { useNavigate } from 'react-router-dom';
 import { VerifyEmailPayload } from '@/types/user';
 
 export const useAuth = () => {
-  const { user, isAuthenticated, isPremium, setUser, logout: clearStore } = useAuthStore();
+  const { user, isAuthenticated, isPremium, hasInitiallyLoaded, setUser, logout: clearStore } = useAuthStore();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  // Fetch current user on app boot (runs once, only when not authenticated)
+  // Fetch current user on app boot (runs ONCE per lifecycle)
   const { isLoading: isFetchingUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
       const fetchedUser = await authService.getMe();
-      setUser(fetchedUser);
+      setUser(fetchedUser); // This will set hasInitiallyLoaded to true internally
       return fetchedUser;
     },
     retry: false,
-    enabled: !user && isAuthenticated === false,
+    enabled: !hasInitiallyLoaded, // Only run if we haven't checked yet
   });
 
   const loginMutation = useMutation({
@@ -39,7 +39,7 @@ export const useAuth = () => {
 
   const logoutMutation = useMutation({
     mutationFn: authService.logout,
-    onSuccess: () => {
+    onSettled: () => {
       clearStore();
       queryClient.clear();
       navigate('/login');
@@ -59,10 +59,6 @@ export const useAuth = () => {
     mutationFn: authService.resendVerification,
   });
 
-  /**
-   * Called from VerifyEmailPage when token + email are present in the URL.
-   * On success, refetch current user to update email_verified_at in global state.
-   */
   const verifyEmailMutation = useMutation({
     mutationFn: (payload: VerifyEmailPayload) => authService.verifyEmail(payload),
     onSuccess: () => {
@@ -84,7 +80,7 @@ export const useAuth = () => {
     user,
     isAuthenticated,
     isPremium,
-    isFetchingUser,
+    isFetchingUser: isFetchingUser && !hasInitiallyLoaded,
 
     login: loginMutation.mutateAsync,
     isLoggingIn: loginMutation.isPending,

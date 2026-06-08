@@ -9,6 +9,7 @@ import OAuthCallbackPage from '@/routes/user/OAuthCallbackPage';
 import PlansPage from '@/routes/user/PlansPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { useAuth } from '@/hooks/user/useAuth';
 import '@/styles/app.css';
 import '@/styles/auth.css';
 import '@/styles/dashboard.css';
@@ -32,14 +33,31 @@ const DashboardPlaceholder = () => (
   </section>
 );
 
+const RootRedirect = () => {
+  const { isAuthenticated, isFetchingUser } = useAuth();
+
+  if (isFetchingUser) {
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* Smart root path */}
+          <Route path="/" element={<RootRedirect />} />
 
-          {/* Public Auth Routes (centered layout) */}
+          {/* Public Auth Routes */}
           <Route path="/login" element={<div className="auth-page-wrapper"><LoginPage /></div>} />
           <Route path="/register" element={<div className="auth-page-wrapper"><RegisterPage /></div>} />
           <Route path="/forgot-password" element={<div className="auth-page-wrapper"><ForgotPasswordPage /></div>} />
