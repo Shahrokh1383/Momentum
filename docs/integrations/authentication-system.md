@@ -2,7 +2,7 @@
 
 ---
 
-## 📄 `docs/modules/authentication.md`
+## 📄 `docs/modules/authentication-system.md`
 
 ```markdown
 # Authentication Module — Technical Documentation
@@ -140,8 +140,9 @@ The Authentication module provides secure user identity management for the Momen
 | Rule | Details |
 |------|---------|
 | BR-OUT-01 | Session is invalidated and CSRF token is regenerated |
-| BR-OUT-02 | Frontend clears all state (Zustand store + React Query cache) |
-| BR-OUT-03 | User is redirected to `/login` |
+| BR-OUT-02 |  Frontend forcefully clears all state (Zustand store + React Query cache) even if the backend API call fails (using onSettled instead of onSuccess) |
+| BR-OUT-03 | A fresh CSRF cookie is requested before the logout POST to prevent 419 errors on expired tokens |
+| BR-OUT-04 | User is redirected to /login |
 
 ### 2.7 Rate Limiting
 
@@ -267,7 +268,7 @@ src/
 │   ├── PasswordStrengthMeter.tsx  # Visual password strength indicator
 │   └── ThemeToggle.tsx            # Dark/light theme switch
 ├── context/user/
-│   └── authStore.ts               # Zustand store: user, isAuthenticated, isPremium
+│   └── authStore.ts               # Zustand store: user, isAuthenticated, isPremium, hasInitiallyLoaded
 ├── hooks/user/
 │   └── useAuth.ts                 # React Query mutations & queries for all auth actions
 ├── routes/user/
@@ -299,7 +300,7 @@ src/
 | Layer | Tool | Responsibility |
 |-------|------|---------------|
 | Server State | React Query | Fetching user, mutation lifecycle, cache invalidation |
-| Client State | Zustand | Current user object, authentication status, premium flag |
+| Client State | Zustand | Current user object, authentication status, premium flag, and initial load status (prevents infinite fetch loops) |
 | Form State | React Hook Form | Form values, validation errors, submission state |
 | Validation | Zod | Schema-level input validation before API call |
 
@@ -811,7 +812,8 @@ These are in `/api/user` and require `auth:sanctum` + `verified` middleware.
 | EC-AUTH-01 | Session expires while user is on protected page | Next API call returns 401 → `ProtectedRoute` detects `!isAuthenticated` → redirects to `/login` |
 | EC-AUTH-02 | User opens app in new tab | React Query `currentUser` query runs → `getMe()` → restores auth state from session cookie |
 | EC-AUTH-03 | CSRF token mismatch | Sanctum returns 419 → Axios can retry with fresh `csrf-cookie` |
-| EC-AUTH-04 | User accesses `/login` while already authenticated | Currently no guard — user sees login form (could be enhanced with redirect) |
+| EC-AUTH-04 | User accesses /login or / while already authenticated | RootRedirect component checks auth state: redirects to /dashboard. LoginPage component also includes a direct <Navigate to="/dashboard" /> guard if isAuthenticated is true |
+| EC-AUTH-05 | GET /api/user/me returns 401 on initial app boot | hasInitiallyLoaded flag prevents React Query from re-triggering the getMe query infinitely. App correctly falls back to login state |
 
 
 ---
@@ -824,6 +826,9 @@ These are in `/api/user` and require `auth:sanctum` + `verified` middleware.
 - **Frontend Dev Server**: Vite on `http://localhost:5173`
 - **Backend Dev Server**: Laravel on `http://localhost:8000`
 - **FRONTEND_URL**: Must be set in `.env` to `http://localhost:5173`
+- **SESSION_DRIVER**: Must be database or file (NOT cookie). The cookie driver has a 4KB limit which corrupts SPA sessions, causing 401 errors.
+- **SESSION_DOMAIN**: Must be set to localhost in .env to ensure cookies are shared properly across the Vite proxy.
+- **Database Sessions**: Requires the sessions table (generated via php artisan session:table).
 
 ### 9.2 Production Deployment Checklist
 
@@ -832,7 +837,8 @@ These are in `/api/user` and require `auth:sanctum` + `verified` middleware.
 - [ ] Set `APP_URL` to production backend domain
 - [ ] Enable HTTPS on both frontend and backend
 - [ ] Configure `SANCTUM_STATEFUL_DOMAINS` for production domain
-- [ ] Set `SESSION_DOMAIN` for cookie sharing
+- [ ] Set `SESSION_DOMAIN` to your production domain (e.g., example.com, without https://)
+- [ ] Ensure `SESSION_DRIVER` is set to database or redis for production (avoid cookie driver)
 - [ ] Consider queueing emails (`ShouldQueue` on Mailables) for performance
 - [ ] Add monitoring/alerting for failed email deliveries
 - [ ] Set appropriate `SESSION_LIFETIME` in production
@@ -842,7 +848,6 @@ These are in `/api/user` and require `auth:sanctum` + `verified` middleware.
 | Enhancement | Priority | Description |
 |-------------|----------|-------------|
 | Email Queueing | High | Add `ShouldQueue` to Mailables for async email dispatch |
-| Login redirect guard | Medium | Redirect authenticated users away from `/login` and `/register` |
 | Account lockout | Medium | Lock account after N failed login attempts |
 | Two-Factor Auth (2FA) | Low | TOTP-based 2FA for enhanced security |
 | Magic Link Login | Low | Passwordless login via email link |
