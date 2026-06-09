@@ -21,7 +21,7 @@ export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isPremium: boolean;
-  hasInitiallyLoaded: boolean; // <--- Added this line
+  hasInitiallyLoaded: boolean;
   setUser: (user: User | null) => void;
   logout: () => void;
 }
@@ -46,7 +46,14 @@ export interface ResetPasswordPayload {
   password_confirmation: string;
 }
 
+/**
+ * The raw query string from the signed URL as it arrived in the browser.
+ * We preserve it as a single opaque string to guarantee the parameter order
+ * that Laravel signed — reconstructing individual params would let JS object
+ * key ordering corrupt the HMAC input.
+ *
+ * Example value: "expires=1781037994&hash=8528...&id=6&signature=3b3a..."
+ */
 export interface VerifyEmailPayload {
-  token: string;
-  email: string;
+  rawQueryString: string;
 }

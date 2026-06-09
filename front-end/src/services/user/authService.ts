@@ -22,11 +22,9 @@ export const authService = {
 
   logout: async (): Promise<void> => {
     try {
-      // Always get a fresh CSRF token before a POST request to prevent 419s
       await api.get('/sanctum/csrf-cookie');
       await api.post('/api/user/logout');
     } catch (error) {
-      // Silently fail - we will force clear the frontend state anyway
       console.error('Logout API failed, forcing local logout:', error);
     }
   },
@@ -51,8 +49,20 @@ export const authService = {
     await api.post('/api/auth/reset-password', payload);
   },
 
-  verifyEmail: async (payload: VerifyEmailPayload): Promise<void> => {
-    await api.post('/api/auth/verify-email', payload);
+  /**
+   * Append the signed URL query string exactly as Laravel generated it.
+   *
+   * WHY: Laravel's hasValidSignature() reconstructs the HMAC input from the
+   * raw query string in the order the parameters appear in the request.
+   * It does NOT sort them. If we decompose the params into a JS object and
+   * let Axios re-serialize them, the key order changes and the HMAC no
+   * longer matches what was signed → 422.
+   *
+   * Solution (KISS): forward the raw query string untouched so the byte
+   * sequence that reaches Laravel is identical to what was originally signed.
+   */
+  verifyEmail: async ({ rawQueryString }: VerifyEmailPayload): Promise<void> => {
+    await api.post(`/api/auth/verify-email?${rawQueryString}`);
   },
 
   resendVerification: async (email: string): Promise<void> => {

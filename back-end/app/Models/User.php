@@ -5,14 +5,17 @@ namespace App\Models;
 use App\Enums\PlanSlug;
 use App\Enums\ProfileVisibility;
 use App\Enums\UserRole;
-use App\Models\Subscription;
-use App\Models\UserSetting;
+use App\Mail\PasswordResetMail;
+use App\Mail\VerificationMail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
 
@@ -20,6 +23,7 @@ class User extends Authenticatable
         'role' => 'user',
         'profile_visibility' => 'public',
     ];
+
     protected $fillable = [
         'name', 'email', 'password', 'role', 'provider', 'provider_id', 
         'avatar', 'profile_visibility', 'bio',
@@ -46,13 +50,43 @@ class User extends Authenticatable
         return $this->hasOne(UserSetting::class);
     }
 
-    public function simulatedPayments()
-    {
-        return $this->hasMany(SimulatedPayment::class);
-    }
-
     public function getIsPremiumAttribute(): bool
     {
         return $this->subscription?->isActive() && $this->subscription->plan !== PlanSlug::FREE;
+    }
+
+        /**
+     * SRP: Override to send custom VerificationMail with SPA frontend URL.
+     * Uses Laravel's native Signed URLs (no DB storage needed).
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $frontendUrl = rtrim(config('app.frontend_url', 'http://localhost:5173'), '/');
+
+        // Generate a RELATIVE temporary signed route (4th parameter = false)
+        // This prevents signature invalidation due to domain mismatch between APP_URL and proxy host
+        $verificationUrl = app('url')->temporarySignedRoute(
+            'api.verification.verify',
+            now()->addMinutes(60),
+            ['id' => $this->getKey(), 'hash' => sha1($this->getEmailForVerification())],
+            false // <-- Crucial: Generate relative URL
+        );
+
+        // Append the relative path query parameters to the frontend URL
+        $finalUrl = $frontendUrl . '/verify-email?' . parse_url($verificationUrl, PHP_URL_QUERY);
+
+        Mail::to($this)->send(new VerificationMail($finalUrl));
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $frontendUrl = rtrim(config('app.frontend_url', 'http://localhost:5173'), '/');
+
+        $resetUrl = $frontendUrl . '/reset-password?' . http_build_query([
+            'token' => $token,
+            'email' => $this->email,
+        ]);
+
+        Mail::to($this)->send(new PasswordResetMail($resetUrl));
     }
 }

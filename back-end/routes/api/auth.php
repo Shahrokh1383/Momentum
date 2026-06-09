@@ -20,11 +20,10 @@ Route::middleware('throttle:reset-limiter')
     ->post('reset-password', [PasswordResetController::class, 'reset']);
 
 // ─── Email Verification ───────────────────────────────────────────────────────
-// POST: verify token sent from frontend after user clicks email link
 Route::middleware('throttle:reset-limiter')
-    ->post('verify-email', [EmailVerificationController::class, 'verify']);
+    ->post('verify-email', [EmailVerificationController::class, 'verify'])
+    ->name('api.verification.verify'); 
 
-// POST: resend verification email
 Route::middleware('throttle:password-limiter')
     ->post('verify-email/resend', [EmailVerificationController::class, 'resend']);
 

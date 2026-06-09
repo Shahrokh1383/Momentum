@@ -5,7 +5,14 @@ import { useNavigate } from 'react-router-dom';
 import { VerifyEmailPayload } from '@/types/user';
 
 export const useAuth = () => {
-  const { user, isAuthenticated, isPremium, hasInitiallyLoaded, setUser, logout: clearStore } = useAuthStore();
+  const {
+    user,
+    isAuthenticated,
+    isPremium,
+    hasInitiallyLoaded,
+    setUser,
+    logout: clearStore,
+  } = useAuthStore();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -14,11 +21,11 @@ export const useAuth = () => {
     queryKey: ['currentUser'],
     queryFn: async () => {
       const fetchedUser = await authService.getMe();
-      setUser(fetchedUser); // This will set hasInitiallyLoaded to true internally
+      setUser(fetchedUser);
       return fetchedUser;
     },
     retry: false,
-    enabled: !hasInitiallyLoaded, // Only run if we haven't checked yet
+    enabled: !hasInitiallyLoaded,
   });
 
   const loginMutation = useMutation({
@@ -59,6 +66,11 @@ export const useAuth = () => {
     mutationFn: authService.resendVerification,
   });
 
+  /**
+   * Accepts { rawQueryString } and forwards it straight to the service.
+   * The service appends it verbatim to the URL so Laravel receives the
+   * parameters in the exact order it originally signed them.
+   */
   const verifyEmailMutation = useMutation({
     mutationFn: (payload: VerifyEmailPayload) => authService.verifyEmail(payload),
     onSuccess: () => {

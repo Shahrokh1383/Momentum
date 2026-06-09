@@ -7,6 +7,7 @@ use App\Services\Auth\EmailVerificationService;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 
 class EmailVerificationController extends Controller
 {
@@ -14,20 +15,20 @@ class EmailVerificationController extends Controller
         private readonly EmailVerificationService $emailVerificationService
     ) {}
 
-    /**
-     * Verify the email using the token from the URL query string.
-     * The frontend receives this token from the email link and calls this endpoint.
+     /**
+     * Verify the email using the signed URL parameters.
      */
     public function verify(Request $request): JsonResponse
     {
         $request->validate([
-            'token' => ['required', 'string'],
-            'email' => ['required', 'email'],
+            'id'        => ['required', 'integer'],
+            'hash'      => ['required', 'string'],
+            'expires'   => ['required', 'integer'],
+            'signature' => ['required', 'string'],
         ]);
 
-        $user = $this->emailVerificationService->verifyToken($request->token);
-
-        if (!$user) {
+        // 1. Verify the RELATIVE cryptographic signature and expiration (2nd parameter = false)
+        if (!URL::hasValidSignature($request, false)) { // <-- Crucial: Validate relative URL
             return $this->errorResponse(
                 'invalid_token',
                 'The verification link is invalid or has expired. Please request a new one.',
@@ -35,11 +36,21 @@ class EmailVerificationController extends Controller
             );
         }
 
+        // 2. Verify the user hash and mark as verified
+        $verified = $this->emailVerificationService->verifySignedUrl(
+            $request->id,
+            $request->hash
+        );
+
+        if (!$verified) {
+            return $this->errorResponse('verification_failed', 'Email verification failed.', 422);
+        }
+
         return $this->successResponse(null, 'Email verified successfully. You can now access your account.');
     }
 
     /**
-     * Resend the verification email to the authenticated user.
+     * Resend the verification email to the user.
      */
     public function resend(Request $request): JsonResponse
     {
