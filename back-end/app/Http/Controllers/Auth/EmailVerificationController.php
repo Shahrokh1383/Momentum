@@ -28,7 +28,7 @@ class EmailVerificationController extends Controller
         ]);
 
         // 1. Verify the RELATIVE cryptographic signature and expiration (2nd parameter = false)
-        if (!URL::hasValidSignature($request, false)) { // <-- Crucial: Validate relative URL
+        if (!URL::hasValidSignature($request, false)) {
             return $this->errorResponse(
                 'invalid_token',
                 'The verification link is invalid or has expired. Please request a new one.',

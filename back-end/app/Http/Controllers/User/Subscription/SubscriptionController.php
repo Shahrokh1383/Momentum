@@ -16,8 +16,7 @@ class SubscriptionController extends Controller
     public function __construct(
         private SubscriptionService $subscriptionService,
         private PlanQuotaService $quotaService
-    ) {
-    }
+    ) {}
 
     public function current(Request $request): JsonResponse
     {
@@ -39,33 +38,92 @@ class SubscriptionController extends Controller
             $result = $this->subscriptionService->upgrade(
                 $request->user(),
                 $request->plan(),
-                $request->validated('payment_method', 'simulated')
+                $request->validated('card_number')
             );
 
             return $this->successResponse([
                 'subscription' => new SubscriptionResource($result['subscription']->load('planDetails')),
-                'payment' => $result['payment']->only(['id', 'status', 'amount', 'currency', 'provider_ref']),
-            ], 'Subscription upgrade initiated. Payment is being processed.', 202);
+                'payment' => [
+                    'gateway_transaction_id' => $result['payment']->gateway_transaction_id,
+                    'status' => $result['payment']->status->value,
+                    'amount' => $result['payment']->amount,
+                    'currency' => $result['payment']->currency,
+                    'card' => $result['payment']->card_number_masked,
+                ],
+            ], 'Payment initiated. Awaiting gateway confirmation.', 202);
+
         } catch (\InvalidArgumentException $e) {
             return $this->errorResponse('upgrade_failed', $e->getMessage(), 422);
         } catch (\Exception $e) {
-            return $this->errorResponse('internal_error', 'An error occurred during upgrade.', 500);
+            return $this->errorResponse('payment_error', $e->getMessage(), 502);
+        }
+    }
+
+    public function verify(Request $request, int $transactionId): JsonResponse
+    {
+        try {
+            $result = $this->subscriptionService->verify($request->user(), $transactionId);
+
+            $statusCode = match ($result['status']) {
+                'confirmed', 'already_confirmed' => 200,
+                'pending' => 200,
+                'failed' => 200,
+                default => 200,
+            };
+
+            $message = match ($result['status']) {
+                'confirmed' => 'Payment confirmed. Subscription activated.',
+                'already_confirmed' => 'Payment was already confirmed.',
+                'pending' => 'Payment is still being processed.',
+                'failed' => 'Payment failed.',
+                default => 'Unknown status.',
+            };
+
+            $data = ['status' => $result['status']];
+
+            if (isset($result['subscription'])) {
+                $data['subscription'] = new SubscriptionResource($result['subscription']->load('planDetails'));
+            }
+
+            if (isset($result['payment'])) {
+                $data['payment'] = [
+                    'gateway_transaction_id' => $result['payment']->gateway_transaction_id,
+                    'status' => $result['payment']->status->value,
+                    'amount' => $result['payment']->amount,
+                    'paid_at' => $result['payment']->paid_at,
+                ];
+            }
+
+            return $this->successResponse($data, $message, $statusCode);
+
+        } catch (\Exception $e) {
+            return $this->errorResponse('verify_error', $e->getMessage(), 502);
         }
     }
 
     public function cancel(Request $request): JsonResponse
     {
         try {
-            $subscription = $this->subscriptionService->cancel($request->user());
+            $result = $this->subscriptionService->cancel($request->user());
 
-            return $this->successResponse(
-                new SubscriptionResource($subscription->load('planDetails')),
-                'Subscription cancelled successfully. Access remains until expiration.'
-            );
+            $data = [
+                'subscription' => new SubscriptionResource($result['subscription']->load('planDetails')),
+            ];
+
+            if ($result['payment']) {
+                $data['refund'] = [
+                    'status' => $result['payment']->status->value,
+                    'amount' => $result['payment']->amount,
+                    'refunded_at' => $result['payment']->refunded_at,
+                ];
+            }
+
+            return $this->successResponse($data, 'Subscription cancelled and refund initiated.');
+
         } catch (\InvalidArgumentException $e) {
             return $this->errorResponse('cancel_failed', $e->getMessage(), 422);
         } catch (\Exception $e) {
-            return $this->errorResponse('internal_error', 'An error occurred during cancellation.', 500);
+            return $this->errorResponse('refund_error', $e->getMessage(), 502);
         }
     }
 
@@ -88,12 +146,6 @@ class SubscriptionController extends Controller
                 'insights' => $this->quotaService->hasFeature($user, 'insights'),
                 'xp_booster' => $this->quotaService->hasFeature($user, 'xp_booster'),
                 'unlimited_photos' => $this->quotaService->hasFeature($user, 'unlimited_photos'),
-            ],
-            'usage' => [
-                'habits_remaining' => null,
-                'groups_remaining' => null,
-                'photos_remaining' => null,
-                'pdfs_remaining' => null,
             ],
         ], 'User quota and feature information retrieved.');
     }

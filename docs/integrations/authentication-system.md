@@ -1,15 +1,8 @@
-# 1. Authentication Module Documentation
 
----
-
-## 📄 `docs/modules/authentication-system.md`
-
-```markdown
 # Authentication Module — Technical Documentation
 
 > **Module**: Authentication & Identity Management
-> **Version**: 2.0.0
-> **Last Updated**: 2025-07-XX
+> **Version**: 3.0.0
 > **Status**: Production-Ready (Real Email Integration)
 
 ---
@@ -23,8 +16,7 @@
 5. [API Contract](#5-api-contract)
 6. [Flow Diagrams](#6-flow-diagrams)
 7. [Edge Cases](#7-edge-cases)
-8. [Tests](#8-tests)
-9. [Notes](#9-notes)
+8. [Notes](#8-notes)
 
 ---
 
@@ -34,15 +26,17 @@
 
 The Authentication module provides secure user identity management for the Momentum Habit Tracker application. It handles user registration, login, logout, email verification, password reset, and third-party OAuth authentication.
 
+---
+
 ### 1.2 Key Features
 
 | Feature | Description |
 |---------|-------------|
 | **Email/Password Auth** | Traditional credential-based registration and login |
-| **Email Verification** | Real SMTP-based email verification with tokenized links |
-| **Password Reset** | Real SMTP-based password reset flow with secure tokens |
+| **Email Verification** | Real SMTP-based email verification using Laravel's native Cryptographic Signed URLs |
+| **Password Reset** | Real SMTP-based password reset flow using Laravel's native Password Broker |
 | **OAuth 2.0** | Google and GitHub social login via popup window |
-| **Session-Based Auth** | Laravel Sanctum SPA authentication (cookie-based, no Bearer tokens) |
+| **Hybrid Auth** | Laravel Sanctum dynamically supports both Stateful (SPA cookie-based) and Stateless (API/Mobile Bearer token) authentication |
 | **Rate Limiting** | Per-IP and per-email throttling on sensitive endpoints |
 
 ### 1.3 Technology Stack
@@ -50,8 +44,9 @@ The Authentication module provides secure user identity management for the Momen
 | Layer | Technology |
 |-------|-----------|
 | Backend Framework | Laravel 11 (PHP 8.2+) |
-| Authentication | Laravel Sanctum (Stateful SPA mode) |
+| Authentication | Laravel Sanctum (Stateful SPA mode + Stateless API Tokens) |
 | Email Transport | SMTP (Mailpit for development, any SMTP for production) |
+| Token Management | Laravel Native Signed URLs & Password Broker |
 | OAuth Provider | Laravel Socialite |
 | Frontend Framework | React 18 + TypeScript |
 | State Management | Zustand (authStore) |
@@ -63,9 +58,9 @@ The Authentication module provides secure user identity management for the Momen
 ### 1.4 Architecture Principles
 
 - **SOLID**: Each service has a single, well-defined responsibility
-- **SRP**: Controllers delegate to services; services handle business logic
-- **DRY**: Shared `HasApiResponse` trait for consistent JSON responses
-- **KISS**: Simple token-based verification without over-engineering
+- **SRP**: Controllers delegate to services; services orchestrate native Laravel features
+- **DRY**: Shared `HasApiResponse` trait for consistent JSON responses; leverages Laravel's built-in token/verification mechanisms instead of reinventing the wheel
+- **KISS**: Utilizing Laravel's native Signed URLs and Password Broker removes the need for custom token CRUD, DB tables, and manual expiration logic
 - **Separation of Concerns**: Backend validates & processes; Frontend handles UX state
 
 ---
@@ -89,39 +84,36 @@ The Authentication module provides secure user identity management for the Momen
 
 | Rule | Details |
 |------|---------|
-| BR-VER-01 | Verification tokens are 64-character random strings |
-| BR-VER-02 | Tokens expire after **60 minutes** from creation |
-| BR-VER-03 | Only one active verification token exists per email at any time |
-| BR-VER-04 | Old tokens are invalidated when a new one is generated |
-| BR-VER-05 | Tokens are single-use — deleted immediately after successful verification |
-| BR-VER-06 | Expired tokens are deleted upon verification attempt |
-| BR-VER-07 | Already-verified users who request resend receive a success message without new email |
-| BR-VER-08 | Verification link redirects to frontend route: `/verify-email?token=xxx&email=xxx` |
-| BR-VER-09 | Frontend automatically submits token to backend API upon page load |
+| BR-VER-01 | Verification uses Laravel's Cryptographic Signed URLs (no DB token storage required) |
+| BR-VER-02 | Signed URLs expire after **60 minutes** from creation |
+| BR-VER-03 | Signatures are validated natively by Laravel; tampering with parameters invalidates the signature |
+| BR-VER-04 | Attempting to use an expired or invalid signature returns a 422 error |
+| BR-VER-05 | Already-verified users who request resend receive a success message without a new email |
+| BR-VER-06 | Verification link redirects to frontend route: `/verify-email?id=xxx&hash=xxx&expires=xxx&signature=xxx` |
+| BR-VER-07 | Frontend automatically extracts query parameters and POSTs them to the backend API upon page load |
 
 ### 2.3 Login
 
 | Rule | Details |
 |------|---------|
 | BR-LOG-01 | Login requires valid email and password |
-| BR-LOG-02 | "Remember me" extends session duration |
-| BR-LOG-03 | Session is regenerated on successful login (session fixation prevention) |
+| BR-LOG-02 | "Remember me" extends session duration (Stateful SPA only) |
+| BR-LOG-03 | Session is regenerated on successful login for stateful requests (session fixation prevention) |
 | BR-LOG-04 | Failed login returns generic "Invalid credentials" message (no email enumeration) |
 | BR-LOG-05 | Login is rate-limited to 5 attempts per minute per IP |
+| BR-LOG-06 | Stateless requests (Postman/Mobile) receive a Bearer `auth-token` upon successful login instead of a session cookie |
 
 ### 2.4 Password Reset
 
 | Rule | Details |
 |------|---------|
-| BR-RST-01 | Reset tokens are 64-character random strings |
-| BR-RST-02 | Tokens expire after **60 minutes** from creation |
-| BR-RST-03 | Only one active reset token exists per email at any time |
-| BR-RST-04 | Old tokens are invalidated when a new one is generated |
-| BR-RST-05 | Tokens are single-use — deleted after password is reset |
-| BR-RST-06 | Forgot password always returns generic success (prevents email enumeration) |
-| BR-RST-07 | Reset link redirects to frontend: `/reset-password?token=xxx&email=xxx` |
-| BR-RST-08 | New password must meet the same complexity rules as registration |
-| BR-RST-09 | Password is automatically hashed via the `hashed` cast on the User model |
+| BR-RST-01 | Reset tokens are generated and managed by Laravel's native `Password` broker |
+| BR-RST-02 | Tokens expire after **60 minutes** from creation (configurable in `auth.php`) |
+| BR-RST-03 | Tokens are stored securely in the `password_reset_tokens` database table |
+| BR-RST-04 | Forgot password always returns generic success (prevents email enumeration) |
+| BR-RST-05 | Reset link redirects to frontend: `/reset-password?token=xxx&email=xxx` |
+| BR-RST-06 | New password must meet the same complexity rules as registration |
+| BR-RST-07 | Password is automatically hashed via the `hashed` cast on the User model |
 
 ### 2.5 OAuth
 
@@ -139,10 +131,11 @@ The Authentication module provides secure user identity management for the Momen
 
 | Rule | Details |
 |------|---------|
-| BR-OUT-01 | Session is invalidated and CSRF token is regenerated |
-| BR-OUT-02 |  Frontend forcefully clears all state (Zustand store + React Query cache) even if the backend API call fails (using onSettled instead of onSuccess) |
-| BR-OUT-03 | A fresh CSRF cookie is requested before the logout POST to prevent 419 errors on expired tokens |
-| BR-OUT-04 | User is redirected to /login |
+| BR-OUT-01 | Stateful (SPA): Session is invalidated and CSRF token is regenerated |
+| BR-OUT-02 | Stateless (API/Mobile): Current Bearer token is revoked/deleted from the database |
+| BR-OUT-03 | Frontend forcefully clears all state (Zustand store + React Query cache) even if the backend API call fails (using onSettled instead of onSuccess) |
+| BR-OUT-04 | A fresh CSRF cookie is requested before the logout POST to prevent 419 errors on expired tokens (SPA only) |
+| BR-OUT-05 | User is redirected to /login |
 
 ### 2.7 Rate Limiting
 
@@ -161,9 +154,6 @@ The Authentication module provides secure user identity management for the Momen
 
 ```
 app/
-├── Enums/
-│   ├── EmailType.php              # PASSWORD_RESET | EMAIL_VERIFICATION
-│   └── UserRole.php               # USER | ADMIN
 ├── Http/
 │   ├── Controllers/Auth/
 │   │   ├── AuthController.php     # register, login, logout, me
@@ -180,12 +170,11 @@ app/
 │   ├── VerificationMail.php       # Mailable: email verification
 │   └── PasswordResetMail.php      # Mailable: password reset
 ├── Models/
-│   ├── User.php                   # Authenticatable model
-│   └── SentEmailLog.php           # Token storage for emails
+│   └── User.php                   # Authenticatable model (implements MustVerifyEmail)
 ├── Services/Auth/
-│   ├── EmailVerificationService.php  # Token CRUD + email dispatch
+│   ├── EmailVerificationService.php  # Dispatches notifications & verifies signatures
 │   ├── OAuthService.php              # Socialite abstraction
-│   └── PasswordResetService.php      # Token CRUD + email dispatch
+│   └── PasswordResetService.php      # Delegates to Laravel Password Broker
 └── Traits/
     └── HasApiResponse.php         # Standardized JSON responses
 
@@ -201,10 +190,12 @@ routes/api/
 
 | Controller | Methods | Responsibility |
 |-----------|---------|---------------|
-| `AuthController` | `register`, `login`, `logout`, `me` | Credential auth + session management |
-| `EmailVerificationController` | `verify`, `resend` | Email verification orchestration |
+| `AuthController` | `register`, `login`, `logout`, `me` | Credential auth + dynamic stateful/stateless response handling |
+| `EmailVerificationController` | `verify`, `resend` | Signature validation & email verification orchestration |
 | `PasswordResetController` | `forgot`, `reset` | Password reset orchestration |
 | `OAuthController` | `redirect`, `callback` | OAuth flow orchestration |
+
+> **Key Principle**: Controllers do NOT contain business logic. They delegate to services and return responses dynamically based on the request context (Stateful vs. Stateless).
 
 > **Key Principle**: Controllers do NOT contain business logic. They delegate to services and return responses.
 
@@ -212,46 +203,19 @@ routes/api/
 
 | Service | Responsibility |
 |---------|---------------|
-| `EmailVerificationService` | Generate tokens, persist to `SentEmailLog`, send `VerificationMail`, validate & consume tokens |
-| `PasswordResetService` | Generate tokens, persist to `SentEmailLog`, send `PasswordResetMail`, validate & consume tokens |
+| `EmailVerificationService` | Triggers `sendEmailVerificationNotification` on User, verifies URL signatures, marks email as verified |
+| `PasswordResetService` | Delegates to Laravel's native `Password` broker for sending reset links and resetting passwords |
 | `OAuthService` | Validate providers, generate Socialite redirect URLs, retrieve social user data |
 
-### 3.4 Token Storage Model
+### 3.4 Native Token & Verification Mechanisms
 
-The `SentEmailLog` model serves as the token storage mechanism:
+By migrating away from a custom `SentEmailLog` table, the system leverages Laravel's native, cryptographically secure mechanisms:
 
-| Column | Type | Purpose |
-|--------|------|---------|
-| `id` | bigint | Primary key |
-| `recipient_email` | string | Target email address |
-| `subject` | string | Email subject line |
-| `body` | text | Full URL sent in email |
-| `token` | string | 64-char verification/reset token |
-| `type` | enum | `email_verification` or `password_reset` |
-| `created_at` | timestamp | Used for expiration calculation |
-
-### 3.5 Email Templates
-
-Both templates use a consistent dark-themed design matching the Momentum brand:
-- Gradient header with app branding
-- Clear call-to-action button
-- Expiration time warning
-- Fallback URL for email clients that don't render buttons
-- Footer with copyright
-
-### 3.6 Security Measures
-
-| Measure | Implementation |
-|---------|---------------|
-| Password hashing | Automatic via `'password' => 'hashed'` cast |
-| Session fixation | `$request->session()->regenerate()` after login/register |
-| Session invalidation | `invalidate()` + `regenerateToken()` on logout |
-| CSRF protection | Sanctum stateful middleware + XSRF-TOKEN cookie |
-| Token expiration | 60-minute TTL enforced in services |
-| Single-use tokens | Deleted from DB after consumption |
-| One active token | Previous tokens deleted before issuing new ones |
-| Email enumeration prevention | Generic messages on forgot-password |
-| Rate limiting | IP-based and email-based throttling |
+| Mechanism | Implementation |
+|-----------|---------------|
+| **Email Verification** | Uses `Illuminate\Contracts\Auth\MustVerifyEmail`. The `User` model overrides `sendEmailVerificationNotification()` to generate a **Relative Temporary Signed Route** (`URL::temporarySignedRoute(..., false)`). This ensures signature validation succeeds even when the SPA proxy alters the host header. |
+| **Signature Validation** | Handled via `URL::hasValidSignature($request, false)` in the `EmailVerificationController`. No database queries are needed to validate verification tokens. |
+| **Password Reset** | Uses Laravel's native `Password` broker (`Illuminate\Support\Facades\Password`). Tokens are automatically generated, hashed for security, and stored in the `password_reset_tokens` database table. Expiration and deletion are handled natively by the framework. |
 
 ---
 
@@ -281,21 +245,10 @@ src/
 ├── services/user/
 │   └── authService.ts             # Axios API calls for all auth endpoints
 └── types/
-    └── user.ts                    # TypeScript interfaces
+    └── user.ts                    # TypeScript interfaces (VerifyEmailPayload uses Signed URL params)
 ```
 
 ### 4.2 State Management Strategy
-
-```
-┌─────────────────┐     ┌──────────────┐     ┌─────────────────┐
-│  React Query     │────▶│  authStore    │────▶│  Components     │
-│  (Server State)  │     │  (Zustand)    │     │  (UI State)     │
-│                  │     │              │     │                 │
-│  - currentUser   │     │  - user      │     │  - form errors  │
-│  - mutations     │     │  - isAuth    │     │  - loading      │
-│                  │     │  - isPremium │     │  - messages     │
-└─────────────────┘     └──────────────┘     └─────────────────┘
-```
 
 | Layer | Tool | Responsibility |
 |-------|------|---------------|
@@ -318,7 +271,7 @@ src/
 ### 4.4 VerifyEmailPage — Dual State Machine
 
 ```
-URL has token + email?
+URL has Signed URL params (id, hash, expires, signature)?
 ├── YES → STATE 1: Auto-Verification
 │   ├── Pending  → Show spinner + "Verifying your email..."
 │   ├── Success  → Redirect to /dashboard (via React Query invalidation)
@@ -355,22 +308,35 @@ Register a new user account. Sends verification email automatically.
 }
 ```
 
-**Success Response** `201`:
+**Request**:
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "SecureP@ss1",
+  "password_confirmation": "SecureP@ss1"
+}
+```
+
+**Success Response (Stateless - API/Postman/Mobile)** `201`:
 ```json
 {
   "success": true,
   "message": "Registration successful. Please check your email to verify your account.",
   "data": {
-    "id": 1,
-    "name": "John Doe",
-    "email": "john@example.com",
-    "avatar": null,
-    "role": "user",
-    "email_verified_at": null,
-    "profile_visibility": "public",
-    "is_premium": false,
-    "subscription": null,
-    "created_at": "2025-07-XX..."
+    "user": {
+      "id": 1,
+      "name": "John Doe",
+      "email": "john@example.com",
+      "avatar": null,
+      "role": "user",
+      "email_verified_at": null,
+      "profile_visibility": "public",
+      "is_premium": false,
+      "subscription": null,
+      "created_at": "2025-07-XX..."
+    },
+    "token": "2|xyz987wvu654..."
   }
 }
 ```
@@ -389,7 +355,8 @@ Register a new user account. Sends verification email automatically.
 
 #### `POST /api/auth/login`
 
-Authenticate a user with credentials.
+Authenticate a user with credentials. Dynamically returns a session cookie for Stateful requests (SPA) or a Bearer token for Stateless requests (API/Mobile/Postman).
+
 
 **Rate Limit**: `auth-limiter` (5/min per IP)
 
@@ -402,7 +369,8 @@ Authenticate a user with credentials.
 }
 ```
 
-**Success Response** `200`:
+**Success Response (Stateful - SPA)** `200`:
+*Sets `momentum_session` and `XSRF-TOKEN` cookies automatically.*
 ```json
 {
   "success": true,
@@ -418,6 +386,30 @@ Authenticate a user with credentials.
       "status": "active",
       "expires_at": null
     }
+  }
+}
+```
+
+**Success Response (Stateless - API/Postman/Mobile)** `200`:
+*No cookies set. Token must be used in `Authorization: Bearer <token>` header for subsequent requests.*
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "user": {
+      "id": 1,
+      "name": "John Doe",
+      "email": "john@example.com",
+      "email_verified_at": "2025-07-XX...",
+      "is_premium": false,
+      "subscription": {
+        "plan": "free",
+        "status": "active",
+        "expires_at": null
+      }
+    },
+    "token": "1|abc123def456ghi789..."
   }
 }
 ```
@@ -495,19 +487,15 @@ Reset the user's password using a valid token.
 
 ---
 
-#### `POST /api/auth/verify-email`
+#### `POST /api/auth/verify-email?id=xxx&hash=xxx&expires=xxx&signature=xxx`
 
-Verify user's email address using token from email link.
+Verify user's email address using the Signed URL parameters. Parameters must be passed in the **Query String** so Laravel's `URL::hasValidSignature` can validate them natively.
 
 **Rate Limit**: `reset-limiter` (5/min per IP)
 
-**Request**:
-```json
-{
-  "token": "abc123...",
-  "email": "john@example.com"
-}
-```
+**Request Body**: Empty (or `null`)
+
+**Request Query Params**: `id`, `hash`, `expires`, `signature` (extracted from the email link by the SPA)
 
 **Success Response** `200`:
 ```json
@@ -614,6 +602,12 @@ These are in `/api/user` and require `auth:sanctum` + `verified` middleware.
 
 #### `POST /api/user/logout`
 
+Invalidates the current authentication context. 
+- **Stateful (SPA)**: Invalidates session and regenerates CSRF token.
+- **Stateless (API/Mobile)**: Revokes the current Bearer token (`currentAccessToken()->delete()`).
+
+**Headers (Stateless)**: `Authorization: Bearer <token>`
+
 **Success Response** `200`:
 ```json
 {
@@ -652,13 +646,14 @@ These are in `/api/user` and require `auth:sanctum` + `verified` middleware.
 │  Browser  │────▶│  POST        │────▶│  AuthController       │────▶│  EmailVerif. │
 │  (React)  │     │  /register   │     │  register()           │     │  Service     │
 └──────────┘     └──────────────┘     │                       │     │             │
-                                       │  1. Create User (DB)  │     │  1. Delete   │
-                                       │  2. Call service ─────│────▶│     old tkn  │
-                                       │  3. Auth::login()     │     │  2. Generate │
-                                       │  4. Return UserRes.   │     │     64-char  │
-                                       └───────────────────────┘     │  3. Persist  │
-                                                                      │     to DB    │
-                                                                      │  4. Send     │
+                                       │  1. Create User (DB)  │     │  1. Call     │
+                                       │  2. Call service ─────│────▶│     user->   │
+                                       │  3. Auth::login()     │     │     sendEmail│
+                                       │  4. Return UserRes.   │     │     Verif.() │
+                                       └───────────────────────┘     │  2. Generate │
+                                                                      │     Signed  │
+                                                                      │     URL     │
+                                                                      │  3. Send    │
                                                                       │     email    │
                                                                       └─────────────┘
                                                                              │
@@ -679,15 +674,12 @@ These are in `/api/user` and require `auth:sanctum` + `verified` middleware.
 ┌──────────┐     ┌──────────────┐     ┌───────────────────────┐     ┌─────────────┐
 │  Browser  │◀───│  /verify-    │────▶│  POST                 │────▶│  EmailVerif. │
 │  (React)  │     │  email?      │     │  /api/auth/verify-    │     │  Service     │
-│           │     │  token=xxx   │     │  email                │     │             │
-│  Auto-    │     │  &email=xxx  │     │                       │     │  1. Find tkn │
-│  submits  │     └──────────────┘     │  EmailVerifController │     │  2. Check    │
-│  on load  │                          │  verify()             │     │     expiry   │
-└──────────┘                          └───────────────────────┘     │  3. Mark     │
-                                                                      │     verified │
-                                                                      │  4. Delete   │
-                                                                      │     token    │
-                                                                      └─────────────┘
+│           │     │  id=x&hash=x │     │  email?id=x&hash=x...│     │             │
+│  Auto-    │     │  &expires=x  │     │                       │     │  1. Verify   │
+│  submits  │     │  &signature=x│     │  EmailVerifController │     │     Hash     │
+│  on load  │     └──────────────┘     │  verify()             │     │  2. Mark     │
+└──────────┘                          │  1. Validate Sig. ────│────▶│     verified │
+                                      └───────────────────────┘     └─────────────┘
 ```
 
 ### 6.2 Password Reset Flow
@@ -697,12 +689,17 @@ These are in `/api/user` and require `auth:sanctum` + `verified` middleware.
 │  Forgot   │────▶│  POST        │────▶│  PasswordReset        │────▶│  PasswordRst │
 │  Password │     │  /forgot-    │     │  Controller::forgot() │     │  Service     │
 │  Page     │     │  password    │     │                       │     │             │
-└──────────┘     └──────────────┘     └───────────────────────┘     │  1. Delete   │
-                                                                      │     old tkn  │
-                                                                      │  2. Generate │
-                                                                      │  3. Persist  │
-                                                                      │  4. Send     │
-                                                                      │     email    │
+└──────────┘     └──────────────┘     └───────────────────────┘     │  1. Call     │
+                                                                      │     Password │
+                                                                      │     ::sendRes│
+                                                                      │     etLink()  │
+                                                                      │  2. Native   │
+                                                                      │     broker    │
+                                                                      │     handles DB│
+                                                                      │  3. User->   │
+                                                                      │     sendPassw │
+                                                                      │     ordReset  │
+                                                                      │     Notif.()  │
                                                                       └──────┬──────┘
                                                                              │
                                                                     User clicks link
@@ -712,57 +709,14 @@ These are in `/api/user` and require `auth:sanctum` + `verified` middleware.
 │  Reset    │────▶│  POST        │────▶│  PasswordReset        │────▶│  PasswordRst │
 │  Password │     │  /reset-     │     │  Controller::reset()  │     │  Service     │
 │  Page     │     │  password    │     │                       │     │             │
-│           │     │              │     │  {token, email, pwd}  │     │  1. Find tkn │
-│  token &  │     └──────────────┘     └───────────────────────┘     │  2. Check    │
-│  email    │                                                         │     expiry   │
-│  from URL │                                                         │  3. Update   │
-└──────────┘                                                         │     password │
-                                                                      │  4. Delete   │
-                                                                      │     token    │
+│           │     │              │     │  {token, email, pwd}  │     │  1. Call     │
+│  token &  │     └──────────────┘     └───────────────────────┘     │     Password │
+│  email    │                                                         │     ::reset()  │
+│  from URL │                                                         │  2. Native   │
+└──────────┘                                                         │     broker    │
+                                                                      │     validates│
+                                                                      │     & updates│
                                                                       └─────────────┘
-```
-
-### 6.3 OAuth Flow (Popup)
-
-```
-┌──────────────┐     ┌─────────────┐     ┌──────────────┐
-│  Login Page   │     │  Backend    │     │  Google/     │
-│  (main window)│     │  API        │     │  GitHub      │
-└──────┬───────┘     └──────┬──────┘     └──────┬───────┘
-       │                     │                    │
-       │ GET /oauth/google   │                    │
-       │────────────────────▶│                    │
-       │                     │                    │
-       │  { url: "..." }     │                    │
-       │◀────────────────────│                    │
-       │                     │                    │
-       │ window.open(url)    │                    │
-       │─────────────────────│───────────────────▶│
-       │                     │                    │
-       │                     │   redirect with    │
-       │                     │   ?code=xxx        │
-       │                     │◀───────────────────│
-       │                     │                    │
-       │ ┌─────────────────┐ │                    │
-       │ │  Popup Window    │ │                    │
-       │ │  /auth/callback/ │ │                    │
-       │ │  google?code=xxx │ │                    │
-       │ │                  │ │                    │
-       │ │ POST /oauth/     │ │                    │
-       │ │ google/callback  │─│───▶ Exchange code  │
-       │ │ { code: "xxx" }  │ │    for user data   │
-       │ │                  │ │                    │
-       │ │ postMessage(     │ │                    │
-       │ │  'oauth-success')│ │                    │
-       │ │ window.close()   │ │                    │
-       │ └────────┬─────────┘ │                    │
-       │          │            │                    │
-       │◀─────────┘            │                    │
-       │ (receives message)    │                    │
-       │                       │                    │
-       │ invalidateQueries()   │                    │
-       │ navigate('/dashboard')│                    │
-       └───────────────────────┘                    │
 ```
 
 ---
@@ -773,64 +727,42 @@ These are in `/api/user` and require `auth:sanctum` + `verified` middleware.
 
 | # | Scenario | Expected Behavior |
 |---|----------|-------------------|
-| EC-VER-01 | User clicks verification link after 60 minutes | Token is expired → deleted from DB → error response → "Send New Verification Email" button shown |
-| EC-VER-02 | User clicks same verification link twice | First click: success. Second click: token not found → error response |
+| EC-VER-01 | User clicks verification link after 60 minutes | Signature is expired → 422 error response → "Send New Verification Email" button shown |
+| EC-VER-02 | User clicks same verification link twice | First click: signature valid, marks verified. Second click: signature still valid, but `verifySignedUrl` returns true (already verified). |
 | EC-VER-03 | User clicks "Resend" multiple times rapidly | Rate limiter blocks after 2 attempts per 5 minutes per IP+email |
-| EC-VER-04 | User clicks old verification link after resending | Old token was deleted when new one was generated → error response |
-| EC-VER-05 | Already-verified user clicks verification link | Token not found (was deleted on first verify) → error, but user is already verified so no impact |
-| EC-VER-06 | Already-verified user requests resend | Backend returns success: "Your email is already verified." No new email sent |
-| EC-VER-07 | User navigates to `/verify-email` without query params | STATE 2: shows "Check your inbox" UI (no auto-verification attempted) |
-| EC-VER-08 | User navigates to `/verify-email?token=invalid&email=x` | Auto-verification fails → error UI with resend button |
+| EC-VER-04 | User clicks old verification link after resending | Old link's signature has not changed, but it points to the same user. If not expired, it still works. |
+| EC-VER-05 | Already-verified user requests resend | Backend returns success: "Your email is already verified." No new email sent |
+| EC-VER-06 | User navigates to `/verify-email` without query params | STATE 2: shows "Check your inbox" UI (no auto-verification attempted) |
+| EC-VER-07 | User tampers with the `id` or `hash` in the URL | Cryptographic signature validation fails → 422 error response |
+| EC-VER-08 | SPA proxy alters the domain/host header | Using Relative Signed URLs (`false` parameter) ensures signature validation ignores the host, preventing 419/422 mismatches |
 | EC-VER-09 | React Strict Mode double-fires useEffect | `hasProcessed` ref prevents duplicate API calls |
 
 ### 7.2 Password Reset Edge Cases
 
 | # | Scenario | Expected Behavior |
 |---|----------|-------------------|
-| EC-RST-01 | User requests reset for non-existent email | `ForgotPasswordRequest` validates `exists:users,email` → 422 validation error. However, the generic success message in the controller prevents enumeration at the response level |
-| EC-RST-02 | User clicks reset link after 60 minutes | Token expired → deleted → error: "invalid or has expired" |
-| EC-RST-03 | User clicks reset link twice | First click: success. Second: token consumed → error |
-| EC-RST-04 | User requests multiple resets, clicks oldest link | Old token was deleted when newest was created → error |
-| EC-RST-05 | User navigates to `/reset-password` without params | Page shows "Invalid Link" UI with link to request new reset |
-| EC-RST-06 | Token in URL is tampered with | Token not found in DB → error response |
-
-### 7.3 OAuth Edge Cases
-
-| # | Scenario | Expected Behavior |
-|---|----------|-------------------|
-| EC-OA-01 | User registers via email, then logs in via Google (same email) | Existing user is updated with `provider` and `provider_id`. No duplicate created |
-| EC-OA-02 | User closes popup before completing OAuth | Timer detects `popup.closed` → clears loading state in parent window |
-| EC-OA-03 | OAuth provider returns no email | User creation fails → `oauth_failed` error returned |
-| EC-OA-04 | Unsupported provider in URL (e.g., `/oauth/twitter`) | `OAuthService` throws `InvalidArgumentException` → 400 response |
-| EC-OA-05 | OAuth code is invalid or expired | Socialite throws exception → `oauth_failed` 401 response |
-| EC-OA-06 | User opens OAuth link directly (not in popup) | No `window.opener` → fallback: navigate to `/dashboard` directly |
-
-### 7.4 Session & Auth Edge Cases
-
-| # | Scenario | Expected Behavior |
-|---|----------|-------------------|
-| EC-AUTH-01 | Session expires while user is on protected page | Next API call returns 401 → `ProtectedRoute` detects `!isAuthenticated` → redirects to `/login` |
-| EC-AUTH-02 | User opens app in new tab | React Query `currentUser` query runs → `getMe()` → restores auth state from session cookie |
-| EC-AUTH-03 | CSRF token mismatch | Sanctum returns 419 → Axios can retry with fresh `csrf-cookie` |
-| EC-AUTH-04 | User accesses /login or / while already authenticated | RootRedirect component checks auth state: redirects to /dashboard. LoginPage component also includes a direct <Navigate to="/dashboard" /> guard if isAuthenticated is true |
-| EC-AUTH-05 | GET /api/user/me returns 401 on initial app boot | hasInitiallyLoaded flag prevents React Query from re-triggering the getMe query infinitely. App correctly falls back to login state |
-
+| EC-RST-01 | User requests reset for non-existent email | Generic success message returned to prevent email enumeration (Laravel broker handles this natively) |
+| EC-RST-02 | User clicks reset link after 60 minutes | Laravel broker rejects token → error: "invalid or has expired" |
+| EC-RST-03 | User clicks reset link twice | First click: success (broker deletes token). Second: token consumed → error |
+| EC-RST-04 | User navigates to `/reset-password` without params | Page shows "Invalid Link" UI with link to request new reset |
+| EC-RST-05 | Token in URL is tampered with | Laravel broker rejects token → error response |
 
 ---
 
-## 9. Notes
+## 8. Notes
 
-### 9.1 Development Environment
+### 8.1 Development Environment
 
-- **SMTP Server**: Mailpit running on `127.0.0.1:1025` (SMTP) and `127.0.0.1:8025` (Web UI)
+- **SMTP Server**: Mailpit running on `127.0.0.1:1025` (SMTP) and `127.0.0.1:5000` (Web UI)
 - **Frontend Dev Server**: Vite on `http://localhost:5173`
 - **Backend Dev Server**: Laravel on `http://localhost:8000`
 - **FRONTEND_URL**: Must be set in `.env` to `http://localhost:5173`
 - **SESSION_DRIVER**: Must be database or file (NOT cookie). The cookie driver has a 4KB limit which corrupts SPA sessions, causing 401 errors.
 - **SESSION_DOMAIN**: Must be set to localhost in .env to ensure cookies are shared properly across the Vite proxy.
 - **Database Sessions**: Requires the sessions table (generated via php artisan session:table).
+- **Database Password Resets**: Requires the `password_reset_tokens` table (generated via `php artisan make:migration create_password_reset_tokens_table`).
 
-### 9.2 Production Deployment Checklist
+### 8.2 Production Deployment Checklist
 
 - [ ] Update `MAIL_*` env vars for production SMTP (SendGrid, SES, Postmark, etc.)
 - [ ] Set `FRONTEND_URL` to production frontend domain
@@ -843,7 +775,7 @@ These are in `/api/user` and require `auth:sanctum` + `verified` middleware.
 - [ ] Add monitoring/alerting for failed email deliveries
 - [ ] Set appropriate `SESSION_LIFETIME` in production
 
-### 9.3 Future Enhancements
+### 8.3 Future Enhancements
 
 | Enhancement | Priority | Description |
 |-------------|----------|-------------|
@@ -852,18 +784,15 @@ These are in `/api/user` and require `auth:sanctum` + `verified` middleware.
 | Two-Factor Auth (2FA) | Low | TOTP-based 2FA for enhanced security |
 | Magic Link Login | Low | Passwordless login via email link |
 | Email change flow | Low | Verify new email before updating |
-| Token hashing | Medium | Hash tokens in DB (store SHA-256, compare on verify) |
-| Login activity log | Low | Track login timestamps, IPs, user agents |
 
-### 9.4 Key Design Decisions
+### 8.4 Key Design Decisions
 
 | Decision | Rationale |
 |----------|-----------|
-| Custom token system vs Laravel's built-in `VerifiesEmail` | Full control over UX, frontend URL structure, and token lifecycle. Laravel's built-in system uses signed URLs that hit the backend directly, which doesn't fit the SPA architecture |
-| `SentEmailLog` as token storage | Reuses existing table; keeps email audit trail. Avoids additional migration |
-| Frontend-first verification | Email link → Frontend route → API call. This ensures the SPA handles all navigation and state consistently |
-| 64-char tokens | Sufficient entropy (roughly 384 bits). Unfeasible to brute-force within the 60-minute window |
-| Always delete old tokens | Prevents token accumulation and ensures only the latest token is valid |
+| Laravel Signed URLs vs Custom DB Tokens | Leveraging Laravel's native `MustVerifyEmail` and Signed URLs eliminates the need for custom token generation, manual expiration logic, and dedicated database tables (`SentEmailLog`). This is significantly more secure, reduces DB queries, and adheres to KISS/DRY principles. |
+| Relative Signed URLs (`false` param) | Generating and validating relative URLs prevents signature invalidation when the SPA proxy alters the host header (common in local dev and reverse-proxy production environments). |
+| Laravel Password Broker vs Custom DB Tokens | Delegating to `Password::broker()` natively handles secure token hashing, expiration, and DB cleanup, removing boilerplate code from the service layer. |
+| Frontend-first verification | Email link → Frontend route → API call. This ensures the SPA handles all navigation and state consistently. |
 | Generic forgot-password response | Industry standard to prevent email enumeration attacks |
 | OAuth popup pattern | Avoids full-page redirect which would lose SPA state. Popup completes OAuth flow independently |
 | Session-based auth (not tokens) | Sanctum SPA mode with cookies is more secure for same-origin SPAs than Bearer tokens (no XSS token theft risk) |

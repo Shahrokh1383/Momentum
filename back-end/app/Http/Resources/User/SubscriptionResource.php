@@ -17,7 +17,6 @@ class SubscriptionResource extends JsonResource
             'starts_at' => $this->starts_at,
             'expires_at' => $this->expires_at,
             'cancelled_at' => $this->cancelled_at,
-            'payment_method' => $this->payment_method,
             'transaction_ref' => $this->transaction_ref,
             'created_at' => $this->created_at,
         ];

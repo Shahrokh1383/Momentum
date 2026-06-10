@@ -13,8 +13,13 @@ class Subscription extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'plan', 'status', 'starts_at', 'expires_at', 
-        'cancelled_at', 'payment_method', 'transaction_ref',
+        'user_id',
+        'plan',
+        'status',
+        'starts_at',
+        'expires_at',
+        'cancelled_at',
+        'transaction_ref',
     ];
 
     protected $casts = [
@@ -39,14 +44,29 @@ class Subscription extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function isActive(): bool
-    {
-        return $this->status === SubscriptionStatus::ACTIVE 
-            && ($this->expires_at === null || $this->expires_at->isFuture());
-    }
-
     public function planDetails()
     {
         return $this->belongsTo(Plan::class, 'plan', 'slug');
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function latestPayment()
+    {
+        return $this->hasOne(Payment::class)->latestOfMany();
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === SubscriptionStatus::ACTIVE
+            && ($this->expires_at === null || $this->expires_at->isFuture());
+    }
+
+    public function isPendingPayment(): bool
+    {
+        return $this->status === SubscriptionStatus::PENDING_PAYMENT;
     }
 }
