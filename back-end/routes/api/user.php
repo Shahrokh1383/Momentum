@@ -22,7 +22,4 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
             ->whereNumber('transactionId');
         Route::delete('/', [SubscriptionController::class, 'cancel']);
     });
-
-    Route::middleware('premium')
-        ->get('premium-test', fn () => response()->json(['secret' => 'premium-data']));
 });
