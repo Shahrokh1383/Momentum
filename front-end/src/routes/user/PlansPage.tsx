@@ -15,7 +15,6 @@ const PlansPage: React.FC = () => {
     isLoadingPlans,
     currentSubscription, 
     isLoadingSubscription, 
-    upgrade, 
     isUpgrading,
     cancel,
     isCancelling 
@@ -35,18 +34,6 @@ const PlansPage: React.FC = () => {
 
     setSelectedPlan(plan);
     setIsModalOpen(true);
-  };
-
-  const handleConfirmUpgrade = async (plan: Plan) => {
-    try {
-      await upgrade({
-        plan_slug: plan.slug,
-        payment_method: 'simulated',
-      });
-    } catch (error) {
-      console.error("Upgrade failed:", error);
-      // In a real app, you'd show a toast notification here
-    }
   };
 
   const handleCloseModal = () => {
@@ -135,7 +122,6 @@ const PlansPage: React.FC = () => {
         isOpen={isModalOpen}
         plan={selectedPlan}
         onClose={handleCloseModal}
-        onConfirm={handleConfirmUpgrade}
       />
     </div>
   );
