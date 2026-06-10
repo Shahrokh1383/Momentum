@@ -3,83 +3,97 @@ import { SubscriptionDetail } from '@/types/subscription';
 import PremiumBadge from './PremiumBadge';
 
 interface SubscriptionStatusBannerProps {
-  subscription: SubscriptionDetail | null | undefined;
-  isLoading?: boolean;
-  onCancel?: () => void;
-  isCancelling?: boolean;
+  subscription: SubscriptionDetail | null;
+  isLoading: boolean;
+  onCancel: () => void;
+  isCancelling: boolean;
+  onUpgrade?: () => void;
 }
 
 const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
   subscription,
-  isLoading = false,
+  isLoading,
   onCancel,
-  isCancelling = false,
+  isCancelling,
+  onUpgrade
 }) => {
   if (isLoading) {
-    return (
-      <div className="subscription-banner subscription-banner--loading">
-        <div className="spinner-border spinner-border-sm text-primary me-2"></div>
-        <span>Loading your subscription...</span>
-      </div>
-    );
+    return <div className="subscription-banner subscription-banner--loading">Loading subscription status...</div>;
   }
+  
+  if (!subscription) return null;
 
-  if (!subscription) {
+  const { status, plan, expires_at, transaction_ref } = subscription;
+  const planSlug = (subscription.plan_slug as 'free' | 'premium' | 'lifetime') || 'free';
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return 'Lifetime Access';
+    return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
+  // State: Pending Payment
+  if (status === 'pending_payment') {
     return (
-      <div className="subscription-banner subscription-banner--none">
-        <div className="subscription-banner__icon">
-          <i className="fas fa-crown"></i>
-        </div>
+      <div className="subscription-banner subscription-banner--pending">
+        <div className="subscription-banner__icon">⏳</div>
         <div className="subscription-banner__content">
-          <h4>Choose Your Plan</h4>
-          <p>You don't have an active subscription. Select a plan below to unlock all features.</p>
+          <h4>Payment Processing</h4>
+          <p>Your upgrade to <strong>{plan?.name || 'Premium'}</strong> is being verified by the payment gateway.</p>
+          {transaction_ref && <span className="subscription-banner__ref">Ref: {transaction_ref}</span>}
         </div>
       </div>
     );
   }
 
-  const isActive = subscription.status === 'active';
-  const isCancelled = subscription.status === 'cancelled';
-  const isExpired = subscription.status === 'expired';
-
-  let message = '';
-  if (isActive && subscription.expires_at) {
-    const expiresDate = new Date(subscription.expires_at).toLocaleDateString();
-    message = `Your subscription is active until ${expiresDate}.`;
-  } else if (isActive && !subscription.expires_at) {
-    message = 'You have unlimited access. Enjoy all features forever!';
-  } else if (isCancelled && subscription.expires_at) {
-    const expiresDate = new Date(subscription.expires_at).toLocaleDateString();
-    message = `Your subscription was cancelled. Access remains until ${expiresDate}.`;
-  } else if (isExpired) {
-    message = 'Your subscription has expired. Renew now to regain access.';
-  }
-
-  const canCancel = isActive && subscription.plan_slug !== 'free' && !!onCancel;
-
-  return (
-    <div className={`subscription-banner ${isActive ? 'subscription-banner--active' : 'subscription-banner--inactive'}`}>
-      <div className="subscription-banner__content">
-        <div className="subscription-banner__header">
-          <h4>Current Subscription</h4>
-          <PremiumBadge planSlug={subscription.plan_slug} />
+  // State: Active
+  if (status === 'active') {
+    return (
+      <div className="subscription-banner subscription-banner--active">
+        <div className="subscription-banner__icon">✓</div>
+        <div className="subscription-banner__content">
+          <div className="subscription-banner__header">
+            <h4>Active Subscription</h4>
+            <PremiumBadge planSlug={planSlug} />
+          </div>
+          <p>Your plan is active. Access expires on <strong>{formatDate(expires_at)}</strong>.</p>
         </div>
-        <p>{message}</p>
-        {subscription.transaction_ref && (
-          <small className="subscription-banner__ref">Ref: {subscription.transaction_ref}</small>
-        )}
-        {canCancel && (
+        {planSlug !== 'lifetime' && (
           <button 
             className="subscription-banner__cancel" 
-            onClick={onCancel}
+            onClick={onCancel} 
             disabled={isCancelling}
           >
-            {isCancelling ? 'Cancelling...' : 'Cancel Subscription'}
+            {isCancelling ? 'Cancelling...' : 'Cancel Plan'}
           </button>
         )}
       </div>
-    </div>
-  );
+    );
+  }
+
+  // State: Cancelled or Expired
+  if (status === 'cancelled' || status === 'expired') {
+    const isExpired = status === 'expired';
+    return (
+      <div className="subscription-banner subscription-banner--inactive">
+        <div className="subscription-banner__icon">!</div>
+        <div className="subscription-banner__content">
+          <h4>{isExpired ? 'Subscription Expired' : 'Subscription Cancelled'}</h4>
+          <p>
+            {isExpired 
+              ? 'Your premium access has ended. Upgrade to restore your features.' 
+              : `Your plan is cancelled, but you retain premium access until ${formatDate(expires_at)}.`}
+          </p>
+        </div>
+        {onUpgrade && (
+          <button className="btn btn-primary" onClick={onUpgrade}>
+            Upgrade Now
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return null;
 };
 
 export default SubscriptionStatusBanner;

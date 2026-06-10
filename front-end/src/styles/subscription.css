@@ -141,6 +141,23 @@
 }
 .subscription-banner__cancel:disabled { opacity: 0.6; cursor: not-allowed; }
 
+.subscription-banner--loading {
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem; color: var(--text-muted); font-style: italic;
+  background: var(--glass-bg); border-radius: 16px;
+  border: 1px solid var(--glass-border); margin-bottom: 2.5rem;
+}
+
+.subscription-banner--pending {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.08), rgba(255, 160, 0, 0.05));
+  border-color: rgba(255, 193, 7, 0.3);
+}
+
+.subscription-banner--pending .subscription-banner__icon {
+  background: linear-gradient(135deg, #ffc107, #ff9800);
+  box-shadow: 0 4px 14px rgba(255, 193, 7, 0.3);
+}
+
 /* =========================================
    PLANS GRID
    ========================================= */

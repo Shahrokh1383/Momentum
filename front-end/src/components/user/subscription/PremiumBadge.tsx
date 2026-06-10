@@ -1,14 +1,24 @@
 import React from 'react';
 
 interface PremiumBadgeProps {
-  planSlug?: string | null;
+  planSlug: 'free' | 'premium' | 'lifetime';
+  className?: string;
 }
 
-const PremiumBadge: React.FC<PremiumBadgeProps> = ({ planSlug }) => {
-  if (!planSlug) return null;
-  if (planSlug === 'free') return <span className="premium-badge premium-badge--free">Free</span>;
-  if (planSlug === 'lifetime') return <span className="premium-badge premium-badge--lifetime">Lifetime</span>;
-  return <span className="premium-badge premium-badge--premium">Premium</span>;
+const PremiumBadge: React.FC<PremiumBadgeProps> = ({ planSlug, className = '' }) => {
+  const getLabel = () => {
+    switch (planSlug) {
+      case 'premium': return 'Premium';
+      case 'lifetime': return 'Lifetime';
+      default: return 'Free';
+    }
+  };
+
+  return (
+    <span className={`premium-badge premium-badge--${planSlug} ${className}`}>
+      {getLabel()}
+    </span>
+  );
 };
 
 export default PremiumBadge;
