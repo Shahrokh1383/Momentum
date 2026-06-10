@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react'; // <-- Added useEffect
 import { authService } from '@/services/user/authService';
 import { useAuthStore } from '@/context/user/authStore';
 import { useNavigate } from 'react-router-dom';
@@ -16,17 +17,25 @@ export const useAuth = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  // Fetch current user on app boot (runs ONCE per lifecycle)
-  const { isLoading: isFetchingUser } = useQuery({
+  // Fetch current user.
+  // CRITICAL FIX: Removed `enabled: !hasInitiallyLoaded` so React Query can 
+  // refetch this data whenever the 'currentUser' cache is invalidated (e.g., after payment).
+  const { data: fetchedUser, isLoading: isFetchingUser, isError } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: async () => {
-      const fetchedUser = await authService.getMe();
-      setUser(fetchedUser);
-      return fetchedUser;
-    },
+    queryFn: authService.getMe,
     retry: false,
-    enabled: !hasInitiallyLoaded,
   });
+
+  // Sync React Query data with Zustand global state.
+  // This is the critical link that ensures components like <PremiumBadge /> 
+  // update instantly without a page refresh.
+  useEffect(() => {
+    if (fetchedUser) {
+      setUser(fetchedUser);
+    } else if (isError) {
+      clearStore();
+    }
+  }, [fetchedUser, isError, setUser, clearStore]);
 
   const loginMutation = useMutation({
     mutationFn: authService.login,
