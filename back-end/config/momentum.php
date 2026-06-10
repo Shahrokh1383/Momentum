@@ -2,6 +2,11 @@
 
 return [
     'subscription' => [
-        'grace_period_days' => (int) env('MOMENTUM_GRACE_PERIOD_DAYS', 3),
+        'insights' => [
+            'risk_weights' => [],
+        ],
+        'smart_reminders' => [
+            'minimum_sample_size' => 10,
+        ],
     ],
 ];

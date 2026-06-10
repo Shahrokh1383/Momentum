@@ -1,14 +1,17 @@
 
+
 ---
 
 ### Module 1: Database Schema & Configuration
 
 - [ ] **Update `subscriptions` Migration:**
   - [ ] Change `plan` enum from `free, premium, lifetime` to `free, expert, premium`.
-  - [ ] **CRITICAL:** Completely remove the `expires_at` column (Hard Cancel architecture means no grace periods).
+  - [ ] Change `status` enum to include `expired` (e.g., `active`, `cancelled`, `expired`).
+  - [ ] **CRITICAL FIX:** Keep the `expires_at` column! This is required to track when a monthly/yearly subscription naturally ends.
 - [ ] **Update `plans` Migration:**
   - [ ] Remove `price_lifetime` column.
   - [ ] Add `price_yearly` (decimal, nullable).
+  - [ ] Add `duration_months` (int, default 1 for monthly, 12 for yearly plans) — *Helps calculate `expires_at` upon purchase.*
   - [ ] Add `max_categories` (int, default 3).
   - [ ] Add `allowed_habit_types` (varchar, default `boolean,numeric`).
   - [ ] Add `has_predictive_insights` (boolean, default false).
@@ -17,13 +20,15 @@
   - [ ] Remove `has_unlimited_photos` (handled by `max_photos_per_log = -1`).
 - [ ] **Update `plans` Seeder:**
   - [ ] Change the three seeded records to slugs: `free`, `expert`, `premium`.
-  - [ ] Map the exact feature limits to each tier as agreed (e.g., Expert gets `max_photos_per_log = 5`, Premium gets `xp_multiplier = 2.00`, Free gets `max_categories = 3`).
+  - [ ] Map the exact feature limits to each tier as agreed.
 - [ ] **Update `config/momentum.php`:**
-  - [ ] Remove `grace_period_days` entirely.
+  - [ ] Remove `grace_period_days` entirely (No grace period after cancellation).
   - [ ] Add rule-based algorithmic stubs: `'insights' => ['risk_weights' => []]` and `'smart_reminders' => ['minimum_sample_size' => 10]`.
 - [ ] **Update Artisan Command:**
-  - [ ] Rename `subscriptions:clean-expired` to `subscriptions:clean-cancelled`.
-  - [ ] Change logic: Delete `Subscription` records where `status = 'cancelled'` and `cancelled_at` is older than 30 days (for DB hygiene only, plan downgrade happens instantly upon cancel).
+  - [ ] Rename `subscriptions:clean-expired` to `subscriptions:check-status`.
+  - [ ] **Logic for Natural Expiration:** Find active subscriptions where `expires_at < now()`, set `status = expired`, and immediately set `plan = 'free'`.
+  - [ ] **Logic for DB Hygiene:** Permanently delete `Subscription` records where `status = 'cancelled'` and `cancelled_at` is older than 30 days.
+
 
 ### Module 2: Core Backend Architecture & Middleware
 
@@ -48,17 +53,17 @@
 
 ### Module 5: Subscription & Payments Infrastructure (Backend)
 
+- [ ] **Update `SubscriptionService` / `ProcessPaymentJob`:**
+  - [ ] When payment succeeds, calculate `expires_at` based on the plan's `duration_months` (e.g., `now()->addMonths($plan->duration_months)`).
+  - [ ] Set `plan` to `expert` or `premium` and `status = active`.
 - [ ] **Implement Hard Cancel in `SubscriptionController::cancel()`:**
-  - [ ] **CRITICAL:** Remove any grace period or `expires_at` logic.
+  - [ ] **CRITICAL:** Remove any "retain access until expires_at" logic.
   - [ ] New Logic: Set `status = 'cancelled'`, `cancelled_at = now()`, and **immediately set `plan = 'free'`** on the subscription model and save.
-- [ ] **Update `ProcessSimulatedPayment` Job:**
-  - [ ] Remove any assignment to `expires_at`.
-  - [ ] Ensure it sets the `plan` to `expert` or `premium` and `status = active`.
+  - [ ] The remaining time left on `expires_at` is forfeited. The user is downgraded instantly.
 - [ ] **Update `PlanQuotaService` Stubs:**
   - [ ] Add stub method: `canCreateCategory($user)`.
   - [ ] Add stub method: `canUseHabitType($user, $type)`.
-  - [ ] Ensure existing stubs (`canCreateHabit`, `canJoinGroup`) dynamically read from the `plans` table based on the user's `active_plan`.
-
+  - [ ] Ensure existing stubs dynamically read from the `plans` table based on the user's `active_plan`.
 ### Module 6: Subscription & Plans Frontend
 
 - [ ] **Update `/plans` Pricing Cards:**
