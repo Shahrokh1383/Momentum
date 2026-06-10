@@ -54,21 +54,18 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->subscription?->isActive() && $this->subscription->plan !== PlanSlug::FREE;
     }
 
-        /**
-     * SRP: Override to send custom VerificationMail with SPA frontend URL.
+    /**
      * Uses Laravel's native Signed URLs (no DB storage needed).
      */
     public function sendEmailVerificationNotification(): void
     {
         $frontendUrl = rtrim(config('app.frontend_url', 'http://localhost:5173'), '/');
 
-        // Generate a RELATIVE temporary signed route (4th parameter = false)
-        // This prevents signature invalidation due to domain mismatch between APP_URL and proxy host
         $verificationUrl = app('url')->temporarySignedRoute(
             'api.verification.verify',
             now()->addMinutes(60),
             ['id' => $this->getKey(), 'hash' => sha1($this->getEmailForVerification())],
-            false // <-- Crucial: Generate relative URL
+            false
         );
 
         // Append the relative path query parameters to the frontend URL
