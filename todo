@@ -2,33 +2,6 @@
 
 ---
 
-### Module 1: Database Schema & Configuration
-
-- [ ] **Update `subscriptions` Migration:**
-  - [ ] Change `plan` enum from `free, premium, lifetime` to `free, expert, premium`.
-  - [ ] Change `status` enum to include `expired` (e.g., `active`, `cancelled`, `expired`).
-  - [ ] **CRITICAL FIX:** Keep the `expires_at` column! This is required to track when a monthly/yearly subscription naturally ends.
-- [ ] **Update `plans` Migration:**
-  - [ ] Remove `price_lifetime` column.
-  - [ ] Add `price_yearly` (decimal, nullable).
-  - [ ] Add `duration_months` (int, default 1 for monthly, 12 for yearly plans) — *Helps calculate `expires_at` upon purchase.*
-  - [ ] Add `max_categories` (int, default 3).
-  - [ ] Add `allowed_habit_types` (varchar, default `boolean,numeric`).
-  - [ ] Add `has_predictive_insights` (boolean, default false).
-  - [ ] Add `has_smart_reminders` (boolean, default false).
-  - [ ] Add `xp_multiplier` (decimal 3,2, default 1.00).
-  - [ ] Remove `has_unlimited_photos` (handled by `max_photos_per_log = -1`).
-- [ ] **Update `plans` Seeder:**
-  - [ ] Change the three seeded records to slugs: `free`, `expert`, `premium`.
-  - [ ] Map the exact feature limits to each tier as agreed.
-- [ ] **Update `config/momentum.php`:**
-  - [ ] Remove `grace_period_days` entirely (No grace period after cancellation).
-  - [ ] Add rule-based algorithmic stubs: `'insights' => ['risk_weights' => []]` and `'smart_reminders' => ['minimum_sample_size' => 10]`.
-- [ ] **Update Artisan Command:**
-  - [ ] Rename `subscriptions:clean-expired` to `subscriptions:check-status`.
-  - [ ] **Logic for Natural Expiration:** Find active subscriptions where `expires_at < now()`, set `status = expired`, and immediately set `plan = 'free'`.
-  - [ ] **Logic for DB Hygiene:** Permanently delete `Subscription` records where `status = 'cancelled'` and `cancelled_at` is older than 30 days.
-
 
 ### Module 2: Core Backend Architecture & Middleware
 

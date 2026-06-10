@@ -40,7 +40,6 @@
     "back-end\\bootstrap\\cache",
     "roadmap.txt",
     "content.txt",
-    "back-end\\config",
     "fix-strategy.txt",
     "front-end\\public\\assets",
     "front-end\\public\\bootstrap-pack",
@@ -49,6 +48,6 @@
     "back-end\\resources\\css",
     "back-end\\resources"
   ],
-  "lastModified": "2026-06-10T14:16:47.115Z",
+  "lastModified": "2026-06-10T22:39:03.175Z",
   "version": 1
 }
