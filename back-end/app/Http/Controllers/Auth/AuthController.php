@@ -12,7 +12,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Laravel\Sanctum\Sanctum;
 
 class AuthController extends Controller
 {
@@ -36,7 +35,7 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         return $this->successResponse(
-            new UserResource($user->load('subscription')),
+            new UserResource($user->load('subscription.planDetails')),
             'Registration successful. Please check your email to verify your account.',
             201
         );
@@ -72,7 +71,7 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         return $this->successResponse(
-            new UserResource($request->user()->load('subscription'))
+            new UserResource($request->user()->load('subscription.planDetails'))
         );
     }
 
@@ -88,7 +87,7 @@ class AuthController extends Controller
             $request->session()->regenerate();
 
             return $this->successResponse(
-                new UserResource($user->load('subscription')),
+                new UserResource($user->load('subscription.planDetails')),
                 $message,
                 $status
             );
@@ -99,7 +98,7 @@ class AuthController extends Controller
 
         return $this->successResponse(
             [
-                'user' => new UserResource($user->load('subscription')),
+                'user' => new UserResource($user->load('subscription.planDetails')),
                 'token' => $token,
             ],
             $message,

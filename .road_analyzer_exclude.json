@@ -46,8 +46,9 @@
     "front-end\\public\\FontAwesome",
     "back-end\\resources\\js",
     "back-end\\resources\\css",
-    "back-end\\resources"
+    "back-end\\resources",
+    "back-end\\config"
   ],
-  "lastModified": "2026-06-10T22:39:03.175Z",
+  "lastModified": "2026-06-10T23:24:45.130Z",
   "version": 1
 }

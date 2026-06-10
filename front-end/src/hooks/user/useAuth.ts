@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react'; // <-- Added useEffect
+import { useEffect } from 'react';
 import { authService } from '@/services/user/authService';
 import { useAuthStore } from '@/context/user/authStore';
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +9,8 @@ export const useAuth = () => {
   const {
     user,
     isAuthenticated,
+    activePlan,
+    isExpert,
     isPremium,
     hasInitiallyLoaded,
     setUser,
@@ -100,6 +102,8 @@ export const useAuth = () => {
   return {
     user,
     isAuthenticated,
+    activePlan,
+    isExpert,
     isPremium,
     isFetchingUser: isFetchingUser && !hasInitiallyLoaded,
 

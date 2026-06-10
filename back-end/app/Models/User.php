@@ -50,9 +50,17 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(UserSetting::class);
     }
 
-    public function getIsPremiumAttribute(): bool
+    /**
+     * Determine the user's active plan tier.
+     * Returns 'expert', 'premium', or defaults to 'free'.
+     */
+    public function getActivePlanAttribute(): string
     {
-        return $this->subscription?->isActive() && $this->subscription->plan !== PlanSlug::FREE;
+        if ($this->subscription?->isActive()) {
+            return $this->subscription->plan->value;
+        }
+
+        return PlanSlug::FREE->value;
     }
 
     /**

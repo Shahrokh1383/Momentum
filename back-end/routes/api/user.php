@@ -22,4 +22,15 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
             ->whereNumber('transactionId');
         Route::delete('/', [SubscriptionController::class, 'cancel']);
     });
+
+    Route::middleware(['tier:expert'])->prefix('expert')->group(function () {
+        // Route::get('/analytics', [App\Http\Controllers\User\Expert\AnalyticsController::class, 'index']);
+        // Route::post('/advanced-report', [App\Http\Controllers\User\Expert\ReportController::class, 'generate']);
+    });
+
+    // Premium Tier Routes (Strictly requires 'premium' plan)
+    Route::middleware(['tier:premium'])->prefix('premium')->group(function () {
+        // Route::get('/priority-support', [App\Http\Controllers\User\Premium\SupportController::class, 'index']);
+        // Route::post('/custom-integration', [App\Http\Controllers\User\Premium\IntegrationController::class, 'setup']);
+    });
 });
