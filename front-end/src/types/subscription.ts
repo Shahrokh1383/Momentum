@@ -26,31 +26,51 @@ export interface SubscriptionDetail {
   id: number;
   plan: Plan | null;
   plan_slug: string;
-  status: string;
+  status: 'pending_payment' | 'active' | 'cancelled' | 'expired';
   starts_at: string | null;
   expires_at: string | null;
   cancelled_at: string | null;
-  payment_method: string | null;
   transaction_ref: string | null;
   created_at: string;
 }
 
+/**
+ * Matches the backend Payment array returned in SubscriptionController@upgrade
+ */
 export interface PaymentInfo {
-  id: number;
-  status: string;
+  gateway_transaction_id: number;
+  status: string; // 'pending'
   amount: string;
   currency: string;
-  provider_ref: string;
+  card: string; // Masked card number from backend
 }
 
+/**
+ * Matches UpgradeSubscriptionRequest validation rules:
+ * - plan_slug: required, enum
+ * - card_number: required, exactly 16 digits
+ */
 export interface UpgradePayload {
   plan_slug: string;
-  payment_method?: string;
+  card_number: string; 
+}
+
+/**
+ * Matches the response from SubscriptionController@verify
+ */
+export interface VerifyPaymentResponse {
+  status: 'confirmed' | 'already_confirmed' | 'pending' | 'failed' | 'unknown';
+  subscription?: SubscriptionDetail;
+  payment?: {
+    gateway_transaction_id: number;
+    status: string;
+    amount: string;
+    paid_at: string | null;
+  };
 }
 
 export interface QuotasData {
   plan: Plan | null;
   limits: Record<string, number>;
   features: Record<string, boolean>;
-  usage: Record<string, number | null>;
 }

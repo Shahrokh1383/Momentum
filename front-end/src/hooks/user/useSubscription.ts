@@ -8,7 +8,7 @@ export const useSubscription = () => {
   const { data: plans, isLoading: isLoadingPlans, error: plansError } = useQuery({
     queryKey: ['plans'],
     queryFn: subscriptionService.getPlans,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   const { data: currentSubscription, isLoading: isLoadingSubscription, error: subscriptionError } = useQuery({
@@ -20,8 +20,8 @@ export const useSubscription = () => {
   const upgradeMutation = useMutation({
     mutationFn: (payload: UpgradePayload) => subscriptionService.upgrade(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['currentSubscription'] });
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      // We don't invalidate currentSubscription here immediately because 
+      // the payment is still PENDING. It will be invalidated when verification succeeds.
     },
   });
 
@@ -49,5 +49,7 @@ export const useSubscription = () => {
     cancel: cancelMutation.mutateAsync,
     isCancelling: cancelMutation.isPending,
     cancelError: cancelMutation.error,
+
+    verifyPayment: subscriptionService.verifyPayment,
   };
 };
