@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Laravel\Sanctum\Sanctum;
 
 class AuthController extends Controller
 {
@@ -43,24 +44,27 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): JsonResponse
     {
-        if (!Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
+        $user = User::where('email', $request->email)->first();
+
+        // Auth::validate only checks credentials without touching the session (SRP & Stateless safe)
+        if (!$user || !Auth::validate($request->only('email', 'password'))) {
             return $this->errorResponse('authentication_failed', 'Invalid credentials', 401);
         }
 
-        $user = User::where('email', $request->email)->firstOrFail();
-        $request->session()->regenerate();
-
-        return $this->successResponse(
-            new UserResource($user->load('subscription')),
-            'Login successful'
-        );
+        return $this->authenticateAndRespond($request, $user, 'Login successful');
     }
 
     public function logout(Request $request): JsonResponse
     {
-        Auth::guard('web')->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+         if ($request->hasSession()) {
+            // SPA Logout: Invalidate session
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        } else {
+            // API/Mobile Logout: Revoke the Bearer token
+            $request->user()->currentAccessToken()->delete();
+        }
 
         return $this->successResponse(null, 'Logged out successfully');
     }
@@ -69,6 +73,37 @@ class AuthController extends Controller
     {
         return $this->successResponse(
             new UserResource($request->user()->load('subscription'))
+        );
+    }
+
+    /**
+     * Centralized Authentication Response
+     * Handles both Stateful (SPA) and Stateless (API) authentication flows.
+     */
+    private function authenticateAndRespond(Request $request, User $user, string $message, int $status = 200): JsonResponse
+    {
+        if ($request->hasSession()) {
+            // Stateful (React SPA): Authenticate via Session/Cookie
+            Auth::login($user, $request->boolean('remember'));
+            $request->session()->regenerate();
+
+            return $this->successResponse(
+                new UserResource($user->load('subscription')),
+                $message,
+                $status
+            );
+        }
+
+        // Stateless (Postman/Mobile): Authenticate via Bearer Token
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        return $this->successResponse(
+            [
+                'user' => new UserResource($user->load('subscription')),
+                'token' => $token,
+            ],
+            $message,
+            $status
         );
     }
 }
