@@ -36,7 +36,7 @@ class OAuthController extends Controller
             return $this->errorResponse('oauth_failed', 'Could not authenticate with ' . $provider, 401);
         }
 
-        // Search by email to prevent duplicate entry constraints if user registered via email/password first
+        // Search by email to prevent duplicate entry constraints
         $user = User::where('email', $socialUser->getEmail())->first();
 
         if ($user) {
@@ -45,9 +45,11 @@ class OAuthController extends Controller
                 'provider' => $provider,
                 'provider_id' => $socialUser->getId(),
                 'avatar' => $user->avatar ?? $socialUser->getAvatar(),
+                // the OAuth provider confirms their email ownership.
+                'email_verified_at' => $user->email_verified_at ?? now(),
             ]);
         } else {
-            // Create brand new user
+            // Create brand new user (email_verified_at will be mass-assigned now)
             $user = User::create([
                 'name' => $socialUser->getName() ?? $socialUser->getNickname(),
                 'email' => $socialUser->getEmail(),
