@@ -4,6 +4,7 @@ import { authService } from '@/services/user/authService';
 import { useAuthStore } from '@/context/user/authStore';
 import { useNavigate } from 'react-router-dom';
 import { VerifyEmailPayload } from '@/types/user';
+import { OfflineError } from '@/services/api';
 
 export const useAuth = () => {
   const {
@@ -45,6 +46,11 @@ export const useAuth = () => {
       setUser(user);
       navigate('/dashboard');
     },
+    onError: (error) => {
+      if (error instanceof OfflineError) {
+        console.warn('[Auth] Login attempted while offline');
+      }
+    }
   });
 
   const registerMutation = useMutation({

@@ -1,4 +1,3 @@
-// src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/services/queryClient';
@@ -11,6 +10,7 @@ import OAuthCallbackPage from '@/pages/user/OAuthCallbackPage';
 import PlansPage from '@/pages/user/PlansPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import OfflineIndicator from '@/components/ui/OfflineIndicator';
 import { useAuth } from '@/hooks/user/useAuth';
 
 const DashboardPlaceholder = () => (
@@ -44,11 +44,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <OfflineIndicator />
         <Routes>
-          {/* Smart root path */}
           <Route path="/" element={<RootRedirect />} />
 
-          {/* Public Auth Routes */}
           <Route path="/login" element={<div className="auth-page-wrapper"><LoginPage /></div>} />
           <Route path="/register" element={<div className="auth-page-wrapper"><RegisterPage /></div>} />
           <Route path="/forgot-password" element={<div className="auth-page-wrapper"><ForgotPasswordPage /></div>} />
@@ -56,7 +55,6 @@ function App() {
           <Route path="/verify-email" element={<div className="auth-page-wrapper"><VerifyEmailPage /></div>} />
           <Route path="/auth/callback/:provider" element={<div className="auth-page-wrapper"><OAuthCallbackPage /></div>} />
 
-          {/* Dashboard Routes (full-width layout) */}
           <Route element={<DashboardLayout />}>
             <Route path="/plans" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPlaceholder /></ProtectedRoute>} />
