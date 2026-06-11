@@ -1,40 +1,56 @@
+// src/main.tsx
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
-import { PWAProvider } from './context/user/pwaStore'
+import { registerSW } from 'virtual:pwa-register'
+import { usePWAStore } from './store/user/pwaStore'
+import '@/styles/app.css'
+import '@/styles/auth.css'
+import '@/styles/dashboard.css'
+import '@/styles/subscription.css'
+import '@/styles/pwa.css'
 
-// Register Service Worker for PWA support
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then((registration) => {
-        console.log('[PWA] Service Worker registered:', registration.scope);
-        
-        if (import.meta.env.DEV) {
-          registration.update();
-        }
-        
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                console.log('[PWA] New version available');
-              }
-            });
-          }
-        });
-      })
-      .catch((error) => {
-        console.error('[PWA] Service Worker registration failed:', error);
-      });
+const updateSW = registerSW({
+  onNeedRefresh() {
+    if (confirm('New version available. Reload?')) {
+      updateSW();
+    }
+  },
+  onOfflineReady() {
+    console.log('[PWA] App is ready to work offline');
+  },
+});
+
+const initPWAListeners = () => {
+  const store = usePWAStore.getState();
+
+  // Check if already installed as standalone
+  const isStandalone = 
+    window.matchMedia('(display-mode: standalone)').matches || 
+    (window.navigator as any).standalone === true;
+  store.setIsStandalone(isStandalone);
+
+  // Capture beforeinstallprompt event
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    store.setDeferredPrompt(e as any);
   });
-}
+
+  // Online/Offline detection
+  window.addEventListener('online', () => store.setIsOffline(false));
+  window.addEventListener('offline', () => store.setIsOffline(true));
+
+  // App installed
+  window.addEventListener('appinstalled', () => {
+    store.setDeferredPrompt(null);
+    store.setIsStandalone(true);
+  });
+};
+
+initPWAListeners();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <PWAProvider>
-      <App />
-    </PWAProvider>
+    <App />
   </StrictMode>,
 )

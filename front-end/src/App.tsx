@@ -1,5 +1,7 @@
+// src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/services/queryClient';
 import LoginPage from '@/pages/user/LoginPage';
 import RegisterPage from '@/pages/user/RegisterPage';
 import ForgotPasswordPage from '@/pages/user/ForgotPasswordPage';
@@ -10,17 +12,6 @@ import PlansPage from '@/pages/user/PlansPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/user/useAuth';
-import '@/styles/app.css';
-import '@/styles/auth.css';
-import '@/styles/dashboard.css';
-import '@/styles/subscription.css';
-import '@/styles/pwa.css';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { refetchOnWindowFocus: false, retry: 1 },
-  },
-});
 
 const DashboardPlaceholder = () => (
   <section className="dashboard-page">
