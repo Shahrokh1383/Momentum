@@ -1,23 +1,26 @@
 export interface Plan {
   id: number;
   name: string;
-  slug: string;
+  slug: 'free' | 'expert' | 'premium';
   limits: {
     max_active_habits: number;
     max_groups: number;
     max_freezes_per_week: number;
     max_photos_per_log: number;
     max_pdfs_per_month: number;
+    max_categories: number;
   };
   features: {
     has_advanced_analytics: boolean;
     has_insights: boolean;
+    has_predictive_insights: boolean;
+    has_smart_reminders: boolean;
     has_xp_booster: boolean;
-    has_unlimited_photos: boolean;
+    xp_multiplier: number;
   };
   pricing: {
     monthly: string | null;
-    lifetime: string | null;
+    yearly: string | null;
   };
   created_at: string;
 }
@@ -25,7 +28,7 @@ export interface Plan {
 export interface SubscriptionDetail {
   id: number;
   plan: Plan | null;
-  plan_slug: string;
+  plan_slug: 'free' | 'expert' | 'premium';
   status: 'pending_payment' | 'active' | 'cancelled' | 'expired';
   starts_at: string | null;
   expires_at: string | null;
@@ -45,19 +48,11 @@ export interface PaymentInfo {
   card: string; // Masked card number from backend
 }
 
-/**
- * Matches UpgradeSubscriptionRequest validation rules:
- * - plan_slug: required, enum
- * - card_number: required, exactly 16 digits
- */
 export interface UpgradePayload {
   plan_slug: string;
   card_number: string; 
 }
 
-/**
- * Matches the response from SubscriptionController@verify
- */
 export interface VerifyPaymentResponse {
   status: 'confirmed' | 'already_confirmed' | 'pending' | 'failed' | 'unknown';
   subscription?: SubscriptionDetail;

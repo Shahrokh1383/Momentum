@@ -2,21 +2,21 @@
 
 namespace App\Services\User\Subscription;
 
-use App\Enums\PlanSlug;
 use App\Models\Plan;
 use App\Models\User;
 
 class PlanQuotaService
 {
+    /**
+     * Dynamically retrieves the user's active plan from the database.
+     * Relies on the User model's 'active_plan' accessor to ensure we only 
+     * return a plan if the subscription is truly active and not expired.
+     */
     public function getUserPlan(User $user): ?Plan
     {
-        $planSlug = $user->subscription?->plan;
+        $activePlanSlug = $user->active_plan;
 
-        if (! $planSlug) {
-            return Plan::where('slug', PlanSlug::FREE->value)->first();
-        }
-
-        return Plan::where('slug', $planSlug->value)->first();
+        return Plan::where('slug', $activePlanSlug)->first();
     }
 
     /**
@@ -28,6 +28,39 @@ class PlanQuotaService
         $limit = $this->getUserPlan($user)?->max_active_habits ?? 5;
 
         return $currentHabitCount < $limit;
+    }
+
+    /**
+     * Stub: Check if user can create a new category.
+     * TODO: Integrate with Category module to compare $currentCategoryCount.
+     */
+    public function canCreateCategory(User $user, int $currentCategoryCount = 0): bool
+    {
+        $limit = $this->getUserPlan($user)?->max_categories ?? 0;
+
+        return $currentCategoryCount < $limit;
+    }
+
+    /**
+     * Stub: Check if user can use a specific habit type.
+     * TODO: Integrate with Habit module when creating/updating habits.
+     */
+    public function canUseHabitType(User $user, string $type): bool
+    {
+        $plan = $this->getUserPlan($user);
+        $allowedTypes = $plan?->allowed_habit_types;
+
+        // If no restrictions are defined for the plan, allow all types
+        if (empty($allowedTypes)) {
+            return true;
+        }
+
+        // Parse comma-separated string from database into an array
+        if (is_string($allowedTypes)) {
+            $allowedTypes = array_map('trim', explode(',', $allowedTypes));
+        }
+
+        return in_array($type, $allowedTypes, true);
     }
 
     /**

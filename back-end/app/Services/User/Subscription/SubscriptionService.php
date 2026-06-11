@@ -147,10 +147,11 @@ class SubscriptionService
                 ]);
             }
 
-            // Immediately cancel the subscription (No Grace Period)
+            // HARD CANCEL: Immediately cancel the subscription and downgrade to free.
             $subscription->update([
                 'status'       => SubscriptionStatus::CANCELLED,
                 'cancelled_at' => now(),
+                'plan'         => PlanSlug::FREE, 
             ]);
         });
 

@@ -6,9 +6,10 @@ import { Plan } from '@/types/subscription';
 import PlanCard from '@/components/user/subscription/PlanCard';
 import PaymentModal from '@/components/user/subscription/PaymentModal';
 import SubscriptionStatusBanner from '@/components/user/subscription/SubscriptionStatusBanner';
+import Modal from '@/components/ui/Modal';
 
 const PlansPage: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, activePlan } = useAuth();
   const { 
     plans,
     plansError,
@@ -22,7 +23,8 @@ const PlansPage: React.FC = () => {
   const navigate = useNavigate();
   
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
   const handleSelectPlan = (plan: Plan) => {
     if (!isAuthenticated) {
@@ -33,20 +35,22 @@ const PlansPage: React.FC = () => {
     if (plan.slug === 'free') return;
 
     setSelectedPlan(plan);
-    setIsModalOpen(true);
+    setIsPaymentModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
+  const handleClosePaymentModal = () => {
+    setIsPaymentModalOpen(false);
     setSelectedPlan(null);
   };
 
-  const handleCancel = async () => {
-    if (!window.confirm('Are you sure you want to cancel? Access remains until expiration.')) {
-      return;
-    }
+  const handleCancelRequest = () => {
+    setIsCancelModalOpen(true);
+  };
+
+  const handleConfirmCancel = async () => {
     try {
       await cancel();
+      setIsCancelModalOpen(false);
     } catch (error) {
       console.error("Cancel failed:", error);
     }
@@ -86,6 +90,8 @@ const PlansPage: React.FC = () => {
     );
   }
 
+  const currentTierName = activePlan === 'expert' ? 'Expert' : 'Premium';
+
   return (
     <div className="plans-page">
       <div className="plans-page__container">
@@ -99,7 +105,7 @@ const PlansPage: React.FC = () => {
         <SubscriptionStatusBanner 
           subscription={currentSubscription} 
           isLoading={isLoadingSubscription}
-          onCancel={handleCancel}
+          onCancel={handleCancelRequest}
           isCancelling={isCancelling}
         />
 
@@ -119,10 +125,41 @@ const PlansPage: React.FC = () => {
       </div>
 
       <PaymentModal
-        isOpen={isModalOpen}
+        isOpen={isPaymentModalOpen}
         plan={selectedPlan}
-        onClose={handleCloseModal}
+        onClose={handleClosePaymentModal}
       />
+
+      <Modal
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        title="Cancel Subscription"
+        footer={
+          <>
+            <button 
+              className="modal-btn modal-btn--secondary" 
+              onClick={() => setIsCancelModalOpen(false)}
+              disabled={isCancelling}
+            >
+              Keep Plan
+            </button>
+            <button 
+              className="modal-btn modal-btn--danger" 
+              onClick={handleConfirmCancel}
+              disabled={isCancelling}
+            >
+              {isCancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+            </button>
+          </>
+        }
+      >
+        <p style={{ marginBottom: '1rem' }}>
+          Are you sure you want to cancel your subscription?
+        </p>
+        <p style={{ color: '#dc3545', fontWeight: 600 }}>
+          Cancelling will immediately revoke your {currentTierName} features and downgrade you to the Free plan. Any remaining time will be forfeited.
+        </p>
+      </Modal>
     </div>
   );
 };

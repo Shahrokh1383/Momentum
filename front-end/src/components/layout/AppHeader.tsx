@@ -63,7 +63,7 @@ const AppHeader: React.FC = () => {
             {isAuthenticated && user ? (
               <>
                 <ThemeToggle className="header-icon-btn" />
-                <PremiumBadge planSlug={user.subscription?.plan} />
+                <PremiumBadge planSlug={user.active_plan} />
                 <div className="app-header__user">
                   <img
                     src={user.avatar || '/assets/default-avatar.png'}
@@ -150,7 +150,7 @@ const AppHeader: React.FC = () => {
             />
             <div className="mobile-drawer__user-info">
               <span className="mobile-drawer__user-name">{user.name}</span>
-              <PremiumBadge planSlug={user.subscription?.plan} />
+              <PremiumBadge planSlug={user.active_plan} />
             </div>
           </div>
         )}

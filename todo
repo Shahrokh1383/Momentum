@@ -1,28 +1,5 @@
 
 
----
-
-
-### Module 2: Core Backend Architecture & Middleware
-
-- [ ] **Refactor Middleware:**
-  - [ ] Delete/Replace `EnsurePremium` middleware.
-  - [ ] Create `EnsureTier` middleware accepting a parameter (e.g., `expert`, `premium`).
-  - [ ] Logic: Check if `auth()->user()->subscription?->plan` meets or exceeds the required tier. (e.g., if route requires `expert`, `premium` users also pass).
-  - [ ] Return 403 JSON: `{ error: 'subscription_required', message: 'Expert plan or higher is required for this action.' }`.
-
-### Module 3: Authentication System (Backend)
-
-- [ ] **Update `AuthController` & User Resource:**
-  - [ ] Replace the computed `is_premium` boolean attribute with `active_plan` string (returns `free`, `expert`, or `premium`).
-  - [ ] Ensure the `/api/auth/me` endpoint returns the full `subscription` object alongside the user so the frontend knows the exact tier.
-
-### Module 4: Authentication Frontend (Pages & Store)
-
-- [ ] **Update Zustand `AuthStore`:**
-  - [ ] Replace `isPremium` boolean with `activePlan` string.
-  - [ ] Add derived booleans for easier component logic: `isExpert = activePlan === 'expert' || activePlan === 'premium'` and `isPremium = activePlan === 'premium'`.
-  - [ ] Update `refreshUser()` to map the `active_plan` from the API response correctly.
 
 ### Module 5: Subscription & Payments Infrastructure (Backend)
 

@@ -24,10 +24,10 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
   if (!subscription) return null;
 
   const { status, plan, expires_at, transaction_ref } = subscription;
-  const planSlug = (subscription.plan_slug as 'free' | 'premium' | 'lifetime') || 'free';
+  const planSlug = subscription.plan_slug || 'free';
 
   const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return 'Lifetime Access';
+    if (!dateStr) return 'N/A';
     return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
@@ -57,7 +57,7 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
           </div>
           <p>Your plan is active. Access expires on <strong>{formatDate(expires_at)}</strong>.</p>
         </div>
-        {planSlug !== 'lifetime' && (
+        {planSlug !== 'free' && (
           <button 
             className="subscription-banner__cancel" 
             onClick={onCancel} 
@@ -81,7 +81,7 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
           <p>
             {isExpired 
               ? 'Your premium access has ended. Upgrade to restore your features.' 
-              : `Your plan is cancelled, but you retain premium access until ${formatDate(expires_at)}.`}
+              : 'Your subscription has been cancelled. Your premium features have been immediately revoked.'}
           </p>
         </div>
         {onUpgrade && (

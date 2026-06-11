@@ -9,12 +9,15 @@ export const useSubscription = () => {
     queryKey: ['plans'],
     queryFn: subscriptionService.getPlans,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    // Pro-tip: If plans also causes 'undefined' type issues downstream, 
+    // you can add initialData: [] here as well.
   });
 
   const { data: currentSubscription, isLoading: isLoadingSubscription, error: subscriptionError } = useQuery({
     queryKey: ['currentSubscription'],
     queryFn: subscriptionService.getCurrent,
     retry: false,
+    initialData: null,
   });
 
   const upgradeMutation = useMutation({
