@@ -47,8 +47,9 @@
     "back-end\\resources\\js",
     "back-end\\resources\\css",
     "back-end\\resources",
-    "back-end\\config"
+    "back-end\\config",
+    "todo"
   ],
-  "lastModified": "2026-06-10T23:24:45.130Z",
+  "lastModified": "2026-06-11T09:58:39.341Z",
   "version": 1
 }

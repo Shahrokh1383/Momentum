@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SubscriptionDetail } from '@/types/subscription';
 import PremiumBadge from './PremiumBadge';
 
@@ -10,6 +10,8 @@ interface SubscriptionStatusBannerProps {
   onUpgrade?: () => void;
 }
 
+const DISMISS_KEY_PREFIX = 'dismissed_sub_';
+
 const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
   subscription,
   isLoading,
@@ -17,11 +19,21 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
   isCancelling,
   onUpgrade
 }) => {
+  // Check localStorage only if the subscription is cancelled/expired
+  const getInitialDismissedState = (): boolean => {
+    if (!subscription || (subscription.status !== 'cancelled' && subscription.status !== 'expired')) {
+      return false;
+    }
+    return localStorage.getItem(`${DISMISS_KEY_PREFIX}${subscription.id}`) === 'true';
+  };
+
+  const [isDismissed, setIsDismissed] = useState(getInitialDismissedState);
+
   if (isLoading) {
     return <div className="subscription-banner subscription-banner--loading">Loading subscription status...</div>;
   }
   
-  if (!subscription) return null;
+  if (!subscription || isDismissed) return null;
 
   const { status, plan, expires_at, transaction_ref } = subscription;
   const planSlug = subscription.plan_slug || 'free';
@@ -29,6 +41,11 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return 'N/A';
     return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    localStorage.setItem(`${DISMISS_KEY_PREFIX}${subscription.id}`, 'true');
   };
 
   // State: Pending Payment
@@ -75,6 +92,9 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
     const isExpired = status === 'expired';
     return (
       <div className="subscription-banner subscription-banner--inactive">
+        <button className="subscription-banner__close" onClick={handleDismiss} aria-label="Dismiss">
+          ✕
+        </button>
         <div className="subscription-banner__icon">!</div>
         <div className="subscription-banner__content">
           <h4>{isExpired ? 'Subscription Expired' : 'Subscription Cancelled'}</h4>

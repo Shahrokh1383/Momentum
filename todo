@@ -1,29 +1,7 @@
 
 
 
-### Module 5: Subscription & Payments Infrastructure (Backend)
 
-- [ ] **Update `SubscriptionService` / `ProcessPaymentJob`:**
-  - [ ] When payment succeeds, calculate `expires_at` based on the plan's `duration_months` (e.g., `now()->addMonths($plan->duration_months)`).
-  - [ ] Set `plan` to `expert` or `premium` and `status = active`.
-- [ ] **Implement Hard Cancel in `SubscriptionController::cancel()`:**
-  - [ ] **CRITICAL:** Remove any "retain access until expires_at" logic.
-  - [ ] New Logic: Set `status = 'cancelled'`, `cancelled_at = now()`, and **immediately set `plan = 'free'`** on the subscription model and save.
-  - [ ] The remaining time left on `expires_at` is forfeited. The user is downgraded instantly.
-- [ ] **Update `PlanQuotaService` Stubs:**
-  - [ ] Add stub method: `canCreateCategory($user)`.
-  - [ ] Add stub method: `canUseHabitType($user, $type)`.
-  - [ ] Ensure existing stubs dynamically read from the `plans` table based on the user's `active_plan`.
-### Module 6: Subscription & Plans Frontend
-
-- [ ] **Update `/plans` Pricing Cards:**
-  - [ ] Change UI cards from Free/Premium/Lifetime to **Free / Expert / Premium**.
-  - [ ] Update feature lists to match the agreed matrix (Expert: Timers, 5 photos, correlations; Premium: Smart Reminders, Predictive Insights, Unlimited groups).
-- [ ] **Update Cancel Flow UI:**
-  - [ ] Remove messaging about retaining access until a future date.
-  - [ ] Add a hard warning in the cancel confirmation modal: "Cancelling will immediately revoke your [Expert/Premium] features and downgrade you to the Free plan."
-- [ ] **Update Header Badge:**
-  - [ ] Change from a generic premium crown to a dynamic tier badge (e.g., Silver star icon for Expert, Golden crown for Premium).
 
 ### Module 7: PWA Core Setup (Major Architectural Fix)
 

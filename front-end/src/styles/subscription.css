@@ -52,6 +52,7 @@
    SUBSCRIPTION STATUS BANNER
    ========================================= */
 .subscription-banner {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 1.25rem;
@@ -64,6 +65,24 @@
   border: 1px solid var(--glass-border);
   animation: slideUpFade 0.5s var(--transition-bounce);
   box-shadow: var(--glass-shadow);
+}
+
+.subscription-banner__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.5);
+  transition: color 0.2s ease;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.subscription-banner__close:hover {
+  color: rgba(0, 0, 0, 0.8);
 }
 
 .subscription-banner--active {
