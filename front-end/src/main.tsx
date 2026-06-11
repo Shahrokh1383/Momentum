@@ -10,12 +10,7 @@ import '@/styles/dashboard.css'
 import '@/styles/subscription.css'
 import '@/styles/pwa.css'
 
-const updateSW = registerSW({
-  onNeedRefresh() {
-    if (confirm('New version available. Reload?')) {
-      updateSW();
-    }
-  },
+registerSW({
   onOfflineReady() {
     console.log('[PWA] App is ready to work offline');
   },
