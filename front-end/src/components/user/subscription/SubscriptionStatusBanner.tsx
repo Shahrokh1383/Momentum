@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { SubscriptionDetail } from '@/types/subscription';
 import PremiumBadge from './PremiumBadge';
 
@@ -19,15 +19,20 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
   isCancelling,
   onUpgrade
 }) => {
-  // Check localStorage only if the subscription is cancelled/expired
-  const getInitialDismissedState = (): boolean => {
+  // 1. Track explicit user dismissal for the current session/render cycle
+  const [userDismissed, setUserDismissed] = useState(false);
+
+  // 2. Derive the actual dismissed state combining user action and localStorage
+  // This runs AFTER subscription is available, fixing the refresh bug without UI flicker
+  const isDismissed = useMemo(() => {
+    if (userDismissed) return true;
+    
     if (!subscription || (subscription.status !== 'cancelled' && subscription.status !== 'expired')) {
       return false;
     }
+    
     return localStorage.getItem(`${DISMISS_KEY_PREFIX}${subscription.id}`) === 'true';
-  };
-
-  const [isDismissed, setIsDismissed] = useState(getInitialDismissedState);
+  }, [subscription, userDismissed]);
 
   if (isLoading) {
     return <div className="subscription-banner subscription-banner--loading">Loading subscription status...</div>;
@@ -44,8 +49,10 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
   };
 
   const handleDismiss = () => {
-    setIsDismissed(true);
-    localStorage.setItem(`${DISMISS_KEY_PREFIX}${subscription.id}`, 'true');
+    setUserDismissed(true);
+    if (subscription?.id) {
+      localStorage.setItem(`${DISMISS_KEY_PREFIX}${subscription.id}`, 'true');
+    }
   };
 
   // State: Pending Payment
