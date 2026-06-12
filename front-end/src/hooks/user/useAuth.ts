@@ -3,8 +3,7 @@ import { useEffect } from 'react';
 import { authService } from '@/services/user/authService';
 import { useAuthStore } from '@/context/user/authStore';
 import { useNavigate } from 'react-router-dom';
-import { VerifyEmailPayload } from '@/types/user';
-import { OfflineError } from '@/services/api';
+import { VerifyEmailPayload, User } from '@/types/user';
 
 export const useAuth = () => {
   const {
@@ -17,21 +16,22 @@ export const useAuth = () => {
     setUser,
     logout: clearStore,
   } = useAuthStore();
+
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  // Fetch current user.
-  // CRITICAL FIX: Removed `enabled: !hasInitiallyLoaded` so React Query can 
-  // refetch this data whenever the 'currentUser' cache is invalidated (e.g., after payment).
-  const { data: fetchedUser, isLoading: isFetchingUser, isError } = useQuery({
+  // ─── currentUser query ──────────────────────────────────────
+  const {
+    data: fetchedUser,
+    isLoading: isFetchingUser,
+    isError,
+  } = useQuery<User | null>({
     queryKey: ['currentUser'],
     queryFn: authService.getMe,
     retry: false,
   });
 
-  // Sync React Query data with Zustand global state.
-  // This is the critical link that ensures components like <PremiumBadge /> 
-  // update instantly without a page refresh.
+  // ─── Sync React Query → Zustand ─────────────────────────────
   useEffect(() => {
     if (fetchedUser) {
       setUser(fetchedUser);
@@ -40,25 +40,15 @@ export const useAuth = () => {
     }
   }, [fetchedUser, isError, setUser, clearStore]);
 
+  // ─── Mutations ──────────────────────────────────────────────
   const loginMutation = useMutation({
     mutationFn: authService.login,
-    onSuccess: (user) => {
-      setUser(user);
-      navigate('/dashboard');
-    },
-    onError: (error) => {
-      if (error instanceof OfflineError) {
-        console.warn('[Auth] Login attempted while offline');
-      }
-    }
+    onSuccess: (user) => { setUser(user); navigate('/dashboard'); },
   });
 
   const registerMutation = useMutation({
     mutationFn: authService.register,
-    onSuccess: (user) => {
-      setUser(user);
-      navigate('/verify-email');
-    },
+    onSuccess: (user) => { setUser(user); navigate('/verify-email'); },
   });
 
   const logoutMutation = useMutation({
@@ -83,11 +73,6 @@ export const useAuth = () => {
     mutationFn: authService.resendVerification,
   });
 
-  /**
-   * Accepts { rawQueryString } and forwards it straight to the service.
-   * The service appends it verbatim to the URL so Laravel receives the
-   * parameters in the exact order it originally signed them.
-   */
   const verifyEmailMutation = useMutation({
     mutationFn: (payload: VerifyEmailPayload) => authService.verifyEmail(payload),
     onSuccess: () => {
@@ -99,10 +84,7 @@ export const useAuth = () => {
   const oauthCallbackMutation = useMutation({
     mutationFn: ({ provider, code }: { provider: string; code: string }) =>
       authService.handleOAuthCallback(provider, code),
-    onSuccess: (user) => {
-      setUser(user);
-      navigate('/dashboard');
-    },
+    onSuccess: (user) => { setUser(user); navigate('/dashboard'); },
   });
 
   return {
@@ -111,6 +93,8 @@ export const useAuth = () => {
     activePlan,
     isExpert,
     isPremium,
+    
+    // Show loading spinner only while resolving and not initially loaded
     isFetchingUser: isFetchingUser && !hasInitiallyLoaded,
 
     login: loginMutation.mutateAsync,

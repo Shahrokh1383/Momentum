@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/user/useAuth';
 import PremiumBadge from '@/components/user/subscription/PremiumBadge';
-import InstallPWA from '@/components/user/pwa/InstallPWA';
 import ThemeToggle from '@/components/user/auth/ThemeToggle';
 
 const NAV_LINKS = [
@@ -83,15 +82,11 @@ const AppHeader: React.FC = () => {
               </>
             ) : (
               <div className="app-header__auth">
-                <InstallPWA />
                 <ThemeToggle className="header-icon-btn" />
                 <Link to="/login" className="app-header__link">Sign In</Link>
                 <Link to="/register" className="btn btn-sm btn-momentum">Get Started</Link>
               </div>
             )}
-
-            {/* PWA Install Button */}
-            <InstallPWA />
 
             {/* Hamburger */}
             <button

@@ -46,7 +46,7 @@ export interface PendingPhoto {
   timestamp: Date;
 }
 
-// Single database instance for all offline data
+// Single database instance for all local data
 export class MomentumDB extends Dexie {
   habits!: Table<Habit, number>;
   categories!: Table<Category, number>;
@@ -65,7 +65,6 @@ export class MomentumDB extends Dexie {
       logs: '++id, habitId, date',
       pendingMutations: '++id, entity, timestamp',
       pendingPhotos: '++id, habitId, timestamp',
-      queryCache: 'id'
     });
   }
 }
