@@ -18,10 +18,12 @@ trait HandlesAuthResponses
      */
     protected function authenticateAndRespond(Request $request, User $user, string $message, int $status = 200): JsonResponse
     {
+        $remember = $request->boolean('remember');
+        
         // Perform the actual login
-        Auth::login($user, $request->boolean('remember'));
+        Auth::login($user, $remember);
 
-        if ($request->hasSession()) {
+        if ($this->isStatefulRequest($request)) {
             // Stateful (React SPA): Regenerate session to prevent fixation
             $request->session()->regenerate();
 
@@ -33,7 +35,9 @@ trait HandlesAuthResponses
         }
 
         // Stateless (Postman/Mobile): Generate Sanctum Bearer Token
-        $token = $user->createToken('auth-token')->plainTextToken;
+        // Fix #5: Apply expiration based on "Remember Me"
+        $expiration = $remember ? now()->addYear() : now()->addDay();
+        $token = $user->createToken('auth-token', ['*'], $expiration)->plainTextToken;
 
         return $this->successResponse(
             [
@@ -43,5 +47,40 @@ trait HandlesAuthResponses
             $message,
             $status
         );
+    }
+
+    /**
+     * Determine if the request is a stateful SPA request.
+     * Replaces the flawed $request->hasSession() logic.
+     */
+    private function isStatefulRequest(Request $request): bool
+    {
+        // If the client is explicitly using a Bearer token, it's strictly stateless API
+        if ($request->bearerToken()) {
+            return false;
+        }
+
+        if (! $request->hasSession()) {
+            return false;
+        }
+
+        // Check if the request originates from a configured stateful domain (Sanctum SPA)
+        $referer = $request->headers->get('referer') ?? $request->headers->get('origin');
+        if (! $referer) {
+            return false; 
+        }
+
+        $refererHost = parse_url($referer, PHP_URL_HOST);
+        if (! $refererHost) {
+            return false;
+        }
+
+        $statefulDomains = collect(config('sanctum.stateful'));
+
+        return $statefulDomains->contains(function ($domain) use ($refererHost) {
+            // Sanctum stateful domains might include ports (e.g., localhost:3000)
+            $domainHost = explode(':', trim($domain))[0];
+            return $refererHost === $domainHost || str_ends_with($refererHost, '.' . $domainHost);
+        });
     }
 }

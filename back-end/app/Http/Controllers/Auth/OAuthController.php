@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\OAuthCallbackRequest;
 use App\Models\User;
 use App\Services\Auth\OAuthService;
 use App\Traits\HandlesAuthResponses;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -16,7 +17,7 @@ class OAuthController extends Controller
 
     public function __construct(private OAuthService $oauthService) {}
 
-    public function redirect(Request $request, string $provider)
+    public function redirect(Request $request, string $provider): JsonResponse
     {
         try {
             $data = $this->oauthService->getRedirectUrl($provider);
@@ -26,7 +27,7 @@ class OAuthController extends Controller
         }
     }
 
-    public function callback(OAuthCallbackRequest $request, string $provider)
+    public function callback(OAuthCallbackRequest $request, string $provider): JsonResponse
     {
         try {
             $socialUser = $this->oauthService->handleCallback($provider, $request->code, $request->state);
@@ -39,10 +40,8 @@ class OAuthController extends Controller
         $existingUser = User::where('email', $socialUser->getEmail())->first();
 
         if ($existingUser) {
-            // STRICT SECURITY: GitHub often omits 'email_verified'. We default to false to prevent account takeover.
-            $isVerified = $socialUser->user['email_verified'] ?? $socialUser->user['email_verified_at'] ?? false;
-            
-            if (!$isVerified) {
+            // STRICT SECURITY: Delegate provider-specific verification to the service (SRP)
+            if (! $this->oauthService->isEmailVerified($socialUser, $provider)) {
                 return $this->errorResponse(
                     'oauth_email_unverified', 
                     'The OAuth provider has not verified this email address. Please log in with your credentials to link your account.', 
@@ -77,5 +76,33 @@ class OAuthController extends Controller
         }
 
         return $this->authenticateAndRespond($request, $user, 'OAuth login successful');
+    }
+
+    /**
+     * Fix #8: Unlink an OAuth provider from the authenticated user's account.
+     */
+    public function unlink(Request $request, string $provider): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->provider !== $provider) {
+            return $this->errorResponse('invalid_provider', 'This provider is not linked to your account.', 400);
+        }
+
+        // Security check: Prevent unlinking if it's the only way the user can log in
+        if (empty($user->password) && $user->provider === $provider) {
+            return $this->errorResponse(
+                'unlink_blocked', 
+                'You cannot unlink this provider because you have no password set. Please set a password first.', 
+                422
+            );
+        }
+
+        $user->update([
+            'provider' => null,
+            'provider_id' => null,
+        ]);
+
+        return $this->successResponse(null, 'OAuth provider unlinked successfully.');
     }
 }

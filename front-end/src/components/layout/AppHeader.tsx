@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/user/useAuth';
 import PremiumBadge from '@/components/user/subscription/PremiumBadge';
@@ -38,6 +38,15 @@ const AppHeader: React.FC = () => {
     await logout();
   };
 
+  const avatarSrc = useMemo(() => {
+    if (!user?.avatar) return '/assets/default-avatar.png';
+    // If the avatar is an external URL, proxy it through our backend
+    if (user.avatar.startsWith('http')) {
+      return `${import.meta.env.VITE_API_BASE_URL || ''}/api/user/avatar`;
+    }
+    return user.avatar;
+  }, [user?.avatar]);
+
   return (
     <>
       <header className="app-header">
@@ -65,8 +74,8 @@ const AppHeader: React.FC = () => {
                 <PremiumBadge planSlug={user.active_plan} />
                 <div className="app-header__user">
                   <img
-                    src={user.avatar || '/assets/default-avatar.png'}
-                    alt={user.name}
+                    src={avatarSrc}
+                    alt={user?.name ?? ''}
                     className="app-header__avatar"
                   />
                   <span className="app-header__username">{user.name}</span>
@@ -139,8 +148,8 @@ const AppHeader: React.FC = () => {
         {isAuthenticated && user && (
           <div className="mobile-drawer__user-card">
             <img
-              src={user.avatar || '/assets/default-avatar.png'}
-              alt={user.name}
+              src={avatarSrc}
+              alt={user?.name ?? ''}
               className="mobile-drawer__user-avatar"
             />
             <div className="mobile-drawer__user-info">

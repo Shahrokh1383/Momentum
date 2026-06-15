@@ -42,12 +42,19 @@ export const useAuth = () => {
 
   const loginMutation = useMutation({
     mutationFn: authService.login,
-    onSuccess: (user) => { setUser(user); navigate('/dashboard'); },
+    onSuccess: (user) => {
+      setUser(user);
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      navigate('/dashboard');
+    }
   });
 
   const registerMutation = useMutation({
     mutationFn: authService.register,
-    onSuccess: (user) => { setUser(user); navigate('/verify-email'); },
+    onSuccess: ({ email }) => {
+      useAuthStore.getState().setPendingEmail(email);
+      navigate('/verify-email');
+    }
   });
 
   const logoutMutation = useMutation({

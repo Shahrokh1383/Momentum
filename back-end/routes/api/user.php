@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(function () {
 
     Route::post('logout', [AuthController::class, 'logout']);
+    Route::post('logout-all', [AuthController::class, 'logoutAll']);
     Route::get('me', [AuthController::class, 'me']);
+    Route::get('avatar', [\App\Http\Controllers\User\AvatarController::class, 'show']);
 
     // Plans
     Route::get('plans', [PlansController::class, 'index']);

@@ -1,58 +1,59 @@
-
----
-
 # Backend Authentication Module Documentation
 
 ## 1. Overview
 The Authentication module provides a secure, flexible, and stateless/stateful dual-authentication system for the application. It supports traditional credential-based authentication (Email/Password), OAuth2 integration (Google/GitHub), email verification, and password reset functionalities. 
 
-The architecture serves both Single Page Applications (SPAs) using session-based authentication (via Laravel Sanctum's SPA authentication) and mobile/external clients using token-based authentication (via Sanctum API tokens). The module strictly adheres to the Single Responsibility Principle (SRP) and DRY (Don't Repeat Yourself) principles by delegating business logic to dedicated Services, leveraging Form Requests for validation, and centralizing dual-auth response logic in the `HandlesAuthResponses` trait. Security is hardened with Cache-based OAuth state validation, composite rate limiting, and cryptographically sound signature verification.
+The architecture serves both Single Page Applications (SPAs) using session-based authentication (via Laravel Sanctum's SPA authentication) and mobile/external clients using token-based authentication (via Sanctum API tokens). The module strictly adheres to the Single Responsibility Principle (SRP) and DRY (Don't Repeat Yourself) principles by delegating business logic to dedicated Services, leveraging Form Requests for validation, and centralizing dual-auth response logic in the `HandlesAuthResponses` trait. Security is hardened with deterministic dual-auth detection, Cache-based OAuth state validation, WAF-safe synthetic request validation for signed URLs, strict provider-specific email verification, and a `PendingRegistration` model to keep the primary `User` table free of unverified accounts.
 
 ## 2. Business Rules
-*   **Registration:** Users must provide a unique name, email, and a strong password (min 8 chars, mixed case, numbers, symbols). Upon registration, a verification email is dispatched, and the user is automatically logged in but remains in a "restricted" state until email verification is complete.
-*   **Login:** Users can log in via credentials. Authentication supports a "remember me" toggle. The system determines the response format (Session vs. Token) based on the presence of an active session, centralizing this logic in the `HandlesAuthResponses` trait.
-*   **Email Verification:** Email verification is mandatory for accessing protected routes. Verification links are cryptographic signed URLs valid for 60 minutes. The backend validates the signature natively on the POST request since the frontend preserves the raw query string parameters.
-*   **Password Reset:** Password reset requests always return a generic success message to prevent email enumeration. Valid tokens allow the user to update their password, which automatically revokes all existing API tokens, invalidates sessions, and regenerates the `remember_token` for security.
-*   **OAuth:** Users can authenticate via Google or GitHub. The system matches users by email. If an account exists, the OAuth provider is linked to it **only if** the OAuth provider has explicitly verified the email (preventing account takeover). If no account exists, a new one is created with `email_verified_at` set to the current timestamp. OAuth state validation is enforced strictly via a Cache-based mechanism to prevent CSRF attacks, bypassing Socialite's session dependency.
-*   **Throttling:** Strict rate limiting is applied to authentication endpoints using composite keys (`IP + Email/Endpoint`). This prevents distributed spam (protecting email server reputation) and targeted harassment simultaneously.
+*   **Registration:** Users must provide a unique name, email, and a strong password. Upon registration, credentials are temporarily stored in a `PendingRegistration` model. A verification email is dispatched using a centralized `EmailVerificationService` to generate cryptographic signed URLs. The user is only moved to the main `User` table and logged in once email verification is complete.
+*   **Login:** Users can log in via credentials. Authentication supports a "remember me" toggle. The system deterministically determines the response format (Session vs. Token) based on Bearer token presence and `Origin`/`Referer` headers matching `config('sanctum.stateful')`. For API clients, the "remember me" toggle dynamically adjusts the Bearer token expiration (1 year if true, 24 hours if false).
+*   **Email Verification:** Email verification is mandatory for accessing protected routes. Verification links are cryptographic signed URLs valid for 60 minutes. To bypass enterprise WAF/Load Balancer query-string stripping on POST requests, the frontend sends signature parameters in the JSON body, and the backend validates them using a synthetic GET request.
+*   **Password Reset:** Password reset requests always return a generic success message to prevent email enumeration. Valid tokens allow the user to update their password, which automatically revokes all existing API tokens, invalidates the `remember_token`, and forces SPA session invalidation via the `AuthenticateSession` middleware checking the `password_hash`.
+*   **OAuth:** Users can authenticate via Google or GitHub. The system matches users by email. If an account exists, the OAuth provider is linked **only if** the provider has explicitly verified the email (handling GitHub's specific `emails` array payload vs Google's base payload). Users can unlink providers, provided they have a password set as a fallback. OAuth state validation is enforced strictly via a Cache-based mechanism to prevent CSRF attacks.
+*   **Throttling:** Strict rate limiting is applied to authentication endpoints using composite keys (`IP + Email/Endpoint`).
 
 ## 3. Backend
 
 ### Traits
-*   **HandlesAuthResponses:** Centralizes the dual-authentication response logic. It detects `$request->hasSession()` to determine if a session should be regenerated (SPA) or if a Sanctum Bearer token should be generated and returned (API/Mobile). Used by `AuthController` and `OAuthController`.
+*   **HandlesAuthResponses:** Centralizes the dual-authentication response logic. Replaces the flawed `$request->hasSession()` with a deterministic `isStatefulRequest()` method that checks for Bearer tokens and validates headers against `sanctum.stateful` domains. Handles dynamic API token expiration based on the `remember` flag.
 
 ### Controllers
-*   **AuthController:** Handles register, login, logout, and `me` endpoints. Uses the `HandlesAuthResponses` trait.
-*   **EmailVerificationController:** Verifies signed URLs natively on the POST request by leveraging Laravel's `hasValidSignature` against the query string. Handles resend requests with generic responses to prevent email enumeration.
+*   **AuthController:** Handles register, login, logout, `logoutAll`, and `me` endpoints. Uses the `HandlesAuthResponses` trait.
+*   **EmailVerificationController:** Verifies signed URLs natively by reconstructing a synthetic GET request from JSON body parameters, ensuring compatibility with strict WAFs. Handles resend requests with generic responses.
 *   **PasswordResetController:** Manages the forgot/reset password flow.
-*   **OAuthController:** Generates OAuth redirect URLs and handles provider callbacks. Enforces strict truthy email verification checks on existing accounts before linking and wraps DB operations in transactions. Uses the `HandlesAuthResponses` trait.
+*   **OAuthController:** Generates OAuth redirect URLs, handles provider callbacks, and manages provider unlinking. Delegates provider-specific email verification logic to the `OAuthService`.
 
 ### Services
-*   **EmailVerificationService:** Delegates verification notification sending to the `User` model and handles hash validation during verification.
+*   **EmailVerificationService:** Centralizes the generation of frontend-compatible temporary signed URLs (`generateVerificationUrl`) to strictly enforce DRY across the `User` model and `PendingRegistrationService`. Delegates notification sending and handles hash validation during verification.
 *   **PasswordResetService:** Interfaces with Laravel's `Password` broker to generate tokens and reset passwords. Automatically revokes all Sanctum tokens and regenerates the `remember_token` upon password reset.
-*   **OAuthService:** Interfaces with Laravel Socialite to validate providers. Generates and stores a cryptographically secure `state` parameter in the Cache (10 min TTL) during redirect, and strictly verifies this state against the Cache during the callback before retrieving the `SocialiteUser` statelessly.
+*   **OAuthService:** Interfaces with Laravel Socialite. Generates and stores a cryptographically secure `state` parameter in the Cache (10 min TTL). Contains the `isEmailVerified()` method to abstract provider-specific payload quirks (e.g., parsing GitHub's `emails` array).
+*   **PendingRegistrationService:** Manages the lifecycle of unverified users. Creates temporary records, handles the dispatching of verification emails, and promotes the pending record to a verified `User` upon successful signature validation.
 
 ### Models
-*   **User:** Implements `MustVerifyEmail`. Overrides `sendEmailVerificationNotification` and `sendPasswordResetNotification` to generate deep-links pointing to the SPA frontend, appending Laravel's signed URL parameters.
+*   **User:** Implements `MustVerifyEmail`. Overrides `sendEmailVerificationNotification` to delegate URL generation to the `EmailVerificationService`, appending Laravel's signed URL parameters to the SPA frontend deep-link.
+*   **PendingRegistration:** Temporarily stores unverified user credentials (name, email, hashed password) with an expiration timestamp. Ensures the main `User` table remains clean of unverified accounts.
 
 ### Middleware & Requests
 *   `auth:sanctum`: Ensures the user is authenticated (via Session or Bearer Token).
 *   `verified`: Ensures the user's email is verified.
+*   `\Illuminate\Session\Middleware\AuthenticateSession::class`: **Crucial for SPA security.** Validates the `password_hash` on every request, effectively killing hijacked sessions when a password is reset.
 *   `RoleMiddleware`: Validates user roles against the `UserRole` Enum.
-*   **OAuthCallbackRequest:** Form Request requiring both `code` and `state` from the OAuth provider callback.
-*   **ResendVerificationRequest:** Form Request requiring a valid `email` format for resending verification links.
+*   **Form Requests:** `LoginRequest`, `OAuthCallbackRequest`, `ForgotPasswordRequest`, `ResendVerificationRequest` enforce strict validation and prevent email enumeration.
 
 ## 4. API Contract
 
 ### Credential Auth
 *   **`POST /api/auth/register`**
     *   *Body:* `{ name, email, password, password_confirmation }`
-    *   *Response:* `201` `{ user, message }` (If API, includes `token`)
+    *   *Response:* `201` `{ email, message }` (Returns the registered email for frontend state persistence).
 *   **`POST /api/auth/login`**
     *   *Body:* `{ email, password, remember }`
     *   *Response:* `200` `{ user }` (If SPA) | `{ user, token }` (If API)
-*   **`POST /api/auth/logout`** *(Auth Required)*
-    *   *Response:* `200` `{ message }` (Invalidates Session or deletes Bearer Token)
+*   **`POST /api/user/logout`** *(Auth Required)*
+    *   *Response:* `200` `{ message }` (Invalidates current Session or deletes current Bearer Token)
+*   **`POST /api/user/logout-all`** *(Auth Required)*
+    *   *Response:* `200` `{ message }` (Revokes ALL API tokens and invalidates current session)
 
 ### Password Reset
 *   **`POST /api/auth/forgot-password`**
@@ -60,11 +61,11 @@ The architecture serves both Single Page Applications (SPAs) using session-based
     *   *Response:* `200` `{ message: "If an account with that email exists..." }`
 *   **`POST /api/auth/reset-password`**
     *   *Body:* `{ token, email, password, password_confirmation }`
-    *   *Response:* `200` `{ message: "Password reset successfully..." }` *(Side-effect: Revokes all API tokens)*
+    *   *Response:* `200` `{ message: "Password reset successfully..." }` *(Side-effect: Revokes all API tokens, triggers AuthenticateSession logout)*
 
 ### Email Verification
-*   **`POST /api/auth/verify-email?{raw_query_string}`**
-    *   *Body:* Empty (Parameters are in the query string)
+*   **`POST /api/auth/verify-email`**
+    *   *Body:* `{ id, hash, expires, signature }` *(Moved to JSON body for WAF safety)*
     *   *Response:* `200` `{ message: "Email verified successfully..." }`
 *   **`POST /api/auth/verify-email/resend`**
     *   *Body:* `{ email }`
@@ -74,11 +75,13 @@ The architecture serves both Single Page Applications (SPAs) using session-based
 *   **`GET /api/auth/oauth/{provider}`**
     *   *Response:* `200` `{ url, state }`
 *   **`POST /api/auth/oauth/{provider}/callback`**
-    *   *Body:* `{ code, state }`
+    *   *Body:* `{ code, state }` *(State must be read from URL query params by frontend, not sessionStorage)*
     *   *Response:* `200` `{ user, message }` (If API, includes `token`)
+*   **`DELETE /api/auth/oauth/{provider}`** *(Auth Required)*
+    *   *Response:* `200` `{ message }` (Unlinks provider. Fails with `422` if user has no password set).
 
-### Protected Routes (Requires `auth:sanctum` + `verified`)
-*   **`GET /api/auth/me`**
+### Protected Routes (Requires `auth:sanctum` + `verified` + `AuthenticateSession`)
+*   **`GET /api/user/me`**
     *   *Response:* `200` `{ user }`
 
 ## 5. Flow
@@ -87,71 +90,64 @@ The architecture serves both Single Page Applications (SPAs) using session-based
 1.  SPA requests `GET /sanctum/csrf-cookie` to establish the session.
 2.  User submits credentials to `POST /login` (or registers, or uses OAuth).
 3.  Controller delegates to `HandlesAuthResponses::authenticateAndRespond()`.
-4.  Trait detects `$request->hasSession() === true`.
-5.  `Auth::login()` is called, session is regenerated, and `UserResource` is returned (No token exposed).
-6.  For Mobile/API clients, step 1 is skipped; `hasSession() === false`, triggering `createToken()` and returning the Bearer token.
+4.  Trait executes `isStatefulRequest()`: checks if Bearer token is absent AND `Referer`/`Origin` matches `config('sanctum.stateful')`.
+5.  If SPA: `Auth::login()` is called, session is regenerated. If API: `createToken()` is called with dynamic expiration based on the `remember` boolean.
 
 ### Email Verification Flow
-1.  Backend generates a temporary signed route using `url()->temporarySignedRoute`.
-2.  The relative path + query params are appended to the `frontend_url`.
-3.  User clicks link in email -> SPA loads `VerifyEmailPage`.
-4.  SPA reads `window.location.search.slice(1)` and sends a `POST /verify-email?{rawQueryString}` request.
-5.  Laravel's native `$request->hasValidSignature()` validates the HMAC directly on the POST request's query string.
-6.  If valid, `EmailVerificationService` marks email verified.
+1.  Backend generates a temporary signed route via `EmailVerificationService::generateVerificationUrl()`.
+2.  User clicks link -> SPA loads `VerifyEmailPage`.
+3.  SPA reads parameters from the URL and sends a `POST /verify-email` with `{ id, hash, expires, signature }` in the **JSON Body**.
+4.  Backend reconstructs a synthetic GET request using `Request::create()` and validates the HMAC via `$syntheticRequest->hasValidSignature()`.
+5.  If valid, `EmailVerificationService` marks email verified and promotes `PendingRegistration` to `User` if applicable.
 
 ### Password Reset Flow
 1.  User requests `POST /forgot-password`.
-2.  `PasswordResetService` generates a token via Laravel's broker and sends `PasswordResetMail` with a frontend deep-link.
+2.  `PasswordResetService` generates a token and sends email.
 3.  User sets new password via `POST /reset-password`.
-4.  `PasswordResetService` updates password, revokes all `personal_access_tokens` (`$user->tokens()->delete()`), and invalidates the `remember_token`.
+4.  Service updates password, deletes `$user->tokens()`, and regenerates `remember_token`.
+5.  On the next SPA request, the `AuthenticateSession` middleware detects the `password_hash` mismatch and forcefully logs the user out.
 
 ### OAuth Flow (Cache-based State)
 1.  Frontend requests `GET /oauth/{provider}`.
-2.  `OAuthService` generates a random 40-char `state`, stores it in Cache (`oauth_state_{state}` => `provider`) for 10 mins, and returns the Socialite redirect URL + `state` to the frontend.
-3.  Frontend stores `state` in `sessionStorage` and redirects user to the URL.
-4.  Provider redirects back to frontend `OAuthCallbackPage` with `?code=xxx`.
-5.  Frontend retrieves `state` from `sessionStorage` and sends `POST /oauth/{provider}/callback` with `{ code, state }`.
-6.  `OAuthService` pulls the state from Cache and validates that it exists and matches the provider.
-7.  If valid, Socialite's `stateless()->user()` is called to fetch the user data.
-8.  If an existing user is found by email, the system strictly checks if the OAuth provider has explicitly verified the email (defaults to `false` if omitted). If not, the link is rejected (403). If yes, the provider is linked inside a `DB::transaction`.
-9.  If no user exists, a new user is created with `email_verified_at = now()`.
-10. `HandlesAuthResponses` logs the user in and returns the appropriate response.
+2.  `OAuthService` generates `state`, stores in Cache (10 min TTL), returns URL + `state`.
+3.  Frontend redirects user. Provider redirects back to frontend with `?code=xxx&state=yyy`.
+4.  **Crucial:** Frontend extracts `state` directly from the URL query parameters (avoiding Safari ITP / `sessionStorage` bugs) and sends `POST /callback`.
+5.  `OAuthService` validates state via `Cache::pull()` and calls `stateless()->user()`.
+6.  If existing user, `OAuthService->isEmailVerified()` strictly checks provider payload (handling GitHub's `emails` array). If verified, links in transaction.
+7.  If no user, creates new user with `email_verified_at = now()`.
 
 ## 6. Edge Cases & Security Vulnerabilities (Resolved)
 
-*   **Email Enumeration (Resolved):** The `exists:users,email` rule is removed from `ForgotPasswordRequest` and `ResendVerificationRequest`. Validation only checks format. Controller/Service logic ensures a generic success message is always returned regardless of email existence.
-*   **Token Revocation on Reset (Resolved):** Password reset securely invalidates hijacked sessions by explicitly calling `$user->tokens()->delete()` and regenerating the `remember_token` inside the reset closure.
-*   **OAuth Pre-Account Takeover (Resolved):** Auto-linking accounts solely by email is restricted. The system now strictly checks the OAuth provider's email verification status (`$socialUser->user['email_verified'] ?? false`). If the provider has not verified the email (or omits the field, like GitHub), the OAuth attempt is rejected with a `403`.
-*   **Native Signature Validation (Resolved):** Since the frontend preserves the exact byte order of the signed URL by sending it as a query string on a POST request, the backend leverages Laravel's native `$request->hasValidSignature()` directly. This eliminates the need for error-prone synthetic request reconstruction.
-*   **OAuth CSRF Vulnerability via `stateless()` (Resolved):** Instead of relying on sessions (which breaks API clients) or completely ignoring state (which enables CSRF), the system implements Cache-based state management. The state is generated server-side, stored in Cache with a 10-minute TTL, and strictly verified via `Cache::pull()` during the callback before calling Socialite's `stateless()->user()`.
-*   **Rate Limiter Key Granularity (Resolved):** Custom Rate Limiters use composite keys (e.g., `IP|Email` or `IP|Endpoint`). This prevents distributed proxy spam (protecting email server reputation/avoiding blacklists) while simultaneously preventing targeted harassment/lockouts for specific users.
+*   **Flawed Dual-Auth Detection (Resolved):** Replaced `$request->hasSession()` with a deterministic `isStatefulRequest()` method that checks Bearer tokens and validates headers against `sanctum.stateful` domains. Prevents mobile apps from accidentally triggering SPA logic.
+*   **WAF Query String Stripping (Resolved):** Email verification parameters are now sent in the JSON body. The backend uses a synthetic `Request::create()` to validate the signature, bypassing enterprise WAFs that strip query strings from POST requests.
+*   **True Session Invalidation (Resolved):** Added `\Illuminate\Session\Middleware\AuthenticateSession::class` to protected routes. This ensures that changing the `password_hash` during a reset actively kills hijacked SPA sessions on the very next request.
+*   **GitHub `email_verified` Quirk (Resolved):** Extracted provider-specific logic into `OAuthService::isEmailVerified()`. It correctly parses GitHub's `emails` array for the primary verified email, preventing false 403 rejections.
+*   **"Remember Me" Token Expiration (Resolved):** API tokens now respect the `remember` flag. Unchecked = 24-hour expiry. Checked = 1-year expiry.
+*   **OAuth Provider Unlinking (Resolved):** Added `DELETE /api/auth/oauth/{provider}`. Includes a strict safeguard preventing unlinking if the user has no password set (preventing account lockouts).
+*   **OAuth CSRF via `stateless()` (Resolved):** Cache-based state management with 10-min TTL.
+*   **Email Enumeration (Resolved):** Generic responses on forgot-password and resend-verification.
+*   **Rate Limiter Key Granularity (Resolved):** Composite keys (`IP|Email`) prevent distributed spam and targeted harassment.
 
 ## 7. Tests
 
-*   **Registration:** Validate successful registration, check validation errors (weak password, duplicate email), verify email dispatch. Verify API clients receive a token on registration.
-*   **Login:** Verify token generation for API, session initiation for SPA, and correct response for invalid credentials. Verify `HandlesAuthResponses` trait logic.
-*   **Email Verification:** 
-    *   Test valid signature verification via POST query string.
-    *   Test expired/tampered signature rejection (422).
-    *   Test resending verification to already verified users returns generic success.
-    *   Test resending to non-existent emails returns generic success (prevents enumeration).
-*   **Password Reset:** 
-    *   Verify generic response for existing and non-existing emails.
-    *   Verify successful password reset.
-    *   Verify that existing Sanctum tokens are deleted after password reset.
+*   **Registration/Login:** Verify dynamic token expiration (24h vs 1y) based on `remember`. Verify `isStatefulRequest()` correctly routes SPA vs API clients.
+*   **Email Verification:** Test synthetic request validation via JSON body. Test expired/tampered signature rejection. Verify promotion of `PendingRegistration` to `User`.
+*   **Password Reset:** Verify that existing Sanctum tokens are deleted. Verify that `AuthenticateSession` middleware blocks access after a password reset.
 *   **OAuth:** 
-    *   Test invalid provider rejection.
-    *   Test missing/invalid `state` parameter in callback (CSRF check).
-    *   Test new user creation via OAuth.
-    *   Test existing user linking via OAuth when provider email is verified.
-    *   Test rejection of existing user linking when provider email is unverified or omitted (403).
-*   **Middleware:** Verify `verified` middleware blocks unauthenticated/unverified access to `/me`.
+    *   Test GitHub email verification logic (mocking the `emails` array).
+    *   Test `unlink()` success and `unlink()` block when no password is set.
+    *   Test invalid `state` parameter rejection.
+*   **Logout:** Verify `logoutAll` deletes all records in `personal_access_tokens`.
 
 ## 8. Notes
 
-*   **Architectural Decision - DRY Trait:** The `HandlesAuthResponses` trait was introduced to centralize `Auth::login`, session regeneration, and token generation. This ensures that `AuthController` and `OAuthController` follow the exact same authentication and response standards without code duplication.
-*   **Architectural Decision - SRP:** Session management is intentionally kept outside the `DB::transaction` in the `register` method because session persistence is not a database concern.
-*   **Socialite Stateless + Cache State:** OAuth is handled using `stateless()->user()` *after* manual state validation via Cache. This perfectly decouples the OAuth flow from Laravel's session middleware, making it fully compatible with both SPA (Cookie) and API (Token) architectures without sacrificing CSRF protection.
-*   **Native Query String Validation:** Creating a synthetic `Request::create()` instance for signature validation is unnecessary because the frontend correctly forwards the raw query string. Laravel's native HMAC validation works perfectly on POST requests as long as the parameters reside in the query string.
+*   **Frontend Constraints (Strict):** 
+    1. The frontend **must not** use `sessionStorage` for OAuth state. It must read it from the callback URL. 
+    2. The frontend **must** send email verification parameters in the JSON body, not the query string.
+*   **Infrastructure Constraint (Cache):** The OAuth flow strictly requires a centralized Cache driver (`redis` or `memcached`). Using `file` or `array` in a load-balanced environment will cause random 401 CSRF errors.
+*   **Architectural Decision - DRY Trait:** The `HandlesAuthResponses` trait centralizes auth logic, ensuring `AuthController` and `OAuthController` follow exact standards without duplication.
+*   **Architectural Decision - SRP:** Provider-specific payload quirks (GitHub vs Google) are isolated in the `OAuthService`, keeping the Controller clean and focused on HTTP orchestration.
+*   **Architectural Decision - Centralized URL Generation:** Signed URL generation is strictly isolated in `EmailVerificationService::generateVerificationUrl()`. This prevents logic duplication between the `User` model and `PendingRegistrationService`, ensuring any future changes to URL formatting or expiration times only need to be made in one place.
+*   **Native Query String Validation:** Replaced with Synthetic Request validation to guarantee compatibility with strict enterprise network infrastructure (WAFs/ALBs).
 
 ---

@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import AuthLayout from '@/components/user/auth/AuthLayout';
 import { useAuth } from '@/hooks/user/useAuth';
+import { useAuthStore } from '@/context/user/authStore';
 
 /**
  * This page handles TWO states:
  *
  * STATE 1 — Signed URL parameters in URL (?id=xxx&hash=xxx&expires=xxx&signature=xxx):
  *   User clicked the verification link in their email.
- *   We automatically call the backend to verify and redirect to dashboard.
+ *   We extract parameters and send them in the JSON body (WAF-safe).
  *
  * STATE 2 — No parameters in URL:
  *   User just registered and is waiting for the email.
@@ -25,8 +26,10 @@ const VerifyEmailPage = () => {
     isResendingVerification,
   } = useAuth();
 
+  const pendingEmail = useAuthStore((state) => state.pendingEmail);
+  const emailForResend = user?.email || pendingEmail;
+
   // A valid verification link must have all 4 signed URL parameters present.
-  // We validate by checking each key individually so the condition is clear.
   const hasValidLinkInUrl =
     searchParams.has('id') &&
     searchParams.has('hash') &&
@@ -38,36 +41,30 @@ const VerifyEmailPage = () => {
   const [resendError, setResendError] = useState('');
 
   // STATE 1: Auto-verify when signed URL parameters are present.
-  //
-  // WHY rawQueryString: We must forward the query string to the backend in
-  // the exact byte order that Laravel produced when it signed the URL.
-  // Decomposing params into individual variables and re-serializing them
-  // via { params: {...} } lets JS object key order corrupt the HMAC input.
-  // Using location.search (the raw browser query string) eliminates that risk.
   useEffect(() => {
     if (!hasValidLinkInUrl || hasProcessed.current) return;
 
     hasProcessed.current = true;
 
-    // window.location.search is "?expires=...&hash=...&id=...&signature=..."
-    // We strip the leading "?" to get the raw query string.
-    const rawQueryString = window.location.search.slice(1);
-
-    verifyEmail({ rawQueryString });
-  }, [hasValidLinkInUrl, verifyEmail]);
+    verifyEmail({
+      id: searchParams.get('id')!,
+      hash: searchParams.get('hash')!,
+      expires: searchParams.get('expires')!,
+      signature: searchParams.get('signature')!,
+    });
+  }, [hasValidLinkInUrl, verifyEmail, searchParams]);
 
   const handleResend = async () => {
     setResendMessage('');
     setResendError('');
 
-    const emailToUse = user?.email;
-    if (!emailToUse) {
+    if (!emailForResend) {
       setResendError('Unable to determine your email address. Please log in and try again.');
       return;
     }
 
     try {
-      await resendVerification(emailToUse);
+      await resendVerification(emailForResend);
       setResendMessage('Verification email sent! Please check your inbox and spam folder.');
     } catch {
       setResendError('Failed to resend the email. Please try again in a moment.');
@@ -98,7 +95,7 @@ const VerifyEmailPage = () => {
           <div className="alert alert-danger mb-4">
             The link you used is no longer valid. Please request a new one.
           </div>
-          {user?.email && (
+          {emailForResend && (
             <button
               onClick={handleResend}
               disabled={isResendingVerification}
@@ -144,8 +141,8 @@ const VerifyEmailPage = () => {
         <div style={{ fontSize: '4rem', marginBottom: '16px' }}>📬</div>
         <p className="text-muted-custom" style={{ lineHeight: 1.7 }}>
           We sent a verification email to{' '}
-          {user?.email ? (
-            <strong style={{ color: 'var(--text-primary)' }}>{user.email}</strong>
+          {emailForResend ? (
+            <strong style={{ color: 'var(--text-primary)' }}>{emailForResend}</strong>
           ) : (
             'your email address'
           )}

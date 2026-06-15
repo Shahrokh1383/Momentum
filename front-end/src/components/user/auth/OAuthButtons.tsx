@@ -26,11 +26,7 @@ const OAuthButtons = () => {
   const handleOAuth = async (provider: 'google' | 'github') => {
     try {
       setIsLoading(provider);
-      const { url, state } = await authService.getOAuthRedirect(provider);
-      
-      // Store state in sessionStorage to pass to the callback page securely
-      sessionStorage.setItem(`oauth_state_${provider}`, state);
-      
+      const { url } = await authService.getOAuthRedirect(provider);
       const width = 600, height = 700;
       const left = (window.innerWidth - width) / 2;
       const top = (window.innerHeight - height) / 2;

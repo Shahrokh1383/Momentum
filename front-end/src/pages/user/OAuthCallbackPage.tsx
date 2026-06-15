@@ -14,14 +14,13 @@ const OAuthCallbackPage = () => {
     if (hasProcessed.current || !provider) return;
 
     const code = searchParams.get('code');
-    const state = sessionStorage.getItem(`oauth_state_${provider}`);
+    const state = searchParams.get('state');
 
     if (code && state) {
       hasProcessed.current = true;
       
       handleOAuthCallback({ provider, code, state })
         .then(() => {
-          sessionStorage.removeItem(`oauth_state_${provider}`);
           if (window.opener) {
             window.opener.postMessage('oauth-success', window.location.origin);
             window.close();
@@ -30,7 +29,6 @@ const OAuthCallbackPage = () => {
           }
         })
         .catch(() => {
-          sessionStorage.removeItem(`oauth_state_${provider}`);
           if (window.opener) {
             window.opener.postMessage('oauth-error', window.location.origin);
             window.close();

@@ -63,22 +63,13 @@ class User extends Authenticatable implements MustVerifyEmail
         return PlanSlug::FREE->value;
     }
 
-    /**
+   /**
      * Uses Laravel's native Signed URLs (no DB storage needed).
      */
     public function sendEmailVerificationNotification(): void
     {
-        $frontendUrl = rtrim(config('app.frontend_url', 'http://localhost:5173'), '/');
-
-        $verificationUrl = app('url')->temporarySignedRoute(
-            'api.verification.verify',
-            now()->addMinutes(60),
-            ['id' => $this->getKey(), 'hash' => sha1($this->getEmailForVerification())],
-            false
-        );
-
-        // Append the relative path query parameters to the frontend URL
-        $finalUrl = $frontendUrl . '/verify-email?' . parse_url($verificationUrl, PHP_URL_QUERY);
+        $finalUrl = app(\App\Services\Auth\EmailVerificationService::class)
+            ->generateVerificationUrl($this->getKey(), $this->getEmailForVerification());
 
         Mail::to($this)->send(new VerificationMail($finalUrl));
     }

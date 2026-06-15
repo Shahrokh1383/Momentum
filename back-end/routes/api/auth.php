@@ -31,3 +31,6 @@ Route::middleware('throttle:password-limiter')
 // ─── OAuth ────────────────────────────────────────────────────────────────────
 Route::get('oauth/{provider}',          [OAuthController::class, 'redirect']);
 Route::post('oauth/{provider}/callback',[OAuthController::class, 'callback']);
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+    Route::delete('oauth/{provider}', [OAuthController::class, 'unlink']);
+});

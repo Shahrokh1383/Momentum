@@ -7,11 +7,11 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
 use App\Services\Auth\EmailVerificationService;
+use App\Services\Auth\PendingRegistrationService;
 use App\Traits\HandlesAuthResponses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -23,17 +23,13 @@ class AuthController extends Controller
 
     public function register(RegisterRequest $request): JsonResponse
     {
-        $user = DB::transaction(function () use ($request) {
-            $user = User::create($request->validated());
-            $this->emailVerificationService->sendVerificationEmail($user);
-            return $user;
-        });
+        $pendingService = app(PendingRegistrationService::class);
+        $pending = $pendingService->createAndSend($request->validated());
 
-        // The trait handles Auth::login, session regeneration, and token generation
-        return $this->authenticateAndRespond(
-            $request, 
-            $user, 
-            'Registration successful. Please check your email to verify your account.', 
+        // Return only the email so frontend can store it for resend
+        return $this->successResponse(
+            ['email' => $pending->email],
+            'Registration initiated. Please check your email to verify your account.',
             201
         );
     }
@@ -52,7 +48,7 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-         if ($request->hasSession()) {
+        if ($request->hasSession()) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -61,6 +57,26 @@ class AuthController extends Controller
         }
 
         return $this->successResponse(null, 'Logged out successfully');
+    }
+
+    /**
+     * Revoke all active tokens and sessions across all devices.
+     */
+    public function logoutAll(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        // Revoke all API tokens (Mobile/External clients)
+        $user->tokens()->delete();
+
+        // Invalidate current SPA session
+        if ($request->hasSession()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
+        return $this->successResponse(null, 'Logged out from all devices successfully.');
     }
 
     public function me(Request $request): JsonResponse

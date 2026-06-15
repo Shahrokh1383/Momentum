@@ -16,10 +16,6 @@ class OAuthService
     {
     }
 
-    /**
-     * Validate the provider, generate a secure state, and return the redirect URL.
-     * @throws \InvalidArgumentException
-     */
     public function getRedirectUrl(string $provider): array
     {
         $this->validateProvider($provider);
@@ -27,31 +23,21 @@ class OAuthService
         /** @var AbstractProvider $driver */
         $driver = $this->socialite->driver($provider);
 
-        // Generate a cryptographically secure state parameter to prevent CSRF
         $state = Str::random(40);
-        
-        // Store state in cache for 10 minutes
         Cache::put("oauth_state_{$state}", $provider, now()->addMinutes(10));
 
-        // Pass the state to the provider
         $url = $driver->with(['state' => $state])->redirect()->getTargetUrl();
 
         return [
             'url' => $url,
-            'state' => $state, // Return state so frontend can pass it back
+            'state' => $state,
         ];
     }
 
-    /**
-     * Validate the provider, verify the state, and retrieve the social user.
-     * @throws \InvalidArgumentException
-     * @throws \Exception
-     */
     public function handleCallback(string $provider, string $code, string $state): SocialiteUser
     {
         $this->validateProvider($provider);
 
-        // Verify the state parameter against the cache to prevent CSRF attacks
         $cachedProvider = Cache::pull("oauth_state_{$state}");
         
         if (!$cachedProvider || $cachedProvider !== $provider) {
@@ -61,9 +47,22 @@ class OAuthService
         /** @var AbstractProvider $driver */
         $driver = $this->socialite->driver($provider);
 
-        // We use stateless() here because we manually verified the state via Cache.
-        // This allows the flow to work seamlessly for both SPA and API clients.
         return $driver->stateless()->user();
+    }
+
+    /**
+     * Prevents account takeover by strictly verifying provider email status.
+     */
+    public function isEmailVerified(SocialiteUser $socialUser, string $provider): bool
+    {
+        if ($provider === 'github') {
+            $emails = $socialUser->user['emails'] ?? [];
+            $primaryEmail = collect($emails)->firstWhere('primary', true);
+            return (bool) ($primaryEmail['verified'] ?? false);
+        }
+
+        // Google and others typically include it in the base user payload
+        return (bool) ($socialUser->user['email_verified'] ?? false);
     }
 
     private function validateProvider(string $provider): void

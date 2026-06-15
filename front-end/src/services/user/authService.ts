@@ -14,10 +14,10 @@ export const authService = {
     return data.data;
   },
 
-  register: async (payload: RegisterPayload): Promise<User> => {
+  register: async (payload: RegisterPayload): Promise<{ email: string }> => {
     await api.get('/sanctum/csrf-cookie');
     const { data } = await api.post('/api/auth/register', payload);
-    return data.data;
+    return { email: data.data.email };
   },
 
   logout: async (): Promise<void> => {
@@ -49,9 +49,10 @@ export const authService = {
     await api.post('/api/auth/reset-password', payload);
   },
 
-  verifyEmail: async ({ rawQueryString }: VerifyEmailPayload): Promise<void> => {
+  // REFACTORED (Issue #6): Send verification params in JSON body to bypass WAF query-string stripping
+  verifyEmail: async (payload: VerifyEmailPayload): Promise<void> => {
     await api.get('/sanctum/csrf-cookie');
-    await api.post(`/api/auth/verify-email?${rawQueryString}`);
+    await api.post('/api/auth/verify-email', payload);
   },
 
   resendVerification: async (email: string): Promise<void> => {
