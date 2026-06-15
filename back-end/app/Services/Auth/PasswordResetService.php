@@ -11,9 +11,7 @@ class PasswordResetService
 {
     public function sendResetEmail(string $email): string
     {
-        $status = Password::sendResetLink(['email' => $email]);
-
-        return $status;
+        return Password::sendResetLink(['email' => $email]);
     }
 
     public function resetPassword(string $token, string $email, string $newPassword): bool
@@ -31,6 +29,8 @@ class PasswordResetService
                 ])->setRememberToken(Str::random(60));
 
                 $user->save();
+
+                $user->tokens()->delete();
 
                 event(new PasswordReset($user));
             }

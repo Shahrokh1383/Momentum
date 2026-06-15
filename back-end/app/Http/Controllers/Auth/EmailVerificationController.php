@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\ResendVerificationRequest;
 use App\Services\Auth\EmailVerificationService;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\URL;
 
 class EmailVerificationController extends Controller
 {
@@ -15,9 +15,6 @@ class EmailVerificationController extends Controller
         private readonly EmailVerificationService $emailVerificationService
     ) {}
 
-     /**
-     * Verify the email using the signed URL parameters.
-     */
     public function verify(Request $request): JsonResponse
     {
         $request->validate([
@@ -27,8 +24,9 @@ class EmailVerificationController extends Controller
             'signature' => ['required', 'string'],
         ]);
 
-        // 1. Verify the RELATIVE cryptographic signature and expiration (2nd parameter = false)
-        if (!URL::hasValidSignature($request, false)) {
+        // The frontend sends parameters in the query string (e.g., POST /verify-email?id=1&hash=...).
+        // Laravel's native hasValidSignature checks the query string, making the synthetic request redundant.
+        if (!$request->hasValidSignature(false)) {
             return $this->errorResponse(
                 'invalid_token',
                 'The verification link is invalid or has expired. Please request a new one.',
@@ -36,7 +34,6 @@ class EmailVerificationController extends Controller
             );
         }
 
-        // 2. Verify the user hash and mark as verified
         $verified = $this->emailVerificationService->verifySignedUrl(
             $request->id,
             $request->hash
@@ -49,23 +46,14 @@ class EmailVerificationController extends Controller
         return $this->successResponse(null, 'Email verified successfully. You can now access your account.');
     }
 
-    /**
-     * Resend the verification email to the user.
-     */
-    public function resend(Request $request): JsonResponse
+    public function resend(ResendVerificationRequest $request): JsonResponse
     {
-        $request->validate([
-            'email' => ['required', 'email', 'exists:users,email'],
-        ]);
+        $user = User::where('email', $request->email)->first();
 
-        $user = User::where('email', $request->email)->firstOrFail();
-
-        if ($user->hasVerifiedEmail()) {
-            return $this->successResponse(null, 'Your email is already verified.');
+        if ($user && !$user->hasVerifiedEmail()) {
+            $this->emailVerificationService->sendVerificationEmail($user);
         }
 
-        $this->emailVerificationService->sendVerificationEmail($user);
-
-        return $this->successResponse(null, 'Verification email sent. Please check your inbox.');
+        return $this->successResponse(null, 'If an account with that email exists and is unverified, a verification email has been sent.');
     }
 }

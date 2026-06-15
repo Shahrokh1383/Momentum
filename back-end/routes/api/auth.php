@@ -8,9 +8,10 @@ use Illuminate\Support\Facades\Route;
 
 // ─── Credential Auth ──────────────────────────────────────────────────────────
 Route::middleware('throttle:auth-limiter')->group(function () {
-    Route::post('register', [AuthController::class, 'register']);
     Route::post('login',    [AuthController::class, 'login']);
+    Route::post('register', [AuthController::class, 'register']);
 });
+
 
 // ─── Password Reset ───────────────────────────────────────────────────────────
 Route::middleware('throttle:password-limiter')
