@@ -8,7 +8,6 @@ const OAuthButtons = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState<string | null>(null);
 
-  // Listen for success message from the popup window
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
@@ -27,18 +26,25 @@ const OAuthButtons = () => {
   const handleOAuth = async (provider: 'google' | 'github') => {
     try {
       setIsLoading(provider);
-      const url = await authService.getOAuthRedirect(provider);
+      const { url, state } = await authService.getOAuthRedirect(provider);
       
-      // Calculate center position
+      // Store state in sessionStorage to pass to the callback page securely
+      sessionStorage.setItem(`oauth_state_${provider}`, state);
+      
       const width = 600, height = 700;
       const left = (window.innerWidth - width) / 2;
       const top = (window.innerHeight - height) / 2;
       
       const popup = window.open(url, 'OAuth', `width=${width},height=${height},top=${top},left=${left}`);
 
-      // Fallback: Clear loading state if user manually closes the window
+      // Fallback: If popup is blocked, redirect the current window
+      if (!popup || popup.closed) {
+        window.location.href = url;
+        return;
+      }
+
       const timer = setInterval(() => {
-        if (popup?.closed) {
+        if (popup.closed) {
           clearInterval(timer);
           setIsLoading(null);
         }

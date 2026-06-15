@@ -50,6 +50,7 @@ export const authService = {
   },
 
   verifyEmail: async ({ rawQueryString }: VerifyEmailPayload): Promise<void> => {
+    await api.get('/sanctum/csrf-cookie');
     await api.post(`/api/auth/verify-email?${rawQueryString}`);
   },
 
@@ -58,13 +59,14 @@ export const authService = {
     await api.post('/api/auth/verify-email/resend', { email });
   },
 
-  getOAuthRedirect: async (provider: string): Promise<string> => {
+  getOAuthRedirect: async (provider: string): Promise<{ url: string, state: string }> => {
     const { data } = await api.get(`/api/auth/oauth/${provider}`);
-    return data.data.url;
+    return data.data;
   },
 
-  handleOAuthCallback: async (provider: string, code: string): Promise<User> => {
-    const { data } = await api.post(`/api/auth/oauth/${provider}/callback`, { code });
+  handleOAuthCallback: async (provider: string, code: string, state: string): Promise<User> => {
+    await api.get('/sanctum/csrf-cookie');
+    const { data } = await api.post(`/api/auth/oauth/${provider}/callback`, { code, state });
     return data.data;
   },
 };

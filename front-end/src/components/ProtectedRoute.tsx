@@ -11,11 +11,16 @@ const LoadingSpinner: React.FC = () => (
 );
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isFetchingUser } = useAuth();
+  const { isAuthenticated, isFetchingUser, user } = useAuth();
 
   if (isFetchingUser) return <LoadingSpinner />;
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  // Prevent unverified users from accessing protected routes
+  if (user && !user.email_verified_at) {
+    return <Navigate to="/verify-email" replace />;
+  }
 
   return <>{children}</>;
 };

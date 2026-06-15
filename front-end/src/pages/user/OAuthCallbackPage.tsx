@@ -1,34 +1,36 @@
 import { useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/user/useAuth';
 
 const OAuthCallbackPage = () => {
   const [searchParams] = useSearchParams();
+  const { provider } = useParams<{ provider: string }>();
   const { handleOAuthCallback } = useAuth();
   const navigate = useNavigate();
   
-  // Prevent strict mode double-firing which ruins the one-time OAuth code
   const hasProcessed = useRef(false);
 
   useEffect(() => {
-    if (hasProcessed.current) return;
+    if (hasProcessed.current || !provider) return;
 
     const code = searchParams.get('code');
-    const provider = window.location.pathname.split('/').pop();
+    const state = sessionStorage.getItem(`oauth_state_${provider}`);
 
-    if (code && provider) {
+    if (code && state) {
       hasProcessed.current = true;
       
-      handleOAuthCallback({ provider, code })
+      handleOAuthCallback({ provider, code, state })
         .then(() => {
+          sessionStorage.removeItem(`oauth_state_${provider}`);
           if (window.opener) {
             window.opener.postMessage('oauth-success', window.location.origin);
             window.close();
           } else {
-            navigate('/dashboard'); // Fallback if opened without popup
+            navigate('/dashboard');
           }
         })
         .catch(() => {
+          sessionStorage.removeItem(`oauth_state_${provider}`);
           if (window.opener) {
             window.opener.postMessage('oauth-error', window.location.origin);
             window.close();
@@ -36,8 +38,10 @@ const OAuthCallbackPage = () => {
             navigate('/login');
           }
         });
+    } else {
+      navigate('/login');
     }
-  }, [searchParams, handleOAuthCallback, navigate]);
+  }, [searchParams, provider, handleOAuthCallback, navigate]);
 
   return (
     <div className="d-flex justify-content-center align-items-center vh-100">

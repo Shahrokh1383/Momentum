@@ -20,27 +20,26 @@ export const useAuth = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  // ─── currentUser query ──────────────────────────────────────
   const {
     data: fetchedUser,
     isLoading: isFetchingUser,
-    isError,
   } = useQuery<User | null>({
     queryKey: ['currentUser'],
     queryFn: authService.getMe,
     retry: false,
   });
 
-  // ─── Sync React Query → Zustand ─────────────────────────────
+  // Sync React Query → Zustand. 
+  // If fetchedUser is null (401), we clear the store. 
+  // If it throws a 500/Network error, we do nothing to prevent forced logout.
   useEffect(() => {
     if (fetchedUser) {
       setUser(fetchedUser);
-    } else if (isError) {
+    } else if (fetchedUser === null) {
       clearStore();
     }
-  }, [fetchedUser, isError, setUser, clearStore]);
+  }, [fetchedUser, setUser, clearStore]);
 
-  // ─── Mutations ──────────────────────────────────────────────
   const loginMutation = useMutation({
     mutationFn: authService.login,
     onSuccess: (user) => { setUser(user); navigate('/dashboard'); },
@@ -55,7 +54,9 @@ export const useAuth = () => {
     mutationFn: authService.logout,
     onSettled: () => {
       clearStore();
-      queryClient.clear();
+      // Surgically abort in-flight requests and remove user-specific cache
+      queryClient.cancelQueries();
+      queryClient.removeQueries({ queryKey: ['currentUser'] });
       navigate('/login');
     },
   });
@@ -82,8 +83,8 @@ export const useAuth = () => {
   });
 
   const oauthCallbackMutation = useMutation({
-    mutationFn: ({ provider, code }: { provider: string; code: string }) =>
-      authService.handleOAuthCallback(provider, code),
+    mutationFn: ({ provider, code, state }: { provider: string, code: string, state: string }) =>
+      authService.handleOAuthCallback(provider, code, state),
     onSuccess: (user) => { setUser(user); navigate('/dashboard'); },
   });
 
@@ -93,8 +94,6 @@ export const useAuth = () => {
     activePlan,
     isExpert,
     isPremium,
-    
-    // Show loading spinner only while resolving and not initially loaded
     isFetchingUser: isFetchingUser && !hasInitiallyLoaded,
 
     login: loginMutation.mutateAsync,
