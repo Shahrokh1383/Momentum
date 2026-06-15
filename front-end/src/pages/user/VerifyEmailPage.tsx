@@ -4,17 +4,6 @@ import AuthLayout from '@/components/user/auth/AuthLayout';
 import { useAuth } from '@/hooks/user/useAuth';
 import { useAuthStore } from '@/context/user/authStore';
 
-/**
- * This page handles TWO states:
- *
- * STATE 1 — Signed URL parameters in URL (?id=xxx&hash=xxx&expires=xxx&signature=xxx):
- *   User clicked the verification link in their email.
- *   We extract parameters and send them in the JSON body (WAF-safe).
- *
- * STATE 2 — No parameters in URL:
- *   User just registered and is waiting for the email.
- *   We show a "check your inbox" UI with a resend option.
- */
 const VerifyEmailPage = () => {
   const [searchParams] = useSearchParams();
   const {
@@ -29,7 +18,6 @@ const VerifyEmailPage = () => {
   const pendingEmail = useAuthStore((state) => state.pendingEmail);
   const emailForResend = user?.email || pendingEmail;
 
-  // A valid verification link must have all 4 signed URL parameters present.
   const hasValidLinkInUrl =
     searchParams.has('id') &&
     searchParams.has('hash') &&
@@ -39,8 +27,11 @@ const VerifyEmailPage = () => {
   const hasProcessed = useRef(false);
   const [resendMessage, setResendMessage] = useState('');
   const [resendError, setResendError] = useState('');
+  
+  // Fallback state if system loses the email
+  const [manualEmail, setManualEmail] = useState('');
+  const [manualEmailError, setManualEmailError] = useState('');
 
-  // STATE 1: Auto-verify when signed URL parameters are present.
   useEffect(() => {
     if (!hasValidLinkInUrl || hasProcessed.current) return;
 
@@ -54,22 +45,74 @@ const VerifyEmailPage = () => {
     });
   }, [hasValidLinkInUrl, verifyEmail, searchParams]);
 
-  const handleResend = async () => {
+  const handleResend = async (emailToSend: string) => {
     setResendMessage('');
     setResendError('');
+    setManualEmailError('');
 
-    if (!emailForResend) {
-      setResendError('Unable to determine your email address. Please log in and try again.');
+    if (!emailToSend) {
+      setManualEmailError('Please enter your email address to resend the verification link.');
       return;
     }
 
     try {
-      await resendVerification(emailForResend);
+      await resendVerification(emailToSend);
       setResendMessage('Verification email sent! Please check your inbox and spam folder.');
+      
+      // If successfully sent via manual input, persist it to the store
+      if (!emailForResend) {
+        useAuthStore.getState().setPendingEmail(emailToSend);
+      }
     } catch {
       setResendError('Failed to resend the email. Please try again in a moment.');
     }
   };
+
+  const handleResendClick = () => {
+    handleResend(emailForResend || manualEmail);
+  };
+
+  // Helper to render the Resend UI block (DRY principle)
+  const renderResendUI = () => (
+    <>
+      {!emailForResend && (
+        <div className="mb-3">
+          <label className="form-label text-muted-custom" style={{ fontSize: '0.875rem' }}>
+            Email Address
+          </label>
+          <input
+            type="email"
+            className={`form-control ${manualEmailError ? 'is-invalid' : ''}`}
+            placeholder="Enter the email you registered with"
+            value={manualEmail}
+            onChange={(e) => setManualEmail(e.target.value)}
+          />
+          {manualEmailError && <div className="invalid-feedback">{manualEmailError}</div>}
+        </div>
+      )}
+
+      <button
+        onClick={handleResendClick}
+        disabled={isResendingVerification}
+        className="btn btn-outline-momentum mb-3"
+        style={{ width: '100%' }}
+      >
+        {isResendingVerification ? (
+          <span className="spinner-border spinner-border-sm me-2" />
+        ) : null}
+        {isResendingVerification ? 'Sending...' : 'Resend Verification Email'}
+      </button>
+
+      {resendMessage && <div className="alert alert-success mt-3">{resendMessage}</div>}
+      {resendError && <div className="alert alert-danger mt-3">{resendError}</div>}
+
+      <div className="text-center mt-3">
+        <Link to="/login">
+          <i className="fas fa-arrow-left me-1" /> Back to Login
+        </Link>
+      </div>
+    </>
+  );
 
   // ── STATE 1: Signed URL present — show processing/result UI ──────────────────
   if (hasValidLinkInUrl) {
@@ -95,31 +138,11 @@ const VerifyEmailPage = () => {
           <div className="alert alert-danger mb-4">
             The link you used is no longer valid. Please request a new one.
           </div>
-          {emailForResend && (
-            <button
-              onClick={handleResend}
-              disabled={isResendingVerification}
-              className="btn btn-momentum mb-3"
-              style={{ width: '100%' }}
-            >
-              {isResendingVerification ? (
-                <span className="spinner-border spinner-border-sm me-2" />
-              ) : null}
-              {isResendingVerification ? 'Sending...' : 'Send New Verification Email'}
-            </button>
-          )}
-          {resendMessage && <div className="alert alert-success mt-3">{resendMessage}</div>}
-          {resendError && <div className="alert alert-danger mt-3">{resendError}</div>}
-          <div className="text-center mt-3">
-            <Link to="/login">
-              <i className="fas fa-arrow-left me-1" /> Back to Login
-            </Link>
-          </div>
+          {renderResendUI()}
         </AuthLayout>
       );
     }
 
-    // Mutation fired but not yet settled — keep showing spinner
     return (
       <AuthLayout title="Verifying Your Email" subtitle="Please wait a moment...">
         <div className="text-center py-4">
@@ -153,26 +176,7 @@ const VerifyEmailPage = () => {
         </p>
       </div>
 
-      {resendMessage && <div className="alert alert-success">{resendMessage}</div>}
-      {resendError && <div className="alert alert-danger">{resendError}</div>}
-
-      <button
-        onClick={handleResend}
-        disabled={isResendingVerification}
-        className="btn btn-outline-momentum mb-3"
-        style={{ width: '100%' }}
-      >
-        {isResendingVerification ? (
-          <span className="spinner-border spinner-border-sm me-2" />
-        ) : null}
-        {isResendingVerification ? 'Sending...' : 'Resend Verification Email'}
-      </button>
-
-      <div className="text-center mt-3">
-        <Link to="/login">
-          <i className="fas fa-arrow-left me-1" /> Back to Login
-        </Link>
-      </div>
+      {renderResendUI()}
     </AuthLayout>
   );
 };

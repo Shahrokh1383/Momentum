@@ -3,13 +3,14 @@
 ## 1. Overview
 The Frontend Authentication module provides a secure, responsive, and state-aware authentication experience for Single Page Applications (SPAs). Built with React, TypeScript, and Zustand, and powered by React Query for server-state management, the module seamlessly supports dual-authentication patterns (Session-based for SPAs, Token-based for mobile/APIs) via Laravel Sanctum.
 
-It handles credential authentication, OAuth2 flows (via Popup with fallback), email verification (preserving cryptographic signatures), and password recovery, all while maintaining strict client-side validation, robust protection against common web vulnerabilities, and intelligent state persistence for pre-verification flows.
+It handles credential authentication, OAuth2 flows (via Popup with fallback), email verification (preserving cryptographic signatures), and password recovery, all while maintaining strict client-side validation, robust protection against common web vulnerabilities, and intelligent state persistence and fallback mechanisms for pre-verification flows.
 
 ## 2. Business Rules
 *   **Session Hydration:** On initial app load or hard refresh, the application must probe the backend (`GET /me`) to determine if an active session exists, regardless of the current route. This prevents flashing the login page to authenticated users.
 *   **CSRF Initialization:** Any state-mutating request (`POST`) in a stateful SPA context requires a valid CSRF token. The frontend must fetch `/sanctum/csrf-cookie` before making authentication requests, including email verification and OAuth callbacks.
 *   **Email Verification Enforcement:** Users who register with credentials are placed in a pending state. They must be restricted from accessing the main application dashboard until `email_verified_at` is populated.
-*   **State Persistence for Pre-Verification Flows:** During the registration flow, the user's `pendingEmail` must be persisted across page refreshes or direct navigations to the `/verify-email` route. This is achieved using Zustand's `persist` middleware with `sessionStorage` and strict `partialize` configuration to ensure only the email is cached, preventing stale authentication states.
+*   **State Persistence & Fallback for Pre-Verification Flows:** During the registration flow, the user's `pendingEmail` must be persisted across page refreshes using Zustand's `persist` middleware. If this state is lost (e.g., direct navigation to URL), the system must provide a fallback input field for the user to manually enter their email, preventing a hard-block UI.
+*   **Duplicate Email Handling:** Client-side registration must gracefully intercept backend 422 validation errors (e.g., duplicate email) and map them directly to the corresponding React Hook Form fields, providing immediate and contextual user feedback.
 *   **OAuth Fallback & URL-Based State:** If the browser blocks the OAuth popup window, the system must gracefully fall back to a full-page redirect. **Critical:** The system must **never** use `sessionStorage` to pass the OAuth `state` parameter. Instead, the `state` must be read directly from the callback URL query parameters to prevent Safari ITP and cross-origin storage bugs.
 *   **WAF-Safe Email Verification:** Email verification parameters (`id`, `hash`, `expires`, `signature`) must be sent in the **JSON body** of the POST request, not as query string parameters. This bypasses enterprise WAFs and Load Balancers that strip query strings from POST requests.
 *   **Password Complexity:** Client-side validation must enforce the same complexity rules as the backend: minimum 8 characters, at least one uppercase letter, one lowercase letter, one number, and one symbol.
@@ -32,7 +33,8 @@ It handles credential authentication, OAuth2 flows (via Popup with fallback), em
 ### Key Components
 *   **`OAuthButtons`:** Manages the Popup flow, listens for `postMessage` events from the popup, and implements the full-page redirect fallback if `window.open` is blocked. **Does not store state in sessionStorage.**
 *   **`PasswordStrengthMeter`:** Provides real-time visual feedback on password complexity against backend rules.
-*   **`VerifyEmailPage`:** A dual-state component. State 1: Displays a "Check your inbox" UI with a resend button post-registration (relying on the persisted `pendingEmail`). State 2: Automatically extracts signed URL parameters and sends them as a **JSON body** when navigated to via email link.
+*   **`RegisterPage`:** Utilizes React Hook Form with Zod resolver. Implements a `try/catch` block on submission to intercept `AxiosError` 422 responses and map backend field validation errors (like duplicate emails) to the form using `setError`.
+*   **`VerifyEmailPage`:** A dual-state component. State 1: Displays a "Check your inbox" UI post-registration, utilizing a DRY `renderResendUI` helper. If `pendingEmail` is missing from state, it renders a fallback input field so the user can manually provide their email. State 2: Automatically extracts signed URL parameters and sends them as a **JSON body** when navigated to via email link.
 
 ## 4. API Contract
 
@@ -41,12 +43,12 @@ It handles credential authentication, OAuth2 flows (via Popup with fallback), em
 | `GET` | `/sanctum/csrf-cookie` | *Implicit* | No | Initializes the XSRF-TOKEN cookie. |
 | `GET` | `/api/user/me` | `authService.getMe` | No | Probes for active session. Returns `null` on 401. |
 | `POST` | `/api/auth/login` | `authService.login` | Yes | Authenticates user via credentials. |
-| `POST` | `/api/auth/register` | `authService.register` | Yes | Creates pending registration and returns email. |
+| `POST` | `/api/auth/register` | `authService.register` | Yes | Creates pending registration. Returns 422 if email is duplicate. |
 | `POST` | `/api/user/logout` | `authService.logout` | Yes | Invalidates session/tokens. |
 | `POST` | `/api/auth/forgot-password` | `authService.forgotPassword` | Yes | Sends reset link. Always returns generic success. |
 | `POST` | `/api/auth/reset-password` | `authService.resetPassword` | Yes | Resets password using valid token. |
 | `POST` | `/api/auth/verify-email` | `authService.verifyEmail` | **Yes** | Verifies email using JSON body parameters (WAF-safe). |
-| `POST` | `/api/auth/verify-email/resend` | `authService.resendVerification` | Yes | Resends verification email. |
+| `POST` | `/api/auth/verify-email/resend` | `authService.resendVerification` | Yes | Resends verification email. Requires `{ email }` payload. |
 | `GET` | `/api/auth/oauth/{provider}` | `authService.getOAuthRedirect` | No | Returns `{ url, state }`. |
 | `POST` | `/api/auth/oauth/{provider}/callback` | `authService.handleOAuthCallback` | **Yes** | Exchanges OAuth code and state (read from URL) for user session. |
 
@@ -59,6 +61,20 @@ It handles credential authentication, OAuth2 flows (via Popup with fallback), em
 4.  **If 401:** Service returns `null`. Zustand clears user. `hasInitiallyLoaded = true`, `isAuthenticated = false`. Route guards redirect to `/login`.
 5.  **If 500/Network Error:** Service throws error. Zustand state remains unchanged to prevent forced logout during temporary outages.
 
+### Registration & Duplicate Email Flow
+1.  User fills out `RegisterPage` and submits.
+2.  `registerUser` mutation fires `authService.register`.
+3.  **If Success (201):** Frontend stores `pendingEmail` in Zustand (persisted to sessionStorage) and navigates to `/verify-email`.
+4.  **If Error (422 - Duplicate Email):** `AxiosError` is caught in the `onSubmit` handler. The `errors.email` array from the backend is extracted and applied to the React Hook Form email field via `setError('email', { type: 'server', message: backendErrors.email[0] })`, instantly showing the constraint violation to the user.
+
+### Email Verification & Resend Flow
+1.  User clicks link in email (`https://frontend.com/verify-email?expires=...&hash=...&id=...&signature=...`).
+2.  `VerifyEmailPage` detects all 4 required URL parameters via `useSearchParams`.
+3.  Extracts `id`, `hash`, `expires`, and `signature` individually from the URL.
+4.  Fetches CSRF cookie (Mandatory for new tabs).
+5.  Fires `POST /api/auth/verify-email` with `{ id, hash, expires, signature }` in the **JSON Body**.
+6.  **Resend Flow:** If the user lands on `/verify-email` without URL params (post-registration), the component checks for `pendingEmail` in Zustand. If present, it is used for the resend payload. If absent (state loss), a fallback input field is rendered for the user to manually type their email, ensuring they are never hard-blocked from resending.
+
 ### OAuth Popup Flow (with Fallback & URL-Based State)
 1.  User clicks "Google" / "GitHub". `isLoading` is set to the provider name.
 2.  Frontend fetches `GET /api/auth/oauth/{provider}` to get the redirect URL and `state`.
@@ -70,15 +86,6 @@ It handles credential authentication, OAuth2 flows (via Popup with fallback), em
 8.  On success, `OAuthCallbackPage` sends `postMessage('oauth-success')` to `window.opener` and closes itself.
 9.  Main window hears event, invalidates `currentUser` query, and navigates to `/dashboard`.
 
-### Email Verification Flow (WAF-Safe)
-1.  User clicks link in email (`https://frontend.com/verify-email?expires=...&hash=...&id=...&signature=...`).
-2.  `VerifyEmailPage` detects all 4 required URL parameters via `useSearchParams`.
-3.  Extracts `id`, `hash`, `expires`, and `signature` individually from the URL.
-4.  Fetches CSRF cookie (Mandatory for new tabs).
-5.  Fires `POST /api/auth/verify-email` with `{ id, hash, expires, signature }` in the **JSON Body**.
-6.  Backend reconstructs a synthetic GET request to validate the HMAC signature, bypassing WAF query-string stripping.
-7.  On success: Invalidates `currentUser` (to refresh `email_verified_at`) and navigates to `/dashboard`.
-
 ### Secure Logout Flow
 1.  Logout mutation fires.
 2.  On settlement (success or error), frontend clears Zustand store.
@@ -88,7 +95,8 @@ It handles credential authentication, OAuth2 flows (via Popup with fallback), em
 
 ## 6. Edge Cases & Vulnerabilities (Resolved)
 
-*   **State Loss on Page Refresh during Registration (Resolved):** When a user registers and lands on `/verify-email`, refreshing the page wiped the in-memory Zustand state, causing the "Resend" button to fail with "Unable to determine your email address." **Fix:** Implemented Zustand's `persist` middleware using `sessionStorage` and the `partialize` option to selectively persist only `pendingEmail`, ensuring the email context survives tab refreshes without caching the actual `User` object.
+*   **State Loss on Page Refresh during Registration (Resolved):** When a user registers and lands on `/verify-email`, refreshing the page wiped the in-memory Zustand state, causing the "Resend" button to fail. **Fix:** Implemented Zustand's `persist` middleware using `sessionStorage` and the `partialize` option to selectively persist only `pendingEmail`. Additionally, if `pendingEmail` is still missing, a fallback manual email input is rendered to prevent hard-blocking the user.
+*   **Duplicate Email Registration Error Handling (Resolved):** Registering with an existing email previously resulted in an unhandled promise rejection or generic error. **Fix:** Added `try/catch` to intercept `AxiosError` 422 responses in `RegisterPage` and map the backend `errors.email` directly to the React Hook Form email field using `setError`, providing immediate, contextual feedback.
 *   **CSRF Mismatch on New Tabs (Resolved):** Opening the email verification link or OAuth callback in a new tab initializes a clean SPA state without an XSRF-TOKEN. **Fix:** Added mandatory `await api.get('/sanctum/csrf-cookie')` inside `authService.verifyEmail` and `authService.handleOAuthCallback` before the POST request.
 *   **Popup Blocker Trapping User (Resolved):** If `window.open` fails, the user was permanently stuck on the login screen. **Fix:** Check if `popup` is `null` or `closed` immediately after invocation; if so, fall back to `window.location.href = url`.
 *   **Unverified User Accessing Dashboard (Resolved):** `ProtectedRoute` previously only checked `isAuthenticated`, leading to a broken UI when unverified users hit 403s on API calls. **Fix:** Added `if (user && !user.email_verified_at) return <Navigate to="/verify-email" replace />;` inside `ProtectedRoute`.
@@ -102,15 +110,21 @@ It handles credential authentication, OAuth2 flows (via Popup with fallback), em
 *   **Unit (Zod Schemas):** Validate password complexity rules, email format, and password confirmation matching.
 *   **Unit (Zustand Store):** Verify that the `persist` middleware correctly saves `pendingEmail` to `sessionStorage` upon registration and that `partialize` prevents the `user` object from being cached locally.
 *   **Component (`OAuthButtons`):** Mock `window.open` to return `null` and assert that `window.location.href` is set (fallback). Mock `postMessage` listener to assert `currentUser` invalidation. **Verify that no `sessionStorage.setItem` calls are made for OAuth state.**
+*   **Component (`RegisterPage`):** Mock `registerUser` to reject with a 422 AxiosError containing `errors.email`. Assert that `setError` is called and the invalid feedback message renders under the email field.
 *   **Component (`ProtectedRoute`):** Assert redirect to `/login` for unauthenticated users, redirect to `/verify-email` for unverified users, and rendering children for verified users.
 *   **Hook (`useAuth`):** Test Zustand sync logic. Verify that a 401 error from `getMe` triggers `clearStore()` and sets `hasInitiallyLoaded` to true. Verify that a 500 error does NOT clear the store. Verify logout calls `cancelQueries` and `removeQueries`.
-*   **Integration (`VerifyEmailPage`):** Simulate a hard refresh on `/verify-email` immediately after registration and assert that the "Resend" button successfully uses the persisted `pendingEmail` from `sessionStorage`. Simulate navigation via email link and assert `authService.verifyEmail` is called with the structured JSON body.
+*   **Integration (`VerifyEmailPage`):** 
+    *   Simulate a hard refresh on `/verify-email` immediately after registration and assert that the "Resend" button successfully uses the persisted `pendingEmail`. 
+    *   Simulate state loss (no `pendingEmail`) and assert that the fallback email input renders, and submitting it triggers `resendVerification` with the manual input value.
+    *   Simulate navigation via email link and assert `authService.verifyEmail` is called with the structured JSON body.
 *   **Integration (`OAuthCallbackPage`):** Simulate navigation to `/oauth/google/callback?code=abc&state=xyz` and assert that `authService.handleOAuthCallback` is called with `{ provider: 'google', code: 'abc', state: 'xyz' }` (state read from URL, not sessionStorage).
 
 ## 8. Notes
 
 *   **Architecture Decision (Unconditional GET /me):** Firing `getMe` on public pages is strictly intentional. It is the only reliable way to hydrate an existing session on a hard refresh. React Query's `staleTime` ensures this does not result in redundant network requests during standard SPA navigation.
 *   **Architecture Decision (Zustand + React Query):** React Query manages the asynchronous server state (loading/error), while Zustand manages synchronous client state derived from it (e.g., `isExpert`, `isPremium`). The `useAuth` hook bridges the two via a `useEffect` sync mechanism.
-*   **Architecture Decision (Selective State Persistence):** By using Zustand's `partialize` feature, we achieve the perfect balance between UX and Security. We persist `pendingEmail` to survive page refreshes during the vulnerable pre-verification window, but we strictly forbid persisting the `User` object to ensure the application always defers to the backend for the absolute source of truth regarding authentication status.
+*   **Architecture Decision (Selective State Persistence & Fallback):** By using Zustand's `partialize` feature, we persist `pendingEmail` to survive page refreshes during the vulnerable pre-verification window, but strictly forbid persisting the `User` object. Furthermore, acknowledging that client-side state can never be 100% guaranteed (e.g., cross-device navigation), the `VerifyEmailPage` implements a manual fallback input adhering to graceful degradation principles rather than hard-blocking the user.
+*   **Architecture Decision (Server-Side Validation Mapping):** While Zod provides robust client-side validation, backend rules (like `unique:users`) are the source of truth. Mapping 422 errors directly to React Hook Form ensures the UI stays perfectly in sync with backend constraints without duplicating complex DB checks on the frontend.
 *   **OAuth State Management (Zero Client-Side State):** Because the backend uses a Cache-based state mechanism for CSRF protection and the OAuth provider automatically returns the `state` in the callback URL, the frontend maintains **zero client-side state** for OAuth. This eliminates Safari ITP bugs, cross-origin storage restrictions, and simplifies the codebase.
 *   **Infrastructure Constraint (Cache):** The OAuth flow strictly requires a centralized Cache driver (`redis` or `memcached`) on the backend. Using `file` or `array` in a load-balanced environment will cause random 401 CSRF errors. The frontend handles these gracefully by clearing the session on 401 responses.
+```

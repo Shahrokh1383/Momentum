@@ -7,6 +7,7 @@ import PasswordStrengthMeter from '@/components/user/auth/PasswordStrengthMeter'
 import OAuthButtons from '@/components/user/auth/OAuthButtons';
 import { useAuth } from '@/hooks/user/useAuth';
 import { Link } from 'react-router-dom';
+import { AxiosError } from 'axios';
 
 const registerSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -26,7 +27,7 @@ const registerSchema = z.object({
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 const RegisterPage = () => {
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterFormData>({
+  const { register, handleSubmit, watch, setError, formState: { errors } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });
 
@@ -34,7 +35,23 @@ const RegisterPage = () => {
   const password = watch('password', '');
 
   const onSubmit = async (data: RegisterFormData) => {
-    await registerUser(data);
+    try {
+      await registerUser(data);
+    } catch (error) {
+      const axiosError = error as AxiosError<any>;
+      // Handle Laravel 422 Validation Errors
+      if (axiosError.response?.status === 422 && axiosError.response.data?.errors) {
+        const backendErrors = axiosError.response.data.errors;
+        
+        // Map backend email error to React Hook Form
+        if (backendErrors.email) {
+          setError('email', { 
+            type: 'server', 
+            message: backendErrors.email[0] 
+          });
+        }
+      }
+    }
   };
 
   return (

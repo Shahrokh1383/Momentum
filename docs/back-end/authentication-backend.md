@@ -6,7 +6,7 @@ The Authentication module provides a secure, flexible, and stateless/stateful du
 The architecture serves both Single Page Applications (SPAs) using session-based authentication (via Laravel Sanctum's SPA authentication) and mobile/external clients using token-based authentication (via Sanctum API tokens). The module strictly adheres to the Single Responsibility Principle (SRP) and DRY (Don't Repeat Yourself) principles by delegating business logic to dedicated Services, leveraging Form Requests for validation, and centralizing dual-auth response logic in the `HandlesAuthResponses` trait. Security is hardened with deterministic dual-auth detection, Cache-based OAuth state validation, WAF-safe synthetic request validation for signed URLs, strict provider-specific email verification, and a `PendingRegistration` model to keep the primary `User` table free of unverified accounts.
 
 ## 2. Business Rules
-*   **Registration:** Users must provide a unique name, email, and a strong password. Upon registration, credentials are temporarily stored in a `PendingRegistration` model. A verification email is dispatched using a centralized `EmailVerificationService` to generate cryptographic signed URLs. The user is only moved to the main `User` table and logged in once email verification is complete.
+*   **Registration:** Users must provide a unique name, a strictly unique email (across the `users` table), and a strong password. Upon registration, credentials are temporarily stored in a `PendingRegistration` model. A verification email is dispatched using a centralized `EmailVerificationService` to generate cryptographic signed URLs. The user is only moved to the main `User` table and logged in once email verification is complete.
 *   **Login:** Users can log in via credentials. Authentication supports a "remember me" toggle. The system deterministically determines the response format (Session vs. Token) based on Bearer token presence and `Origin`/`Referer` headers matching `config('sanctum.stateful')`. For API clients, the "remember me" toggle dynamically adjusts the Bearer token expiration (1 year if true, 24 hours if false).
 *   **Email Verification:** Email verification is mandatory for accessing protected routes. Verification links are cryptographic signed URLs valid for 60 minutes. To bypass enterprise WAF/Load Balancer query-string stripping on POST requests, the frontend sends signature parameters in the JSON body, and the backend validates them using a synthetic GET request.
 *   **Password Reset:** Password reset requests always return a generic success message to prevent email enumeration. Valid tokens allow the user to update their password, which automatically revokes all existing API tokens, invalidates the `remember_token`, and forces SPA session invalidation via the `AuthenticateSession` middleware checking the `password_hash`.
@@ -39,7 +39,7 @@ The architecture serves both Single Page Applications (SPAs) using session-based
 *   `verified`: Ensures the user's email is verified.
 *   `\Illuminate\Session\Middleware\AuthenticateSession::class`: **Crucial for SPA security.** Validates the `password_hash` on every request, effectively killing hijacked sessions when a password is reset.
 *   `RoleMiddleware`: Validates user roles against the `UserRole` Enum.
-*   **Form Requests:** `LoginRequest`, `OAuthCallbackRequest`, `ForgotPasswordRequest`, `ResendVerificationRequest` enforce strict validation and prevent email enumeration.
+*   **Form Requests:** `LoginRequest`, `OAuthCallbackRequest`, `ForgotPasswordRequest`, `ResendVerificationRequest` enforce strict validation and prevent email enumeration. `RegisterRequest` enforces strict `unique:users` validation on the email field to prevent duplicate records.
 
 ## 4. API Contract
 
@@ -47,6 +47,7 @@ The architecture serves both Single Page Applications (SPAs) using session-based
 *   **`POST /api/auth/register`**
     *   *Body:* `{ name, email, password, password_confirmation }`
     *   *Response:* `201` `{ email, message }` (Returns the registered email for frontend state persistence).
+    *   *Error:* `422` `{ message: "The email has already been taken.", errors: {...} }` (If email exists in `users` table).
 *   **`POST /api/auth/login`**
     *   *Body:* `{ email, password, remember }`
     *   *Response:* `200` `{ user }` (If SPA) | `{ user, token }` (If API)
@@ -126,11 +127,12 @@ The architecture serves both Single Page Applications (SPAs) using session-based
 *   **OAuth Provider Unlinking (Resolved):** Added `DELETE /api/auth/oauth/{provider}`. Includes a strict safeguard preventing unlinking if the user has no password set (preventing account lockouts).
 *   **OAuth CSRF via `stateless()` (Resolved):** Cache-based state management with 10-min TTL.
 *   **Email Enumeration (Resolved):** Generic responses on forgot-password and resend-verification.
+*   **Duplicate Email Registration (Resolved):** Enforced `unique:users` validation rule in `RegisterRequest`. This strictly rejects duplicate emails at the validation level before reaching service logic, ensuring data integrity and providing clear 422 feedback to the frontend.
 *   **Rate Limiter Key Granularity (Resolved):** Composite keys (`IP|Email`) prevent distributed spam and targeted harassment.
 
 ## 7. Tests
 
-*   **Registration/Login:** Verify dynamic token expiration (24h vs 1y) based on `remember`. Verify `isStatefulRequest()` correctly routes SPA vs API clients.
+*   **Registration/Login:** Verify dynamic token expiration (24h vs 1y) based on `remember`. Verify `isStatefulRequest()` correctly routes SPA vs API clients. Test that registering with an existing email returns a 422 validation error.
 *   **Email Verification:** Test synthetic request validation via JSON body. Test expired/tampered signature rejection. Verify promotion of `PendingRegistration` to `User`.
 *   **Password Reset:** Verify that existing Sanctum tokens are deleted. Verify that `AuthenticateSession` middleware blocks access after a password reset.
 *   **OAuth:** 
@@ -144,10 +146,9 @@ The architecture serves both Single Page Applications (SPAs) using session-based
 *   **Frontend Constraints (Strict):** 
     1. The frontend **must not** use `sessionStorage` for OAuth state. It must read it from the callback URL. 
     2. The frontend **must** send email verification parameters in the JSON body, not the query string.
+    3. The frontend **must** map backend 422 validation errors (specifically for duplicate emails) directly to the form UI.
 *   **Infrastructure Constraint (Cache):** The OAuth flow strictly requires a centralized Cache driver (`redis` or `memcached`). Using `file` or `array` in a load-balanced environment will cause random 401 CSRF errors.
 *   **Architectural Decision - DRY Trait:** The `HandlesAuthResponses` trait centralizes auth logic, ensuring `AuthController` and `OAuthController` follow exact standards without duplication.
 *   **Architectural Decision - SRP:** Provider-specific payload quirks (GitHub vs Google) are isolated in the `OAuthService`, keeping the Controller clean and focused on HTTP orchestration.
 *   **Architectural Decision - Centralized URL Generation:** Signed URL generation is strictly isolated in `EmailVerificationService::generateVerificationUrl()`. This prevents logic duplication between the `User` model and `PendingRegistrationService`, ensuring any future changes to URL formatting or expiration times only need to be made in one place.
 *   **Native Query String Validation:** Replaced with Synthetic Request validation to guarantee compatibility with strict enterprise network infrastructure (WAFs/ALBs).
-
----
