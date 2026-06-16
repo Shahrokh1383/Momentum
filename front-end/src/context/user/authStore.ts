@@ -7,21 +7,12 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       isAuthenticated: false,
-      activePlan: 'free',
-      isExpert: false,
-      isPremium: false,
-      hasInitiallyLoaded: false,
       pendingEmail: null,
 
       setUser: (user: User | null) => {
-        const activePlan = user?.active_plan || 'free';
         set({
           user,
           isAuthenticated: !!user,
-          activePlan,
-          isExpert: activePlan === 'expert' || activePlan === 'premium',
-          isPremium: activePlan === 'premium',
-          hasInitiallyLoaded: true,
         });
       },
 
@@ -31,10 +22,6 @@ export const useAuthStore = create<AuthState>()(
         set({
           user: null,
           isAuthenticated: false,
-          activePlan: 'free',
-          isExpert: false,
-          isPremium: false,
-          hasInitiallyLoaded: true,
           pendingEmail: null,
         }),
     }),

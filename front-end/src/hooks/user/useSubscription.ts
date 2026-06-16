@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { subscriptionService } from '@/services/user/subscriptionService';
-import { UpgradePayload } from '@/types/subscription';
+import { UpgradePayload, SubscriptionDetail } from '@/types/subscription';
 
 export const useSubscription = () => {
   const queryClient = useQueryClient();
@@ -11,11 +11,16 @@ export const useSubscription = () => {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const { data: currentSubscription, isLoading: isLoadingSubscription, error: subscriptionError } = useQuery({
+  const { data: currentSubscription, isLoading: isLoadingSubscription, error: subscriptionError } = useQuery<SubscriptionDetail | null>({
     queryKey: ['currentSubscription'],
     queryFn: subscriptionService.getCurrent,
     retry: false,
-    initialData: null,
+    // SMART POLLING: Automatically refetch subscription every 5 seconds 
+    // if the status is 'pending_payment'. Stops automatically when resolved.
+    refetchInterval: (query) => {
+      const sub = query.state.data;
+      return sub?.status === 'pending_payment' ? 5000 : false;
+    },
   });
 
   const upgradeMutation = useMutation({

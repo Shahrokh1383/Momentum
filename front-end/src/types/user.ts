@@ -62,10 +62,6 @@ export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   pendingEmail: string | null;
-  activePlan: 'free' | 'expert' | 'premium';
-  isExpert: boolean;
-  isPremium: boolean;
-  hasInitiallyLoaded: boolean;
   setUser: (user: User | null) => void;
   setPendingEmail: (email: string | null) => void;
   logout: () => void;

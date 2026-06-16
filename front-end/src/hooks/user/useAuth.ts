@@ -4,15 +4,12 @@ import { authService } from '@/services/user/authService';
 import { useAuthStore } from '@/context/user/authStore';
 import { useNavigate } from 'react-router-dom';
 import { VerifyEmailPayload, User } from '@/types/user';
+import { SubscriptionDetail } from '@/types/subscription';
 
 export const useAuth = () => {
   const {
-    user,
-    isAuthenticated,
-    activePlan,
-    isExpert,
-    isPremium,
-    hasInitiallyLoaded,
+    user: storedUser,
+    isAuthenticated: storedIsAuthenticated,
     setUser,
     logout: clearStore,
   } = useAuthStore();
@@ -27,11 +24,15 @@ export const useAuth = () => {
     queryKey: ['currentUser'],
     queryFn: authService.getMe,
     retry: false,
+    // SMART POLLING: Automatically refetch user data every 5 seconds 
+    // if there is a pending payment in the cache. Stops automatically when resolved.
+    refetchInterval: () => {
+      const sub = queryClient.getQueryData<SubscriptionDetail | null>(['currentSubscription']);
+      return sub?.status === 'pending_payment' ? 5000 : false;
+    },
   });
 
-  // Sync React Query → Zustand. 
-  // If fetchedUser is null (401), we clear the store. 
-  // If it throws a 500/Network error, we do nothing to prevent forced logout.
+  // Sync React Query → Zustand for other components that might read from the store directly.
   useEffect(() => {
     if (fetchedUser) {
       setUser(fetchedUser);
@@ -39,6 +40,16 @@ export const useAuth = () => {
       clearStore();
     }
   }, [fetchedUser, setUser, clearStore]);
+
+  // ─── DERIVED STATE (Prevents Race Conditions) ───────────────────────────────
+  const user = fetchedUser !== undefined ? fetchedUser : storedUser;
+  const isAuthenticated = fetchedUser !== undefined ? !!fetchedUser : storedIsAuthenticated;
+  
+  // Compute derived plan properties on the fly (DRY & SRP)
+  const activePlan = user?.active_plan || 'free';
+  const isExpert = activePlan === 'expert' || activePlan === 'premium';
+  const isPremium = activePlan === 'premium';
+  // ────────────────────────────────────────────────────────────────────────────
 
   const loginMutation = useMutation({
     mutationFn: authService.login,
@@ -61,7 +72,6 @@ export const useAuth = () => {
     mutationFn: authService.logout,
     onSettled: () => {
       clearStore();
-      // Surgically abort in-flight requests and remove user-specific cache
       queryClient.cancelQueries();
       queryClient.removeQueries({ queryKey: ['currentUser'] });
       navigate('/login');
@@ -101,7 +111,7 @@ export const useAuth = () => {
     activePlan,
     isExpert,
     isPremium,
-    isFetchingUser: isFetchingUser && !hasInitiallyLoaded,
+    isFetchingUser,
 
     login: loginMutation.mutateAsync,
     isLoggingIn: loginMutation.isPending,
