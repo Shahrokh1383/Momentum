@@ -50,7 +50,10 @@ export interface PaymentInfo {
 
 export interface UpgradePayload {
   plan_slug: string;
-  card_number: string; 
+}
+
+export interface UpgradeResponse {
+  payment_url: string;
 }
 
 export interface VerifyPaymentResponse {

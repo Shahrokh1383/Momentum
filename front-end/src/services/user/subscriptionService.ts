@@ -2,8 +2,8 @@ import api from '@/services/api';
 import { 
   Plan, 
   SubscriptionDetail, 
-  PaymentInfo, 
-  UpgradePayload, 
+  UpgradePayload,
+  UpgradeResponse,
   QuotasData,
   VerifyPaymentResponse 
 } from '@/types/subscription';
@@ -30,7 +30,7 @@ export const subscriptionService = {
    * Initiates the upgrade. Backend will create a pending subscription,
    * call the gateway, and return the gateway_transaction_id.
    */
-  upgrade: async (payload: UpgradePayload): Promise<{ subscription: SubscriptionDetail; payment: PaymentInfo }> => {
+  upgrade: async (payload: UpgradePayload): Promise<UpgradeResponse> => {
     const { data } = await api.post('/api/user/subscription/upgrade', payload);
     return data.data;
   },

@@ -23,6 +23,82 @@ Before any feature is built, the mechanism for checking quotas must be establish
 
 ---
 
+
+### Database Schema
+
+**New Tables:**
+
+- **`categories`**
+  - `id` (PK)
+  - `user_id` (FK → users.id, indexed, cascade delete)
+  - `name` (varchar, 255)
+  - `color` (varchar, 7 — hex color, e.g., "#4F46E5")
+  - `icon` (varchar, 50 — Lucide/FontAwesome icon name)
+  - `sort_order` (int, default 0)
+  - `is_default` (boolean, default false — cannot be deleted)
+  - `created_at`, `updated_at`, `deleted_at` (soft delete)
+
+- **`habits`**
+  - `id` (PK)
+  - `user_id` (FK → users.id, indexed, cascade delete)
+  - `category_id` (FK → categories.id, nullable, indexed, set null on delete)
+  - `title` (varchar, 255)
+  - `description` (text, nullable)
+  - `type` (enum: `boolean`, `numeric`, `timer`, `checklist`, default `boolean`)
+  - `schedule` (JSON — stores complex configs like `{"interval": 3, "start_date": "2024-01-01"}` for custom frequency)
+  - `due_days_of_week` (varchar, 10, nullable — comma-separated ISO days, e.g., "1,2,3,4,5" for weekdays. Indexed for high-performance `isDueToday` lookups)
+  - `frequency` (enum: `daily`, `weekly`, `custom`, default `daily`)
+  - `reminder_time` (time, nullable)
+  - `timezone` (varchar, default 'UTC')
+  - `target_value` (decimal, nullable — e.g., 8 glasses, 5km)
+  - `unit` (varchar, nullable — e.g., "glasses", "km", "minutes")
+  - `is_active` (boolean, default true)
+  - `archived_at` (timestamp, nullable) ← *Soft delete removed for habits. Archive is the ONLY way to hide them to prevent schema confusion.*
+  - **`group_id` removed** — groups use `group_habits` pivot exclusively.
+  - `created_at`, `updated_at`
+
+- **`habit_logs`** (Basic structure — extended in Phase 3)
+  - `id` (PK)
+  - `habit_id` (FK → habits.id, indexed, cascade delete)
+  - `user_id` (FK → users.id, indexed, cascade delete)
+  - `logged_date` (date, indexed — user-local date)
+  - `status` (enum: `pending`, `completed`, `missed`, `skipped`, default `pending`)
+  - `notes` (text, nullable)
+  - `created_at`, `updated_at`
+  - *Indexes: `idx_habit_logs_habit_date` on `(habit_id, logged_date)`, `idx_habit_logs_status_date` on `(habit_id, logged_date, status)` for analytics.*
+  - *Unique Constraint: `unique_habit_log_per_day` on `(habit_id, logged_date, user_id)` — **Critical for Offline Sync Conflict Resolution.***
+
+- **`tags`**
+  - `id` (PK)
+  - `user_id` (FK → users.id, indexed, cascade delete)
+  - `name` (varchar, 255)
+  - `slug` (varchar, 255 — auto-generated lowercase)
+  - `color` (varchar, 7, default "#6B7280")
+  - `created_at`, `updated_at`
+
+- **`habit_tag`** (Pivot)
+  - `habit_id` (FK → habits.id, cascade delete)
+  - `tag_id` (FK → tags.id, cascade delete)
+  - Primary key composite (`habit_id`, `tag_id`)
+
+- **`streaks`** (Cached streak data)
+  - `id` (PK)
+  - `user_id` (FK → users.id, indexed, cascade delete)
+  - `habit_id` (FK → habits.id, unique, cascade delete)
+  - `current_streak` (int, default 0)
+  - `longest_streak` (int, default 0)
+  - `last_log_date` (date, nullable)
+  - `created_at`, `updated_at`
+
+- **`streak_freezes`**
+  - `id` (PK)
+  - `user_id` (FK → users.id, indexed, cascade delete)
+  - `habit_id` (FK → habits.id, nullable, indexed, set null on delete)
+  - `frozen_date` (date, indexed — the specific date being protected)
+  - `used_at` (timestamp)
+  - `reason` (varchar, nullable)
+  - `created_at`
+
 ## Sub-Phase 2.1: Foundations, Timezone & Settings
 
 ### 🛠 Backend

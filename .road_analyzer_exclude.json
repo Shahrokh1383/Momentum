@@ -33,8 +33,18 @@
     "fix2.txt",
     "PHASE_2_STRATEGY.md",
     "todo",
-    "roadmap.txt"
+    "roadmap.txt",
+    "back-end\\app\\Http\\Requests\\Auth",
+    "back-end\\app\\Http\\Controllers\\Auth",
+    "back-end\\app\\Services\\Auth",
+    "front-end\\src\\components\\user\\auth",
+    "front-end\\src\\pages\\user\\ForgotPasswordPage.tsx",
+    "front-end\\src\\pages\\user\\LoginPage.tsx",
+    "front-end\\src\\pages\\user\\OAuthCallbackPage.tsx",
+    "front-end\\src\\pages\\user\\RegisterPage.tsx",
+    "front-end\\src\\pages\\user\\ResetPasswordPage.tsx",
+    "front-end\\src\\pages\\user\\VerifyEmailPage.tsx"
   ],
-  "lastModified": "2026-06-15T15:07:07.705Z",
+  "lastModified": "2026-06-16T17:32:08.776Z",
   "version": 1
 }

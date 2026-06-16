@@ -12,6 +12,7 @@ import PlansPage from '@/pages/user/PlansPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/user/useAuth';
+import PaymentResultPage from './pages/user/PaymentResultPage';
 
 const DashboardPlaceholder: React.FC = () => (
   <section className="dashboard-page">
@@ -55,6 +56,8 @@ function App() {
           <Route path="/reset-password"  element={<div className="auth-page-wrapper"><ResetPasswordPage /></div>} />
           <Route path="/verify-email"    element={<div className="auth-page-wrapper"><VerifyEmailPage /></div>} />
           <Route path="/auth/callback/:provider" element={<div className="auth-page-wrapper"><OAuthCallbackPage /></div>} />
+
+          <Route path="/payment-result" element={<ProtectedRoute><PaymentResultPage /></ProtectedRoute>} />
 
           <Route element={<DashboardLayout />}>
             <Route path="/plans"     element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />

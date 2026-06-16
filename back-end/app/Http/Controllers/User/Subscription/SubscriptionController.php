@@ -37,21 +37,12 @@ class SubscriptionController extends Controller
         try {
             $result = $this->subscriptionService->upgrade(
                 $request->user(),
-                $request->plan(),
-                $request->validated('card_number')
+                $request->plan()
             );
 
             return $this->successResponse([
-                'subscription' => new SubscriptionResource($result['subscription']->load('planDetails')),
-                'payment' => [
-                    'gateway_transaction_id' => $result['payment']->gateway_transaction_id,
-                    'status' => $result['payment']->status->value,
-                    'amount' => $result['payment']->amount,
-                    'currency' => $result['payment']->currency,
-                    'card' => $result['payment']->card_number_masked,
-                ],
-            ], 'Payment initiated. Awaiting gateway confirmation.', 202);
-
+                'payment_url' => $result['payment_url'],
+            ], 'Redirecting to secure payment gateway.', 202);
         } catch (\InvalidArgumentException $e) {
             return $this->errorResponse('upgrade_failed', $e->getMessage(), 422);
         } catch (\Exception $e) {

@@ -1,10 +1,6 @@
-import React, { useState, useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import React from 'react';
 import { Plan, UpgradePayload } from '@/types/subscription';
 import { useSubscription } from '@/hooks/user/useSubscription';
-import CardInputForm from './CardInputForm';
-import PaymentProcessing from './PaymentProcessing';
-import PaymentResult from './PaymentResult';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -12,87 +8,85 @@ interface PaymentModalProps {
   onClose: () => void;
 }
 
-type ModalStep = 'idle' | 'processing' | 'success' | 'failed';
-
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, plan, onClose }) => {
-  const [step, setStep] = useState<ModalStep>('idle');
-  const [transactionId, setTransactionId] = useState<number | null>(null);
-  
-  // FIX: Changed from string | null to string | undefined
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
-  
   const { upgrade, isUpgrading } = useSubscription();
-  const queryClient = useQueryClient();
-
-  const resetState = useCallback(() => {
-    setStep('idle');
-    setTransactionId(null);
-    // FIX: Resetting to undefined instead of null
-    setErrorMessage(undefined);
-  }, []);
-
-  const handleClose = () => {
-    resetState();
-    onClose();
-  };
-
-  const handleCardSubmit = async (cardNumber: string) => {
-    if (!plan) return;
-    setErrorMessage(undefined); // FIX: using undefined
-    
-    try {
-      const payload: UpgradePayload = { plan_slug: plan.slug, card_number: cardNumber };
-      const result = await upgrade(payload);
-      
-      // Transition to processing state with the gateway transaction ID
-      setTransactionId(result.payment.gateway_transaction_id);
-      setStep('processing');
-    } catch (error: any) {
-      const msg = error.response?.data?.message || 'Failed to initiate payment. Please try again.';
-      setErrorMessage(msg);
-      setStep('failed');
-    }
-  };
-
-  const handleVerifySuccess = useCallback(async () => {
-    // Invalidate queries to refresh user data and subscription status globally
-    await queryClient.invalidateQueries({ queryKey: ['currentSubscription'] });
-    await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-    setStep('success');
-  }, [queryClient]);
-
-  const handleVerifyFailure = useCallback(() => {
-    setErrorMessage('Payment verification failed or timed out.');
-    setStep('failed');
-  }, []);
 
   if (!isOpen || !plan) return null;
 
-  const renderContent = () => {
-    switch (step) {
-      case 'processing':
-        return transactionId ? (
-          <PaymentProcessing transactionId={transactionId} onSuccess={handleVerifySuccess} onFailure={handleVerifyFailure} />
-        ) : null;
-      case 'success':
-        return <PaymentResult status="success" onClose={handleClose} />;
-      case 'failed':
-        return <PaymentResult status="failed" message={errorMessage} onClose={handleClose} onRetry={resetState} />;
-      default:
-        return <CardInputForm plan={plan} isSubmitting={isUpgrading} onSubmit={handleCardSubmit} error={errorMessage} />;
+  const price = plan.pricing.monthly;
+
+  const handleProceedToPayment = async () => {
+    try {
+      const payload: UpgradePayload = { plan_slug: plan.slug };
+      const result = await upgrade(payload);
+      
+      // Redirect to Hosted Payment Page (HPP)
+      if (result.payment_url) {
+        window.location.href = result.payment_url;
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to initiate payment. Please try again.');
     }
   };
 
   return (
     <div className="payment-modal">
-      <div className="payment-modal__overlay" onClick={step === 'idle' ? handleClose : undefined}></div>
+      <div className="payment-modal__overlay" onClick={!isUpgrading ? onClose : undefined}></div>
       <div className="payment-modal__content">
-        {step === 'idle' && (
-          <button className="payment-modal__close" onClick={handleClose}>
-            <i className="fas fa-times"></i>
+        <button className="payment-modal__close" onClick={!isUpgrading ? onClose : undefined}>
+          <i className="fas fa-times"></i>
+        </button>
+
+        <h2 className="payment-modal__title">Order Summary</h2>
+        <p className="payment-modal__subtitle">
+          You are upgrading to the <strong>{plan.name}</strong> plan.
+        </p>
+
+        <div className="payment-modal__details">
+          <div className="payment-modal__detail-row">
+            <span>Plan</span>
+            <span>{plan.name}</span>
+          </div>
+          <div className="payment-modal__detail-row">
+            <span>Billing Cycle</span>
+            <span>Monthly</span>
+          </div>
+          <div className="payment-modal__detail-row payment-modal__detail-row--total">
+            <span>Total Due Today</span>
+            <span>${price} USD</span>
+          </div>
+        </div>
+
+        <div className="payment-modal__security">
+          <i className="fas fa-shield-alt"></i>
+          <span>256-bit SSL Secure Payment</span>
+        </div>
+
+        <div className="payment-modal__methods">
+          <span className="payment-modal__methods-label">We Accept:</span>
+          <div className="payment-modal__methods-icons">
+            <i className="fab fa-cc-visa"></i>
+            <i className="fab fa-cc-mastercard"></i>
+            <i className="fab fa-cc-amex"></i>
+            <i className="fab fa-paypal"></i>
+            <i className="fab fa-apple-pay"></i>
+          </div>
+        </div>
+
+        <div className="payment-modal__actions">
+          <button 
+            type="button" 
+            className="btn btn-primary" 
+            disabled={isUpgrading}
+            onClick={handleProceedToPayment}
+          >
+            {isUpgrading ? (
+              <span className="btn__spinner"></span>
+            ) : (
+              'Proceed to Secure Payment'
+            )}
           </button>
-        )}
-        {renderContent()}
+        </div>
       </div>
     </div>
   );

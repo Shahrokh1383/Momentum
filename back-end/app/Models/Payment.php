@@ -50,9 +50,4 @@ class Payment extends Model
     {
         return $this->status === PaymentStatus::SUCCESS;
     }
-
-    public static function maskCardNumber(string $cardNumber): string
-    {
-        return str_repeat('*', strlen($cardNumber) - 4) . substr($cardNumber, -4);
-    }
 }

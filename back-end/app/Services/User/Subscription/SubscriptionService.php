@@ -12,6 +12,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class SubscriptionService
 {
@@ -21,10 +22,36 @@ class SubscriptionService
 
     public function getCurrent(User $user): ?Subscription
     {
-        return $user->subscription;
+         // Prevent N+1 query issues and ensure the relationship is loaded
+        $user->loadMissing('subscription');
+        
+        // Explicitly tell the static analyzer the exact type of the magic property
+        /** @var Subscription|null $subscription */
+        $subscription = $user->subscription;
+
+        // 🚀 SELF-HEALING: Auto-verify pending payments on load
+        if ($subscription && $subscription->status === SubscriptionStatus::PENDING_PAYMENT) {
+            $payment = Payment::where('subscription_id', $subscription->id)
+                ->where('status', PaymentStatus::PENDING)
+                ->whereNotNull('gateway_transaction_id')
+                ->latest()
+                ->first();
+
+            if ($payment) {
+                // Silently verify the payment status with the gateway
+                $result = $this->verify($user, $payment->gateway_transaction_id);
+                
+                // If verification returned 'confirmed', return the fresh, active subscription
+                if (in_array($result['status'], ['confirmed', 'already_confirmed'])) {
+                    return $result['subscription'];
+                }
+            }
+        }
+
+        return $subscription;
     }
 
-    public function upgrade(User $user, PlanSlug $planSlug, string $cardNumber): array
+    public function upgrade(User $user, PlanSlug $planSlug): array
     {
         $this->validateUpgrade($user, $planSlug);
 
@@ -50,10 +77,19 @@ class SubscriptionService
             'starts_at'    => null,
             'expires_at'   => null,
             'cancelled_at' => null,
+            'transaction_ref' => (string) Str::uuid(),
         ]);
 
+        // Generate callback URL with the unique transaction_ref
+        $callbackUrl = route('payment.callback', ['ref' => $subscription->transaction_ref]);
+
         try {
-            $gatewayResponse = $this->paymenterService->pay($cardNumber, $amount);
+            $gatewayResponse = $this->paymenterService->createSession(
+                $amount,
+                config('services.paymenter.currency'),
+                $user->email,
+                $callbackUrl
+            );
         } catch (\Exception $e) {
             $subscription->update(['status' => SubscriptionStatus::CANCELLED]);
             throw $e;
@@ -65,14 +101,12 @@ class SubscriptionService
             'amount'                 => $amount,
             'currency'               => config('services.paymenter.currency'),
             'status'                 => PaymentStatus::PENDING,
-            'gateway_transaction_id' => $gatewayResponse['transaction_id'],
-            'card_number_masked'     => Payment::maskCardNumber($cardNumber),
+            'gateway_transaction_id' => null,
             'gateway_response'       => $gatewayResponse,
         ]);
 
         return [
-            'subscription' => $subscription,
-            'payment'      => $payment,
+            'payment_url' => $gatewayResponse['payment_url'],
         ];
     }
 
@@ -83,19 +117,11 @@ class SubscriptionService
             ->firstOrFail();
 
         if ($payment->isSuccess()) {
-            return [
-                'status'       => 'already_confirmed',
-                'subscription' => $payment->subscription,
-                'payment'      => $payment,
-            ];
+            return ['status' => 'already_confirmed', 'subscription' => $payment->subscription, 'payment' => $payment];
         }
 
         if (! $payment->isPending()) {
-            return [
-                'status'       => $payment->status->value,
-                'subscription' => $payment->subscription,
-                'payment'      => $payment,
-            ];
+            return ['status' => $payment->status->value, 'subscription' => $payment->subscription, 'payment' => $payment];
         }
 
         $gatewayResponse = $this->paymenterService->verify($gatewayTransactionId);
@@ -109,11 +135,7 @@ class SubscriptionService
             return $this->failPayment($payment, $gatewayResponse);
         }
 
-        return [
-            'status'       => 'pending',
-            'subscription' => $payment->subscription,
-            'payment'      => $payment,
-        ];
+        return ['status' => 'pending', 'subscription' => $payment->subscription, 'payment' => $payment];
     }
 
     public function cancel(User $user): array
@@ -129,8 +151,8 @@ class SubscriptionService
         }
 
         $payment = $subscription->latestPayment;
-
         $refundResponse = null;
+
         if ($payment && $payment->isSuccess() && $payment->gateway_transaction_id) {
             $refundResponse = $this->paymenterService->refund($payment->gateway_transaction_id);
         }
@@ -155,10 +177,7 @@ class SubscriptionService
             ]);
         });
 
-        return [
-            'subscription' => $subscription->fresh(),
-            'payment'      => $payment?->fresh(),
-        ];
+        return ['subscription' => $subscription->fresh(), 'payment' => $payment?->fresh()];
     }
 
     private function activateSubscription(Payment $payment, array $gatewayResponse): array

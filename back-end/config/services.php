@@ -59,7 +59,6 @@ return [
         'url' => env('PAYMENTER_API_URL'),
         'key' => env('PAYMENTER_API_KEY'),
         'currency' => env('PAYMENTER_CURRENCY', 'USD'),
-        'card_number' => env('PAYMENTER_CARD_NUMBER'),
     ],
 
 ];

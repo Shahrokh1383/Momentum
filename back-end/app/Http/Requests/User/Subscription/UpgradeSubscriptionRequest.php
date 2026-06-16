@@ -17,20 +17,11 @@ class UpgradeSubscriptionRequest extends FormRequest
     {
         return [
             'plan_slug' => ['required', 'string', Rule::enum(PlanSlug::class)],
-            'card_number' => ['required', 'string', 'digits:16'],
         ];
     }
 
     public function plan(): PlanSlug
     {
         return PlanSlug::from($this->validated('plan_slug'));
-    }
-
-    public function messages(): array
-    {
-        return [
-            'card_number.required' => 'Card number is required.',
-            'card_number.digits' => 'Card number must be exactly 16 digits.',
-        ];
     }
 }

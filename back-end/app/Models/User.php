@@ -14,6 +14,11 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\HasApiTokens;
 
+/**
+ * @property-read Subscription|null $subscription
+ * @property-read UserSetting|null $settings
+ * @property-read string $active_plan
+ */
 class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;

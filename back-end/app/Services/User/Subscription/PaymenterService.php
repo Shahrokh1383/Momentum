@@ -10,13 +10,11 @@ class PaymenterService
 {
     private string $apiUrl;
     private string $apiKey;
-    private string $currency;
 
     public function __construct()
     {
         $this->apiUrl = config('services.paymenter.url');
         $this->apiKey = config('services.paymenter.key');
-        $this->currency = config('services.paymenter.currency');
     }
 
     /**
@@ -31,34 +29,30 @@ class PaymenterService
     }
 
     /**
-     * Initiate a payment — holds funds on user's card.
-     *
-     * @param string $userCardNumber
-     * @param float $amount 
-     * @return array{transaction_id: int, status: string}
-     * @throws \Exception
+     *  Create a Payment Session (Intent) for Hosted Payment Page
      */
-    public function pay(string $userCardNumber, float $amount): array
+    public function createSession(float $amount, string $currencyCode, string $userEmail, string $callbackUrl): array
     {
         try {
             $response = $this->httpClient()->post("{$this->apiUrl}/pay", [
-                'destination_card_number' => $userCardNumber, 
-                'amount' => $amount,
-                'currency_code' => $this->currency,
+                'amount'        => $amount,
+                'currency_code' => $currencyCode,
+                'user_email'    => $userEmail,
+                'callback_url'  => $callbackUrl,
             ]);
 
             if ($response->successful()) {
-                Log::info('Paymenter: Payment initiated', $response->json());
+                Log::info('Paymenter: Session created', $response->json());
                 return $response->json();
             }
 
-            Log::error('Paymenter: Payment failed', [
+            Log::error('Paymenter: Session creation failed', [
                 'status' => $response->status(),
                 'body' => $response->json(),
             ]);
 
             throw new \Exception(
-                $response->json('error', 'Payment initiation failed.'),
+                $response->json('error', 'Payment session creation failed.'),
                 $response->status()
             );
 
@@ -83,19 +77,12 @@ class PaymenterService
                 return $response->json();
             }
 
-            Log::error('Paymenter: Verification failed', [
-                'transaction_id' => $transactionId,
-                'status' => $response->status(),
-                'body' => $response->json(),
-            ]);
-
             throw new \Exception(
                 $response->json('error', 'Verification failed.'),
                 $response->status()
             );
             
         } catch (ConnectionException $e) {
-            Log::error('Paymenter: Connection failed during verify', ['error' => $e->getMessage()]);
             throw new \Exception('Payment gateway is unreachable during verification.', 503);
         }
     }
@@ -114,15 +101,8 @@ class PaymenterService
             ]);
 
             if ($response->successful()) {
-                Log::info('Paymenter: Refund processed', $response->json());
                 return $response->json();
             }
-
-            Log::error('Paymenter: Refund failed', [
-                'transaction_id' => $transactionId,
-                'status' => $response->status(),
-                'body' => $response->json(),
-            ]);
 
             throw new \Exception(
                 $response->json('error', 'Refund failed.'),
@@ -130,7 +110,6 @@ class PaymenterService
             );
 
         } catch (ConnectionException $e) {
-            Log::error('Paymenter: Connection failed during refund', ['error' => $e->getMessage()]);
             throw new \Exception('Payment gateway is unreachable during refund.', 503);
         }
     }
