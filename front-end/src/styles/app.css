@@ -136,32 +136,6 @@ a:hover { color: var(--primary-light); }
    6. THEME TOGGLE
    ========================================= */
 
-/* Floating variant (for auth pages) */
-.theme-toggle-btn {
-  position: fixed;
-  top: 1.5rem;
-  right: 1.5rem;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: 1px solid var(--glass-border);
-  background: var(--glass-bg);
-  backdrop-filter: blur(8px);
-  color: var(--text-main);
-  font-size: 1.25rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s var(--transition-smooth);
-  z-index: 1000;
-  box-shadow: 0 4px 12px var(--glass-shadow);
-}
-.theme-toggle-btn:hover {
-  background: var(--glass-bg-hover);
-  transform: rotate(15deg) scale(1.1);
-}
-
 /* Inline header variant (for app header & drawer) */
 .header-icon-btn {
   width: 40px;

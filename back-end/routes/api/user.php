@@ -16,6 +16,8 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
     // Profile & Settings Module
     Route::prefix('profile')->group(function () {
         Route::get('avatar', [AvatarController::class, 'show']);
+        Route::post('avatar', [AvatarController::class, 'update']);
+        Route::delete('avatar', [AvatarController::class, 'destroy']);
         Route::put('/', [SettingsController::class, 'updateProfile']);
         Route::put('preferences', [SettingsController::class, 'updatePreferences']);
     });
