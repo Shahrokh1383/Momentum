@@ -16,7 +16,7 @@ const SettingsPage: React.FC = () => {
   
   // Profile Form State
   const [name, setName] = useState(user?.name || '');
-  const [bio, setBio] = useState(''); // Assuming bio exists in backend, default empty
+  const [bio, setBio] = useState(user?.bio || ''); // Initialize properly
   const [visibility, setVisibility] = useState(user?.profile_visibility || 'public');
 
   // Preferences Form State
@@ -28,7 +28,6 @@ const SettingsPage: React.FC = () => {
   const [profileMsg, setProfileMsg] = useState('');
   const [prefMsg, setPrefMsg] = useState('');
 
-  // Generate Timezones natively (KISS principle)
   const timezones = useMemo<string[]>(() => {
     try {
         return (Intl as any).supportedValuesOf('timezone');
@@ -40,6 +39,7 @@ const SettingsPage: React.FC = () => {
   useEffect(() => {
     if (user) {
       setName(user.name);
+      setBio(user.bio || '');
       setVisibility(user.profile_visibility);
       if (user.settings) {
         setTimezone(user.settings.timezone);
@@ -66,8 +66,8 @@ const SettingsPage: React.FC = () => {
     try {
       await updatePreferences({ timezone, theme, date_format: dateFormat });
       setPrefMsg('Preferences updated successfully!');
-      // Apply theme immediately to document
-      document.documentElement.setAttribute('data-theme', theme === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme);
+      // FIX ISSUE #3 & #4: Removed manual DOM manipulation here. 
+      // The global useTheme hook will automatically apply it when React Query updates the user state.
     } catch (err) {
       setPrefMsg('Failed to update preferences.');
     }

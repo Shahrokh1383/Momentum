@@ -12,6 +12,7 @@ import PlansPage from '@/pages/user/PlansPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/user/useAuth';
+import { useTheme } from '@/hooks/useTheme';
 import PaymentResultPage from './pages/user/PaymentResultPage';
 import SettingsPage from '@/pages/user/SettingsPage';
 
@@ -44,29 +45,55 @@ const RootRedirect: React.FC = () => {
     : <Navigate to="/login" replace />;
 };
 
+/**
+ * Inner component responsible for rendering routes and consuming global hooks.
+ * It is rendered INSIDE both QueryClientProvider and BrowserRouter so hooks 
+ * like useTheme -> useAuth have access to React Query and React Router contexts.
+ */
+const AppRoutes: React.FC = () => {
+  // Apply global theme management - Now safely inside both Providers
+  useTheme();
+
+  return (
+    <Routes>
+      <Route path="/" element={<RootRedirect />} />
+
+      <Route path="/login"           element={<div className="auth-page-wrapper"><LoginPage /></div>} />
+      <Route path="/register"        element={<div className="auth-page-wrapper"><RegisterPage /></div>} />
+      <Route path="/forgot-password" element={<div className="auth-page-wrapper"><ForgotPasswordPage /></div>} />
+      <Route path="/reset-password"  element={<div className="auth-page-wrapper"><ResetPasswordPage /></div>} />
+      <Route path="/verify-email"    element={<div className="auth-page-wrapper"><VerifyEmailPage /></div>} />
+      <Route path="/auth/callback/:provider" element={<div className="auth-page-wrapper"><OAuthCallbackPage /></div>} />
+
+      <Route path="/payment-result" element={<ProtectedRoute><PaymentResultPage /></ProtectedRoute>} />
+
+      <Route element={<DashboardLayout />}>
+        <Route path="/plans"     element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><DashboardPlaceholder /></ProtectedRoute>} />
+        <Route path="/settings"  element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      </Route>
+    </Routes>
+  );
+};
+
+/**
+ * Wrapper component to provide Router context.
+ */
+const AppContent: React.FC = () => {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
+};
+
+/**
+ * Root component strictly responsible for initializing top-level providers.
+ */
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<RootRedirect />} />
-
-          <Route path="/login"           element={<div className="auth-page-wrapper"><LoginPage /></div>} />
-          <Route path="/register"        element={<div className="auth-page-wrapper"><RegisterPage /></div>} />
-          <Route path="/forgot-password" element={<div className="auth-page-wrapper"><ForgotPasswordPage /></div>} />
-          <Route path="/reset-password"  element={<div className="auth-page-wrapper"><ResetPasswordPage /></div>} />
-          <Route path="/verify-email"    element={<div className="auth-page-wrapper"><VerifyEmailPage /></div>} />
-          <Route path="/auth/callback/:provider" element={<div className="auth-page-wrapper"><OAuthCallbackPage /></div>} />
-
-          <Route path="/payment-result" element={<ProtectedRoute><PaymentResultPage /></ProtectedRoute>} />
-
-          <Route element={<DashboardLayout />}>
-            <Route path="/plans"     element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><DashboardPlaceholder /></ProtectedRoute>} />
-            <Route path="/settings"  element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <AppContent />
     </QueryClientProvider>
   );
 }

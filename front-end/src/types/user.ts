@@ -1,14 +1,8 @@
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  avatar: string | null;
-  role: 'user' | 'admin';
-  email_verified_at: string | null;
-  profile_visibility: 'public' | 'friends_only' | 'private';
-  active_plan: 'free' | 'expert' | 'premium';
-  subscription: Subscription | null;
-  created_at: string;
+export interface UserSettings {
+  timezone: string;
+  theme: 'light' | 'dark' | 'system';
+  language: string;
+  date_format: string;
 }
 
 export interface PlanLimits {
@@ -57,6 +51,20 @@ export interface Subscription {
   transaction_ref: string;
   created_at: string;
 }
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  avatar: string | null;
+  role: 'user' | 'admin';
+  email_verified_at: string | null;
+  profile_visibility: 'public' | 'friends_only' | 'private';
+  active_plan: 'free' | 'expert' | 'premium';
+  subscription: Subscription | null;
+  settings: UserSettings | null;
+  bio: string | null;
+  created_at: string;
+}
 
 export interface AuthState {
   user: User | null;
@@ -92,25 +100,4 @@ export interface VerifyEmailPayload {
   hash: string;
   expires: string;
   signature: string;
-}
-
-export interface UserSettings {
-  timezone: string;
-  theme: 'light' | 'dark' | 'system';
-  language: string;
-  date_format: string;
-}
-
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  avatar: string | null;
-  role: 'user' | 'admin';
-  email_verified_at: string | null;
-  profile_visibility: 'public' | 'friends_only' | 'private';
-  active_plan: 'free' | 'expert' | 'premium';
-  subscription: Subscription | null;
-  settings: UserSettings | null;
-  created_at: string;
 }

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/user/useAuth';
 import PremiumBadge from '@/components/user/subscription/PremiumBadge';
-import ThemeToggle from '@/components/user/auth/ThemeToggle';
 
 const NAV_LINKS = [
   { to: '/dashboard', label: 'Dashboard', icon: 'fa-house' },
@@ -71,7 +70,6 @@ const AppHeader: React.FC = () => {
           <div className="app-header__actions">
             {isAuthenticated && user ? (
               <>
-                <ThemeToggle className="header-icon-btn" />
                 <PremiumBadge planSlug={user.active_plan} />
                 <div className="app-header__user">
                   <img
@@ -92,7 +90,6 @@ const AppHeader: React.FC = () => {
               </>
             ) : (
               <div className="app-header__auth">
-                <ThemeToggle className="header-icon-btn" />
                 <Link to="/login" className="app-header__link">Sign In</Link>
                 <Link to="/register" className="btn btn-sm btn-momentum">Get Started</Link>
               </div>
@@ -135,7 +132,6 @@ const AppHeader: React.FC = () => {
             <span>Momentum</span>
           </div>
           <div className="mobile-drawer__header-actions">
-            <ThemeToggle className="header-icon-btn" />
             <button
               className="mobile-drawer__close"
               onClick={closeDrawer}
