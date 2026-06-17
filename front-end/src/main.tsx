@@ -5,6 +5,7 @@ import '@/styles/app.css'
 import '@/styles/auth.css'
 import '@/styles/dashboard.css'
 import '@/styles/subscription.css'
+import './styles/profile.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

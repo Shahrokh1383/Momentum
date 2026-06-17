@@ -7,6 +7,7 @@ import ThemeToggle from '@/components/user/auth/ThemeToggle';
 const NAV_LINKS = [
   { to: '/dashboard', label: 'Dashboard', icon: 'fa-house' },
   { to: '/plans', label: 'Plans', icon: 'fa-crown' },
+  { to: '/settings', label: 'Settings', icon: 'fa-gear' },
 ];
 
 const AppHeader: React.FC = () => {

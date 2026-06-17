@@ -1,0 +1,209 @@
+/* =========================================
+   SETTINGS PAGE
+   ========================================= */
+
+.settings-page {
+  width: 100%;
+  flex: 1;
+  padding: 3rem 2rem;
+  animation: dashboardFadeIn 0.5s var(--transition-bounce);
+}
+
+.settings-page__container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.settings-page__header {
+  margin-bottom: 2rem;
+}
+
+.settings-page__title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  background: var(--gradient-btn);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+}
+
+.settings-page__subtitle {
+  font-size: 1rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.settings-page__content {
+  padding: 2rem;
+  border-radius: 20px;
+}
+
+/* Tabs */
+.settings-page__tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--input-border);
+  padding-bottom: 0;
+}
+
+.settings-page__tab {
+  background: transparent;
+  border: none;
+  padding: 0.85rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s var(--transition-smooth);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.settings-page__tab:hover {
+  color: var(--primary);
+}
+
+.settings-page__tab--active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* Form */
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.settings-form__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.settings-form__label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.settings-form__input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 10px;
+  color: var(--text-main);
+  font-size: 0.95rem;
+  transition: all 0.3s var(--transition-smooth);
+  outline: none;
+}
+
+.settings-form__input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--input-focus-ring);
+}
+
+.settings-form__textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+/* Radio Group (Theme) */
+.settings-form__radio-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.settings-form__radio-label {
+  flex: 1;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  transition: all 0.3s var(--transition-smooth);
+}
+
+.settings-form__radio-label:hover {
+  border-color: var(--primary);
+  color: var(--text-main);
+}
+
+.settings-form__radio-label--active {
+  background: rgba(17, 153, 142, 0.1);
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 0 0 0 4px var(--input-focus-ring);
+}
+
+.settings-form__radio-input {
+  display: none;
+}
+
+/* Submit Button */
+.settings-form__btn {
+  align-self: flex-start;
+  padding: 0.85rem 2rem;
+  background: var(--gradient-btn);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s var(--transition-smooth);
+  box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+  margin-top: 0.5rem;
+}
+
+.settings-form__btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+}
+
+.settings-form__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Messages */
+.settings-form__message {
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  margin: 0;
+}
+
+.settings-form__message--success {
+  background: rgba(17, 153, 142, 0.1);
+  color: var(--primary);
+  border: 1px solid rgba(17, 153, 142, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 767.98px) {
+  .settings-page { padding: 2rem 1rem; }
+  .settings-page__content { padding: 1.5rem; }
+  .settings-page__title { font-size: 1.75rem; }
+  .settings-form__radio-group { flex-direction: column; }
+}

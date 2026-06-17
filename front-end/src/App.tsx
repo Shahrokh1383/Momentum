@@ -13,6 +13,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/user/useAuth';
 import PaymentResultPage from './pages/user/PaymentResultPage';
+import SettingsPage from '@/pages/user/SettingsPage';
 
 const DashboardPlaceholder: React.FC = () => (
   <section className="dashboard-page">
@@ -62,6 +63,7 @@ function App() {
           <Route element={<DashboardLayout />}>
             <Route path="/plans"     element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPlaceholder /></ProtectedRoute>} />
+            <Route path="/settings"  element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           </Route>
         </Routes>
       </BrowserRouter>
