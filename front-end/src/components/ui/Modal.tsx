@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import '@/styles/modal.css';
 
 interface ModalProps {
@@ -39,7 +40,9 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer 
 
   if (!isOpen) return null;
 
-  return (
+  // Senior Fix: Use createPortal to render the modal outside the CSS stacking context 
+  // of parent elements (like .glass-panel) that use backdrop-filter or transforms.
+  return createPortal(
     <div 
       className={`modal-backdrop ${isOpen ? 'modal-backdrop--open' : ''}`} 
       onClick={onClose}
@@ -72,7 +75,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer 
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
