@@ -9,6 +9,7 @@ use App\Mail\PasswordResetMail;
 use App\Mail\VerificationMail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Mail;
@@ -26,11 +27,12 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $attributes = [
         'role' => 'user',
         'profile_visibility' => 'public',
+        'plan_slug' => PlanSlug::FREE->value,
     ];
 
     protected $fillable = [
         'name', 'email', 'password', 'role', 'provider', 'provider_id', 
-        'avatar', 'profile_visibility', 'bio',
+        'avatar', 'profile_visibility', 'bio', 'plan_slug',
         'email_verified_at',
     ];
 
@@ -43,6 +45,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'password' => 'hashed',
         'role' => UserRole::class,
         'profile_visibility' => ProfileVisibility::class,
+        'plan_slug' => PlanSlug::class,
     ];
 
     public function subscription()
@@ -55,10 +58,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(UserSetting::class);
     }
 
-    /**
-     * Determine the user's active plan tier.
-     * Returns 'expert', 'premium', or defaults to 'free'.
-     */
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class, 'plan_slug', 'slug');
+    }
+
     public function getActivePlanAttribute(): string
     {
         if ($this->subscription?->isActive()) {
@@ -68,9 +72,6 @@ class User extends Authenticatable implements MustVerifyEmail
         return PlanSlug::FREE->value;
     }
 
-   /**
-     * Uses Laravel's native Signed URLs (no DB storage needed).
-     */
     public function sendEmailVerificationNotification(): void
     {
         $finalUrl = app(\App\Services\Auth\EmailVerificationService::class)

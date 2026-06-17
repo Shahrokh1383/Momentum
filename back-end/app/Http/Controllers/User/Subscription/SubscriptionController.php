@@ -121,23 +121,36 @@ class SubscriptionController extends Controller
     public function quotas(Request $request): JsonResponse
     {
         $user = $request->user();
-        $plan = $this->quotaService->getUserPlan($user);
+        $plan = $this->quotaService->getPlan($user);
+
+        $limits = [
+            'max_active_habits' => $this->quotaService->getLimit($user, 'max_active_habits'),
+            'max_groups' => $this->quotaService->getLimit($user, 'max_groups'),
+            'max_categories' => $this->quotaService->getLimit($user, 'max_categories'),
+            'max_freezes_per_week' => $this->quotaService->getLimit($user, 'max_freezes_per_week'),
+            'max_photos_per_log' => $this->quotaService->getLimit($user, 'max_photos_per_log'),
+            'max_pdfs_per_month' => $this->quotaService->getLimit($user, 'max_pdfs_per_month'),
+        ];
+
+        $usage = [
+            'habits' => $this->quotaService->getUsage($user, 'habits'),
+            'groups' => $this->quotaService->getUsage($user, 'groups'),
+            'categories' => $this->quotaService->getUsage($user, 'categories'),
+        ];
+
+        $features = [
+            'advanced_analytics' => $this->quotaService->isFeatureEnabled($user, 'has_advanced_analytics'),
+            'insights' => $this->quotaService->isFeatureEnabled($user, 'has_insights'),
+            'predictive_insights' => $this->quotaService->isFeatureEnabled($user, 'has_predictive_insights'),
+            'smart_reminders' => $this->quotaService->isFeatureEnabled($user, 'has_smart_reminders'),
+            'xp_booster' => $this->quotaService->isFeatureEnabled($user, 'has_xp_booster'),
+        ];
 
         return $this->successResponse([
-            'plan' => $plan ? new PlanResource($plan) : null,
-            'limits' => [
-                'max_active_habits' => $plan?->max_active_habits ?? 5,
-                'max_groups' => $plan?->max_groups ?? 1,
-                'max_freezes_per_week' => $plan?->max_freezes_per_week ?? 1,
-                'max_photos_per_log' => $plan?->max_photos_per_log ?? 1,
-                'max_pdfs_per_month' => $plan?->max_pdfs_per_month ?? 1,
-            ],
-            'features' => [
-                'advanced_analytics' => $this->quotaService->hasFeature($user, 'advanced_analytics'),
-                'insights' => $this->quotaService->hasFeature($user, 'insights'),
-                'xp_booster' => $this->quotaService->hasFeature($user, 'xp_booster'),
-                'unlimited_photos' => $this->quotaService->hasFeature($user, 'unlimited_photos'),
-            ],
+            'plan' => new PlanResource($plan),
+            'limits' => $limits,
+            'usage' => $usage,
+            'features' => $features,
         ], 'User quota and feature information retrieved.');
     }
 }

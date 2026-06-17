@@ -82,7 +82,10 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         return $this->successResponse(
-            new \App\Http\Resources\User\UserResource($request->user()->load('subscription.planDetails'))
+            new \App\Http\Resources\User\UserResource(
+                // Eager load settings alongside subscription
+                $request->user()->load(['subscription.planDetails', 'settings'])
+            )
         );
     }
 }

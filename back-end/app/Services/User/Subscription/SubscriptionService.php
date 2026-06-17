@@ -22,14 +22,11 @@ class SubscriptionService
 
     public function getCurrent(User $user): ?Subscription
     {
-         // Prevent N+1 query issues and ensure the relationship is loaded
         $user->loadMissing('subscription');
         
-        // Explicitly tell the static analyzer the exact type of the magic property
         /** @var Subscription|null $subscription */
         $subscription = $user->subscription;
 
-        // 🚀 SELF-HEALING: Auto-verify pending payments on load
         if ($subscription && $subscription->status === SubscriptionStatus::PENDING_PAYMENT) {
             $payment = Payment::where('subscription_id', $subscription->id)
                 ->where('status', PaymentStatus::PENDING)
@@ -38,10 +35,7 @@ class SubscriptionService
                 ->first();
 
             if ($payment) {
-                // Silently verify the payment status with the gateway
                 $result = $this->verify($user, $payment->gateway_transaction_id);
-                
-                // If verification returned 'confirmed', return the fresh, active subscription
                 if (in_array($result['status'], ['confirmed', 'already_confirmed'])) {
                     return $result['subscription'];
                 }
@@ -80,7 +74,6 @@ class SubscriptionService
             'transaction_ref' => (string) Str::uuid(),
         ]);
 
-        // Generate callback URL with the unique transaction_ref
         $callbackUrl = route('payment.callback', ['ref' => $subscription->transaction_ref]);
 
         try {
@@ -95,7 +88,7 @@ class SubscriptionService
             throw $e;
         }
 
-        $payment = Payment::create([
+        Payment::create([
             'user_id'                => $user->id,
             'subscription_id'        => $subscription->id,
             'amount'                 => $amount,
@@ -157,7 +150,7 @@ class SubscriptionService
             $refundResponse = $this->paymenterService->refund($payment->gateway_transaction_id);
         }
 
-        DB::transaction(function () use ($subscription, $payment, $refundResponse): void {
+        DB::transaction(function () use ($subscription, $payment, $refundResponse, $user): void {
             if ($refundResponse !== null) {
                 $payment->update([
                     'status'           => PaymentStatus::REFUNDED,
@@ -169,12 +162,14 @@ class SubscriptionService
                 ]);
             }
 
-            // HARD CANCEL: Immediately cancel the subscription and downgrade to free.
             $subscription->update([
                 'status'       => SubscriptionStatus::CANCELLED,
                 'cancelled_at' => now(),
                 'plan'         => PlanSlug::FREE, 
             ]);
+
+            // Update User's plan_slug directly for performance
+            $user->update(['plan_slug' => PlanSlug::FREE]);
         });
 
         return ['subscription' => $subscription->fresh(), 'payment' => $payment?->fresh()];
@@ -185,7 +180,6 @@ class SubscriptionService
         $subscription = $payment->subscription;
         $plan = Plan::where('slug', $subscription->plan->value)->first();
         
-        // Calculate dynamic expiration based on plan duration
         $expiresAt = ($plan && $plan->duration_months) 
             ? now()->addMonths($plan->duration_months) 
             : null;
@@ -202,6 +196,9 @@ class SubscriptionService
                 'paid_at'          => now(),
                 'gateway_response' => $gatewayResponse,
             ]);
+
+            // Update User's plan_slug directly for performance
+            $subscription->user->update(['plan_slug' => $subscription->plan]);
         });
 
         $subscription = $subscription->fresh();
@@ -264,7 +261,6 @@ class SubscriptionService
 
     private function resolveAmount(Plan $plan, PlanSlug $planSlug): float
     {
-        // Keeping it simple, default to monthly price
         return match ($planSlug) {
             PlanSlug::EXPERT  => (float) ($plan->price_monthly ?? 0.00),
             PlanSlug::PREMIUM => (float) ($plan->price_monthly ?? 0.00),

@@ -5,7 +5,8 @@ use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Support\Facades\Route;
+use App\Exceptions\QuotaExceededException;
+use App\Exceptions\FeatureLockedException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\Request;
 
@@ -31,5 +32,15 @@ return Application::configure(basePath: dirname(__DIR__))
                     'message' => $e->getMessage() ?: 'Unauthenticated.',
                 ], 401);
             }
+        });
+
+        // Automatically render Quota Exceeded exceptions globally
+        $exceptions->render(function (QuotaExceededException $e, Request $request) {
+            return $e->render();
+        });
+
+        // Automatically render Feature Locked exceptions globally
+        $exceptions->render(function (FeatureLockedException $e, Request $request) {
+            return $e->render();
         });
     })->create();

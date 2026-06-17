@@ -42,7 +42,7 @@ const AppHeader: React.FC = () => {
     if (!user?.avatar) return '/assets/default-avatar.png';
     // If the avatar is an external URL, proxy it through our backend
     if (user.avatar.startsWith('http')) {
-      return `${import.meta.env.VITE_API_BASE_URL || ''}/api/user/avatar`;
+      return `${import.meta.env.VITE_API_BASE_URL || ''}/api/user/profile/avatar`;
     }
     return user.avatar;
   }, [user?.avatar]);

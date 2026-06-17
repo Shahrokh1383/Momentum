@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\User\Profile\AvatarController;
+use App\Http\Controllers\User\Profile\SettingsController;
 use App\Http\Controllers\User\Subscription\PlansController;
 use App\Http\Controllers\User\Subscription\SubscriptionController;
 use Illuminate\Support\Facades\Route;
@@ -10,7 +12,13 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('logout-all', [AuthController::class, 'logoutAll']);
     Route::get('me', [AuthController::class, 'me']);
-    Route::get('avatar', [\App\Http\Controllers\User\AvatarController::class, 'show']);
+
+    // Profile & Settings Module
+    Route::prefix('profile')->group(function () {
+        Route::get('avatar', [AvatarController::class, 'show']);
+        Route::put('/', [SettingsController::class, 'updateProfile']);
+        Route::put('preferences', [SettingsController::class, 'updatePreferences']);
+    });
 
     // Plans
     Route::get('plans', [PlansController::class, 'index']);
@@ -27,12 +35,9 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
 
     Route::middleware(['tier:expert'])->prefix('expert')->group(function () {
         // Route::get('/analytics', [App\Http\Controllers\User\Expert\AnalyticsController::class, 'index']);
-        // Route::post('/advanced-report', [App\Http\Controllers\User\Expert\ReportController::class, 'generate']);
     });
 
-    // Premium Tier Routes (Strictly requires 'premium' plan)
     Route::middleware(['tier:premium'])->prefix('premium')->group(function () {
         // Route::get('/priority-support', [App\Http\Controllers\User\Premium\SupportController::class, 'index']);
-        // Route::post('/custom-integration', [App\Http\Controllers\User\Premium\IntegrationController::class, 'setup']);
     });
 });

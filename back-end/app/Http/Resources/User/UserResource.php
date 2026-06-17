@@ -19,6 +19,12 @@ class UserResource extends JsonResource
             'profile_visibility' => $this->profile_visibility->value,
             'active_plan' => $this->active_plan,
             'subscription' => $this->whenLoaded('subscription', fn () => new SubscriptionResource($this->subscription)),
+            'settings' => $this->whenLoaded('settings', fn () => $this->settings ? [
+                'timezone' => $this->settings->timezone,
+                'theme' => $this->settings->theme?->value,
+                'language' => $this->settings->language,
+                'date_format' => $this->settings->date_format,
+            ] : null),
             'created_at' => $this->created_at,
         ];
     }

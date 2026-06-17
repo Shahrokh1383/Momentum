@@ -14,7 +14,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Bind as singleton to optimize quota/plan lookups per request
+        $this->app->singleton(\App\Services\User\Subscription\PlanQuotaService::class);
     }
 
     /**
@@ -23,14 +24,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         RateLimiter::for('auth-limiter', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
-
         RateLimiter::for('password-limiter', fn (Request $request) => Limit::perMinutes(5, 2)->by($request->ip() . '|' . $request->input('email')));
-
         RateLimiter::for('reset-limiter', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
-
         RateLimiter::for('api-limiter', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
-
         RateLimiter::for('upload-limiter', fn (Request $request) => Limit::perMinute(10)->by($request->user()?->id ?: $request->ip()));
-
     }
 }
