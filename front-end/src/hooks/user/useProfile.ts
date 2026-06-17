@@ -4,7 +4,7 @@ import { useAuthStore } from '@/context/user/authStore';
 
 export const useProfile = () => {
   const queryClient = useQueryClient();
-  const { setUser } = useAuthStore();
+  const { setUser, bustAvatarCache } = useAuthStore();
 
   const updateProfileMutation = useMutation({
     mutationFn: (payload: UpdateProfilePayload) => profileService.updateProfile(payload),
@@ -22,6 +22,20 @@ export const useProfile = () => {
     },
   });
 
+  const uploadAvatarMutation = useMutation({
+    mutationFn: (file: File) => profileService.uploadAvatar(file),
+    onSuccess: () => {
+      bustAvatarCache(); // Force UI to fetch the new image
+    },
+  });
+
+  const deleteAvatarMutation = useMutation({
+    mutationFn: () => profileService.deleteAvatar(),
+    onSuccess: () => {
+      bustAvatarCache(); // Force UI to fetch the fallback image
+    },
+  });
+
   return {
     updateProfile: updateProfileMutation.mutateAsync,
     isUpdatingProfile: updateProfileMutation.isPending,
@@ -30,5 +44,11 @@ export const useProfile = () => {
     updatePreferences: updatePreferencesMutation.mutateAsync,
     isUpdatingPreferences: updatePreferencesMutation.isPending,
     preferencesError: updatePreferencesMutation.error,
+
+    uploadAvatar: uploadAvatarMutation.mutateAsync,
+    isUploadingAvatar: uploadAvatarMutation.isPending,
+    
+    deleteAvatar: deleteAvatarMutation.mutateAsync,
+    isDeletingAvatar: deleteAvatarMutation.isPending,
   };
 };

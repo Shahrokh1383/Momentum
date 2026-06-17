@@ -200,6 +200,134 @@
   border: 1px solid rgba(17, 153, 142, 0.3);
 }
 
+/* =========================================
+   AVATAR WIDGET & MODAL
+   ========================================= */
+
+.avatar-widget {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  /* 0 top, auto left/right (centers it), 2rem bottom */
+  margin: 0 auto 2rem auto; 
+  border: 3px solid var(--primary);
+  box-shadow: 0 8px 20px rgba(17, 153, 142, 0.2);
+  transition: all 0.3s var(--transition-smooth);
+}
+
+/* The rest of the avatar-widget styles remain exactly the same */
+.avatar-widget:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 28px rgba(17, 153, 142, 0.35);
+}
+
+.avatar-widget__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatar-widget__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s var(--transition-smooth);
+  color: white;
+  backdrop-filter: blur(2px);
+}
+
+.avatar-widget:hover .avatar-widget__overlay {
+  opacity: 1;
+}
+
+.avatar-widget__overlay i {
+  font-size: 1.5rem;
+}
+
+.avatar-widget__overlay span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Modal Specific Styles */
+.avatar-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+
+.avatar-modal__preview {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid var(--primary);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.avatar-modal__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-modal__error {
+  color: #ef4444;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  width: 100%;
+  text-align: center;
+}
+
+.avatar-modal__actions {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.avatar-modal__btn-delete {
+  padding: 0.85rem 2rem;
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s var(--transition-smooth);
+}
+
+.avatar-modal__btn-delete:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.avatar-modal__btn-delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hidden-input {
+  display: none;
+}
+
 /* Responsive */
 @media (max-width: 767.98px) {
   .settings-page { padding: 2rem 1rem; }

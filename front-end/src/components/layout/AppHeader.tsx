@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/user/useAuth';
+import { useAuthStore } from '@/context/user/authStore';
 import PremiumBadge from '@/components/user/subscription/PremiumBadge';
 
 const NAV_LINKS = [
@@ -11,6 +12,7 @@ const NAV_LINKS = [
 
 const AppHeader: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
+  const { avatarVersion } = useAuthStore(); // Injected for reactive cache-busting
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const location = useLocation();
 
@@ -39,13 +41,8 @@ const AppHeader: React.FC = () => {
   };
 
   const avatarSrc = useMemo(() => {
-    if (!user?.avatar) return '/assets/default-avatar.png';
-    // If the avatar is an external URL, proxy it through our backend
-    if (user.avatar.startsWith('http')) {
-      return `${import.meta.env.VITE_API_BASE_URL || ''}/api/user/profile/avatar`;
-    }
-    return user.avatar;
-  }, [user?.avatar]);
+    return `/api/user/profile/avatar?v=${avatarVersion}`;
+  }, [avatarVersion]);
 
   return (
     <>

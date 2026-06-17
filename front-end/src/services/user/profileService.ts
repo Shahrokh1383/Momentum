@@ -24,4 +24,18 @@ export const profileService = {
     const { data } = await api.put('/api/user/profile/preferences', payload);
     return data.data;
   },
+
+  uploadAvatar: async (file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    // Axios automatically sets Content-Type to multipart/form-data for FormData
+    const { data } = await api.post('/api/user/profile/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data.data;
+  },
+
+  deleteAvatar: async (): Promise<void> => {
+    await api.delete('/api/user/profile/avatar');
+  },
 };
