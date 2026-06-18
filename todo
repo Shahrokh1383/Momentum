@@ -1,38 +1,5 @@
 
 
-## Sub-Phase 2.2: Categorization & Tagging System (Subscription-Aware)
-
-### 🛠 Backend
-**What to Build:**
-1. **CategoryController:** Full CRUD.
-2. **TagController:** CRUD + Autocomplete.
-3. **Custom FormRequest:** `StoreCategoryRequest` utilizes `PlanQuotaService`.
-
-**Business Rules:**
-- **Dynamic Category Quota:** Before creating a category, `PlanQuotaService::getLimit($user, 'max_categories')` is called. 
-  - If the value is `-1`, creation is allowed (unlimited).
-  - If `count(user->categories) >= limit`, abort with 422 `quota_exceeded`.
-- **Category Deletion Guard:** Cannot delete if active habits exist.
-- Default categories (`is_default = true`) cannot be deleted.
-
-**Expected Output:**
-- Free user creates 3 categories. On the 4th attempt, API returns 422 `{ "error": "quota_exceeded", "resource": "categories", "limit": 3, "used": 3 }`.
-- Premium user (limit `-1`) creates categories indefinitely.
-
-### 🎨 Frontend
-**What to Build:**
-1. **Categories Page (`/categories`):** Grid/List view, Create/Edit modals.
-2. **Dynamic Quota UI:** Progress bar indicating category usage.
-
-**Business Rules:**
-- Read limits from Frontend Quota Store (fetched from API). 
-- If `used >= limit` and `limit !== -1`, the "Add Category" button is disabled and shows an upsell tooltip: "Upgrade to Expert for more categories".
-
-**Expected Output:**
-- Free user sees "Categories: 2/3". At 3/3, the UI prevents creation and shows the upsell. Premium user sees no limit restriction.
-
----
-
 ## Sub-Phase 2.3: Habit Management & Scheduling (Subscription-Aware)
 
 ### 🛠 Backend

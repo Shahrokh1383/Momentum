@@ -6,6 +6,7 @@ import '@/styles/auth.css'
 import '@/styles/dashboard.css'
 import '@/styles/subscription.css'
 import './styles/profile.css';
+import './styles/categories.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -70,5 +70,6 @@ export interface VerifyPaymentResponse {
 export interface QuotasData {
   plan: Plan | null;
   limits: Record<string, number>;
+  usage: Record<string, number>;
   features: Record<string, boolean>;
 }

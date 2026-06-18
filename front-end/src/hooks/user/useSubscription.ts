@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { subscriptionService } from '@/services/user/subscriptionService';
 import { UpgradePayload, SubscriptionDetail } from '@/types/subscription';
+import { QuotasData } from '@/types/subscription';
 
 export const useSubscription = () => {
   const queryClient = useQueryClient();
@@ -22,6 +23,13 @@ export const useSubscription = () => {
       return sub?.status === 'pending_payment' ? 5000 : false;
     },
   });
+
+  const { data: quotas, isLoading: isLoadingQuotas, error: quotasError } = useQuery<QuotasData>({
+    queryKey: ['quotas'],
+    queryFn: subscriptionService.getQuotas,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
 
   const upgradeMutation = useMutation({
     mutationFn: (payload: UpgradePayload) => subscriptionService.upgrade(payload),
@@ -57,5 +65,9 @@ export const useSubscription = () => {
     cancelError: cancelMutation.error,
 
     verifyPayment: subscriptionService.verifyPayment,
+
+    quotas,
+    isLoadingQuotas,
+    quotasError,
   };
 };

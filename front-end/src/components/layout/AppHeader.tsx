@@ -8,6 +8,8 @@ const NAV_LINKS = [
   { to: '/dashboard', label: 'Dashboard', icon: 'fa-house' },
   { to: '/plans', label: 'Plans', icon: 'fa-crown' },
   { to: '/settings', label: 'Settings', icon: 'fa-gear' },
+  { to: '/categories', label: 'categories', icon: 'fa-layer-group' },
+
 ];
 
 const AppHeader: React.FC = () => {
