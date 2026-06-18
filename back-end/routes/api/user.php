@@ -5,6 +5,8 @@ use App\Http\Controllers\User\Profile\AvatarController;
 use App\Http\Controllers\User\Profile\SettingsController;
 use App\Http\Controllers\User\Subscription\PlansController;
 use App\Http\Controllers\User\Subscription\SubscriptionController;
+use App\Http\Controllers\User\CategoryController;
+use App\Http\Controllers\User\TagController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(function () {
@@ -33,6 +35,23 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
         Route::get('verify/{transactionId}', [SubscriptionController::class, 'verify'])
             ->whereNumber('transactionId');
         Route::delete('/', [SubscriptionController::class, 'cancel']);
+    });
+
+    // Categories
+    Route::prefix('categories')->group(function () {
+        Route::get('/', [CategoryController::class, 'index']);
+        Route::post('/', [CategoryController::class, 'store']);
+        Route::put('/{category}', [CategoryController::class, 'update']);
+        Route::delete('/{category}', [CategoryController::class, 'destroy']);
+    });
+
+    // Tags
+    Route::prefix('tags')->group(function () {
+        Route::get('/', [TagController::class, 'index']);
+        Route::get('/autocomplete', [TagController::class, 'autocomplete']);
+        Route::post('/', [TagController::class, 'store']);
+        Route::put('/{tag}', [TagController::class, 'update']);
+        Route::delete('/{tag}', [TagController::class, 'destroy']);
     });
 
     Route::middleware(['tier:expert'])->prefix('expert')->group(function () {

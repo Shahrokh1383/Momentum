@@ -119,10 +119,6 @@
                     <td>${{ number_format($payment->amount, 2) }} {{ $payment->currency }}</td>
                 </tr>
                 <tr>
-                    <td>Card</td>
-                    <td>{{ $payment->card_number_masked }}</td>
-                </tr>
-                <tr>
                     <td>Start Date</td>
                     <td>{{ $subscription->starts_at->format('M d, Y — h:i A') }}</td>
                 </tr>

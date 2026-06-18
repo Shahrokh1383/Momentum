@@ -47,7 +47,7 @@ class PlanQuotaService
         return match ($resource) {
             'habits' => 0, // TODO: Replace with $user->habits()->active()->count() when ready
             'groups' => 0, // TODO: Replace with $user->groups()->count() when ready
-            'categories' => 0, // TODO: Replace with $user->categories()->count() when ready
+            'categories' => $user->categories()->count(), // TODO: Replace with $user->categories()->count() when ready
             default => 0,
         };
     }

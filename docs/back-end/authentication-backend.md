@@ -44,6 +44,10 @@ The architecture serves both Single Page Applications (SPAs) using session-based
 ## 4. API Contract
 
 ### Credential Auth
+
+### We should put below infos in Header in Postman
+Content-Type application/json
+Accespt application/json
 *   **`POST /api/auth/register`**
     *   *Body:* `{ name, email, password, password_confirmation }`
     *   *Response:* `201` `{ email, message }` (Returns the registered email for frontend state persistence).
