@@ -311,6 +311,89 @@
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
+/* =========================================
+   TRASHED CATEGORIES MODAL STYLES
+   ========================================= */
+
+.trashed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.trashed-list::-webkit-scrollbar {
+  width: 4px;
+}
+.trashed-list::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+  border-radius: 99px;
+}
+
+.trashed-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.trashed-list__item:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--primary);
+}
+
+.trashed-list__info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.trashed-list__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.trashed-list__name {
+  font-weight: 600;
+  color: var(--text-main);
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trashed-list__date {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.trashed-list__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Fix for small modal buttons */
+.modal-btn.btn-sm {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+}
+
 /* Mobile Responsive */
 @media (max-width: 767.98px) {
   .categories-page { padding: 1.5rem 1rem; }

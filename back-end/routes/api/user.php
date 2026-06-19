@@ -39,6 +39,12 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
 
     // Categories
     Route::prefix('categories')->group(function () {
+        // Trash & Recovery Routes (Must be before /{category})
+        Route::get('trashed', [CategoryController::class, 'trashed']);
+        Route::post('{id}/restore', [CategoryController::class, 'restore']);
+        Route::delete('{id}/force-delete', [CategoryController::class, 'forceDelete']);
+
+        // Standard CRUD Routes
         Route::get('/', [CategoryController::class, 'index']);
         Route::post('/', [CategoryController::class, 'store']);
         Route::put('/{category}', [CategoryController::class, 'update']);

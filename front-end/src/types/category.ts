@@ -6,6 +6,7 @@ export interface Category {
   sort_order: number;
   is_default: boolean;
   created_at: string;
+  deleted_at?: string | null;
 }
 
 export interface CategoryPayload {

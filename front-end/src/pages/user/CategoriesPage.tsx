@@ -5,14 +5,18 @@ import CategoryQuotaBanner from '@/components/user/categories/CategoryQuotaBanne
 import CategoryGrid from '@/components/user/categories/CategoryGrid';
 import CategoryFormModal from '@/components/user/categories/CategoryFormModal';
 import DeleteCategoryModal from '@/components/user/categories/DeleteCategoryModal';
+import TrashedCategoriesModal from '@/components/user/categories/TrashedCategoriesModal';
 import '@/styles/categories.css';
 
 const CategoriesPage: React.FC = () => {
   const {
     categories, isLoading,
+    trashedCategories, isTrashedLoading,
     createCategory, isCreating, createError,
     updateCategory, isUpdating, updateError,
     deleteCategory, isDeleting, deleteError,
+    restoreCategory, isRestoring,
+    forceDeleteCategory, isForceDeleting,
   } = useCategories();
 
   // Form Modal State
@@ -23,20 +27,12 @@ const CategoriesPage: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
 
-  const handleOpenCreate = () => {
-    setEditingCategory(null);
-    setIsModalOpen(true);
-  };
+  // Trashed Modal State
+  const [isTrashedModalOpen, setIsTrashedModalOpen] = useState(false);
 
-  const handleOpenEdit = (category: Category) => {
-    setEditingCategory(category);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingCategory(null);
-  };
+  const handleOpenCreate = () => { setEditingCategory(null); setIsModalOpen(true); };
+  const handleOpenEdit = (category: Category) => { setEditingCategory(category); setIsModalOpen(true); };
+  const handleCloseModal = () => { setIsModalOpen(false); setEditingCategory(null); };
 
   const handleFormSubmit = async (data: CategoryPayload) => {
     if (editingCategory) {
@@ -46,25 +42,16 @@ const CategoriesPage: React.FC = () => {
     }
   };
 
-  // Delete Handlers
-  const handleOpenDelete = (category: Category) => {
-    setDeletingCategory(category);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleCloseDeleteModal = () => {
-    setIsDeleteModalOpen(false);
-    setDeletingCategory(null);
-  };
-
+  // Soft Delete Handlers
+  const handleOpenDelete = (category: Category) => { setDeletingCategory(category); setIsDeleteModalOpen(true); };
+  const handleCloseDeleteModal = () => { setIsDeleteModalOpen(false); setDeletingCategory(null); };
+  
   const handleConfirmDelete = async () => {
     if (deletingCategory) {
       try {
         await deleteCategory(deletingCategory.id);
-        handleCloseDeleteModal(); // Only close on success
-      } catch (err) {
-        // Error is caught and displayed inside the modal via deleteError prop
-      }
+        handleCloseDeleteModal();
+      } catch (err) {}
     }
   };
 
@@ -86,9 +73,17 @@ const CategoriesPage: React.FC = () => {
 
   return (
     <div className="categories-page">
-      <div className="categories-page__header">
-        <h1 className="categories-page__title">Categories</h1>
-        <p className="text-muted-custom mb-0">Organize your habits into meaningful groups.</p>
+      <div className="categories-page__header d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+          <h1 className="categories-page__title mb-2">Categories</h1>
+          <p className="text-muted-custom mb-0">Organize your habits into meaningful groups.</p>
+        </div>
+        <button 
+          className="btn btn-outline-secondary d-flex align-items-center gap-2"
+          onClick={() => setIsTrashedModalOpen(true)}
+        >
+          <i className="fas fa-trash-can"></i> View Trash
+        </button>
       </div>
 
       <CategoryQuotaBanner onAddClick={handleOpenCreate} />
@@ -97,11 +92,10 @@ const CategoriesPage: React.FC = () => {
         categories={categories}
         isLoading={isLoading}
         onEdit={handleOpenEdit}
-        onDeleteRequest={handleOpenDelete} // Changed prop name for clarity
+        onDeleteRequest={handleOpenDelete}
         onAddClick={handleOpenCreate}
       />
 
-      {/* Create / Edit Modal */}
       <CategoryFormModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -111,7 +105,6 @@ const CategoriesPage: React.FC = () => {
         errorMessage={(createError || updateError) ? getFormErrorMessage() : null}
       />
 
-      {/* Delete Confirmation Modal */}
       <DeleteCategoryModal
         isOpen={isDeleteModalOpen}
         onClose={handleCloseDeleteModal}
@@ -119,6 +112,17 @@ const CategoriesPage: React.FC = () => {
         isLoading={isDeleting}
         categoryName={deletingCategory?.name || null}
         errorMessage={deleteError ? getDeleteErrorMessage() : null}
+      />
+
+      <TrashedCategoriesModal
+        isOpen={isTrashedModalOpen}
+        onClose={() => setIsTrashedModalOpen(false)}
+        trashedCategories={trashedCategories}
+        isLoading={isTrashedLoading}
+        onRestore={restoreCategory}
+        onForceDelete={forceDeleteCategory}
+        isRestoring={isRestoring}
+        isForceDeleting={isForceDeleting}
       />
     </div>
   );

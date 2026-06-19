@@ -7,6 +7,11 @@ export const categoryService = {
     return data.data;
   },
 
+  getTrashed: async (): Promise<Category[]> => {
+    const { data } = await api.get('/api/user/categories/trashed');
+    return data.data;
+  },
+
   create: async (payload: CategoryPayload): Promise<Category> => {
     const { data } = await api.post('/api/user/categories', payload);
     return data.data;
@@ -19,5 +24,14 @@ export const categoryService = {
 
   delete: async (id: number): Promise<void> => {
     await api.delete(`/api/user/categories/${id}`);
+  },
+
+  restore: async (id: number): Promise<Category> => {
+    const { data } = await api.post(`/api/user/categories/${id}/restore`);
+    return data.data;
+  },
+
+  forceDelete: async (id: number): Promise<void> => {
+    await api.delete(`/api/user/categories/${id}/force-delete`);
   },
 };

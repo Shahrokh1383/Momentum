@@ -56,16 +56,49 @@ class CategoryController extends Controller
             return $this->errorResponse('forbidden', 'Default categories cannot be deleted.', 403);
         }
 
-        if ($category->activeHabits()->exists()) {
-            return $this->errorResponse(
-                'category_in_use',
-                'Cannot delete category with active habits.',
-                422
-            );
-        }
-
+        // Soft delete allowed even with active habits (user can restore/move habits later)
         $category->delete();
 
-        return $this->successResponse(null, 'Category deleted successfully.');
+        return $this->successResponse(null, 'Category moved to trash successfully.');
+    }
+
+    public function trashed(Request $request): JsonResponse
+    {
+        $categories = $request->user()->categories()
+            ->onlyTrashed()
+            ->orderBy('deleted_at', 'desc')
+            ->get();
+
+        return $this->successResponse(
+            CategoryResource::collection($categories),
+            'Trashed categories retrieved successfully.'
+        );
+    }
+
+    public function restore(Request $request, int $id): JsonResponse
+    {
+        $category = $request->user()->categories()->withTrashed()->findOrFail($id);
+
+        $category->restore();
+
+        return $this->successResponse(
+            new CategoryResource($category),
+            'Category restored successfully.'
+        );
+    }
+
+    public function forceDelete(Request $request, int $id): JsonResponse
+    {
+        $category = $request->user()->categories()->withTrashed()->findOrFail($id);
+
+        if ($category->is_default) {
+            return $this->errorResponse('forbidden', 'Default categories cannot be permanently deleted.', 403);
+        }
+
+        // Will throw a QueryException if DB has restrict foreign keys, 
+        // which is expected behavior for force deleting protected records.
+        $category->forceDelete();
+
+        return $this->successResponse(null, 'Category permanently deleted.');
     }
 }
