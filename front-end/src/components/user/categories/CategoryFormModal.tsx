@@ -3,11 +3,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Modal from '@/components/ui/Modal';
+import ColorPicker from '@/components/ui/ColorPicker';
+import IconPicker from '@/components/ui/IconPicker';
 import { Category, CategoryPayload } from '@/types/category';
 
 const categorySchema = z.object({
   name: z.string().min(1, 'Name is required').max(255, 'Max 255 characters'),
-  color: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, 'Invalid hex color (e.g., #4F46E5)'),
+  color: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, 'Invalid hex color'),
   icon: z.string().min(1, 'Icon class is required').max(50, 'Max 50 characters'),
 });
 
@@ -25,7 +27,7 @@ interface Props {
 const CategoryFormModal: React.FC<Props> = ({ 
   isOpen, onClose, onSubmit, isLoading, initialData, errorMessage 
 }) => {
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<CategoryFormData>({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
     defaultValues: {
       name: '',
@@ -57,7 +59,7 @@ const CategoryFormModal: React.FC<Props> = ({
       await onSubmit(data);
       onClose();
     } catch (err) {
-      // Error is handled by parent via errorMessage prop
+      // Error handled by parent
     }
   };
 
@@ -92,6 +94,7 @@ const CategoryFormModal: React.FC<Props> = ({
           </div>
         )}
 
+        {/* Category Name */}
         <div className="settings-form__group mb-0">
           <label className="settings-form__label">Category Name</label>
           <input 
@@ -103,38 +106,46 @@ const CategoryFormModal: React.FC<Props> = ({
           {errors.name && <p className="category-form__error">{errors.name.message}</p>}
         </div>
 
-        <div className="category-form__preview-group">
-          <div className="settings-form__group mb-0 flex-grow-1">
-            <label className="settings-form__label">Hex Color</label>
-            <input 
-              type="text" 
-              className={`settings-form__input ${errors.color ? 'is-invalid' : ''}`}
-              placeholder="#4F46E5"
-              {...register('color')} 
+        {/* Category Color */}
+        <div className="settings-form__group mb-0">
+          <label className="settings-form__label">Category Color</label>
+          <div className="d-flex align-items-center gap-3">
+            <input type="hidden" {...register('color')} />
+            <div className="flex-grow-1">
+              <ColorPicker 
+                value={watchedColor} 
+                onChange={(val) => setValue('color', val, { shouldValidate: true })} 
+              />
+            </div>
+            <div 
+              className="category-form__color-preview" 
+              style={{ backgroundColor: isValidHex ? watchedColor : '#cbd5e1', marginBottom: '0' }}
             />
-            {errors.color && <p className="category-form__error">{errors.color.message}</p>}
           </div>
-          <div 
-            className="category-form__color-preview" 
-            style={{ backgroundColor: isValidHex ? watchedColor : '#cbd5e1' }}
-          />
+          {errors.color && <p className="category-form__error">{errors.color.message}</p>}
         </div>
 
-        <div className="category-form__preview-group">
-          <div className="settings-form__group mb-0 flex-grow-1">
-            <label className="settings-form__label">Icon Class</label>
-            <input 
-              type="text" 
-              className={`settings-form__input ${errors.icon ? 'is-invalid' : ''}`}
-              placeholder="fa-solid fa-heart"
-              {...register('icon')} 
-            />
-            {errors.icon && <p className="category-form__error">{errors.icon.message}</p>}
+        {/* Category Icon */}
+        <div className="settings-form__group mb-0">
+          <label className="settings-form__label">Category Icon</label>
+          <div className="d-flex align-items-center gap-3">
+            <input type="hidden" {...register('icon')} />
+            <div className="flex-grow-1">
+              <IconPicker 
+                value={watchedIcon} 
+                onChange={(val) => setValue('icon', val, { shouldValidate: true })} 
+              />
+            </div>
+            <div 
+              className="category-form__icon-preview" 
+              style={{ color: isValidHex ? watchedColor : 'var(--text-main)', marginBottom: '0' }}
+            >
+              <i className={watchedIcon || 'fa-solid fa-folder'}></i>
+            </div>
           </div>
-          <div className="category-form__icon-preview" style={{ color: isValidHex ? watchedColor : 'var(--text-main)' }}>
-            <i className={watchedIcon || 'fa-solid fa-folder'}></i>
-          </div>
+          {errors.icon && <p className="category-form__error">{errors.icon.message}</p>}
         </div>
+
       </form>
     </Modal>
   );

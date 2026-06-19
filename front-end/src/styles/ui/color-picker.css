@@ -1,0 +1,39 @@
+/* =========================================
+   COLOR PICKER UI COMPONENT
+   ========================================= */
+
+.color-picker__trigger {
+  cursor: pointer;
+  transition: all 0.3s var(--transition-smooth);
+  user-select: none;
+  min-height: 48px;
+}
+
+.color-picker__trigger:hover {
+  border-color: var(--primary) !important;
+  background-color: var(--glass-bg-hover) !important;
+}
+
+.color-picker__swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.2);
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.color-picker__text {
+  flex: 1;
+  font-size: 0.95rem;
+  color: var(--text-main);
+  font-family: monospace;
+}
+
+.color-picker__input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
