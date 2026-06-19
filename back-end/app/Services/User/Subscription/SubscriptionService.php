@@ -22,19 +22,17 @@ class SubscriptionService
 
     public function getCurrent(User $user): ?Subscription
     {
-        $user->loadMissing('subscription');
+        // Eager load latestPayment to avoid N+1 and provide data to the resource
+        $user->loadMissing('subscription.latestPayment');
         
         /** @var Subscription|null $subscription */
         $subscription = $user->subscription;
 
         if ($subscription && $subscription->status === SubscriptionStatus::PENDING_PAYMENT) {
-            $payment = Payment::where('subscription_id', $subscription->id)
-                ->where('status', PaymentStatus::PENDING)
-                ->whereNotNull('gateway_transaction_id')
-                ->latest()
-                ->first();
+            $payment = $subscription->latestPayment;
 
-            if ($payment) {
+            // Only verify if the user has actually returned from the bank
+            if ($payment && $payment->status === PaymentStatus::PENDING && $payment->gateway_transaction_id) {
                 $result = $this->verify($user, $payment->gateway_transaction_id);
                 if (in_array($result['status'], ['confirmed', 'already_confirmed'])) {
                     return $result['subscription'];
@@ -60,6 +58,10 @@ class SubscriptionService
             }
 
             if ($current?->isPendingPayment()) {
+                // Fail the old pending payment to maintain a clean state (SRP)
+                if ($current->latestPayment && $current->latestPayment->isPending()) {
+                    $current->latestPayment()->update(['status' => PaymentStatus::FAILED]);
+                }
                 $current->update(['status' => SubscriptionStatus::CANCELLED]);
             }
         });
@@ -94,7 +96,7 @@ class SubscriptionService
             'amount'                 => $amount,
             'currency'               => config('services.paymenter.currency'),
             'status'                 => PaymentStatus::PENDING,
-            'gateway_transaction_id' => null,
+            'gateway_transaction_id' => null, // Null until the user returns from the bank
             'gateway_response'       => $gatewayResponse,
         ]);
 

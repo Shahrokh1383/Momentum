@@ -25,6 +25,11 @@ export interface Plan {
   created_at: string;
 }
 
+export interface LatestPayment {
+  status: string;
+  gateway_transaction_id: number | null;
+  amount: string;
+}
 export interface SubscriptionDetail {
   id: number;
   plan: Plan | null;
@@ -35,6 +40,7 @@ export interface SubscriptionDetail {
   cancelled_at: string | null;
   transaction_ref: string | null;
   created_at: string;
+  latest_payment?: LatestPayment | null;
 }
 
 /**

@@ -19,11 +19,8 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
   isCancelling,
   onUpgrade
 }) => {
-  // 1. Track explicit user dismissal for the current session/render cycle
   const [userDismissed, setUserDismissed] = useState(false);
 
-  // 2. Derive the actual dismissed state combining user action and localStorage
-  // This runs AFTER subscription is available, fixing the refresh bug without UI flicker
   const isDismissed = useMemo(() => {
     if (userDismissed) return true;
     
@@ -40,7 +37,7 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
   
   if (!subscription || isDismissed) return null;
 
-  const { status, plan, expires_at, transaction_ref } = subscription;
+  const { status, plan, expires_at, transaction_ref, latest_payment } = subscription;
   const planSlug = subscription.plan_slug || 'free';
 
   const formatDate = (dateStr: string | null) => {
@@ -57,14 +54,36 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
 
   // State: Pending Payment
   if (status === 'pending_payment') {
-    return (
-      <div className="subscription-banner subscription-banner--pending">
-        <div className="subscription-banner__icon">⏳</div>
-        <div className="subscription-banner__content">
-          <h4>Payment Processing</h4>
-          <p>Your upgrade to <strong>{plan?.name || 'Premium'}</strong> is being verified by the payment gateway.</p>
-          {transaction_ref && <span className="subscription-banner__ref">Ref: {transaction_ref}</span>}
+    // Check if the user has actually visited the bank and returned
+    const isWaitingForBank = latest_payment?.gateway_transaction_id != null;
+
+    if (isWaitingForBank) {
+      // TRUE Waiting State: User went to bank, we are verifying
+      return (
+        <div className="subscription-banner subscription-banner--pending">
+          <div className="subscription-banner__icon">⏳</div>
+          <div className="subscription-banner__content">
+            <h4>Payment Processing</h4>
+            <p>Your upgrade to <strong>{plan?.name || 'Premium'}</strong> is being verified by the payment gateway.</p>
+            {transaction_ref && <span className="subscription-banner__ref">Ref: {transaction_ref}</span>}
+          </div>
         </div>
+      );
+    }
+
+    // ABANDONED State: User clicked upgrade but closed the modal/redirect before reaching the bank
+    return (
+      <div className="subscription-banner subscription-banner--warning">
+        <div className="subscription-banner__icon">⚠️</div>
+        <div className="subscription-banner__content">
+          <h4>Payment Incomplete</h4>
+          <p>You didn't complete the payment process. You can try again at any time.</p>
+        </div>
+        {onUpgrade && (
+          <button className="btn btn-primary" onClick={onUpgrade}>
+            Retry Upgrade
+          </button>
+        )}
       </div>
     );
   }

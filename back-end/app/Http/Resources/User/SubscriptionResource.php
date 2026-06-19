@@ -19,6 +19,13 @@ class SubscriptionResource extends JsonResource
             'cancelled_at' => $this->cancelled_at,
             'transaction_ref' => $this->transaction_ref,
             'created_at' => $this->created_at,
+            
+            // Expose the latest payment to determine if the user has visited the bank
+            'latest_payment' => $this->whenLoaded('latestPayment', fn () => [
+                'status' => $this->latestPayment->status?->value,
+                'gateway_transaction_id' => $this->latestPayment->gateway_transaction_id,
+                'amount' => $this->latestPayment->amount,
+            ]),
         ];
     }
 }

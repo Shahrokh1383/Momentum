@@ -9,33 +9,34 @@ export const useSubscription = () => {
   const { data: plans, isLoading: isLoadingPlans, error: plansError } = useQuery({
     queryKey: ['plans'],
     queryFn: subscriptionService.getPlans,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: currentSubscription, isLoading: isLoadingSubscription, error: subscriptionError } = useQuery<SubscriptionDetail | null>({
     queryKey: ['currentSubscription'],
     queryFn: subscriptionService.getCurrent,
     retry: false,
-    // SMART POLLING: Automatically refetch subscription every 5 seconds 
-    // if the status is 'pending_payment'. Stops automatically when resolved.
+    // SMART POLLING: Only poll if status is 'pending_payment' AND the user has 
+    // actually been to the gateway (gateway_transaction_id is not null)
     refetchInterval: (query) => {
       const sub = query.state.data;
-      return sub?.status === 'pending_payment' ? 5000 : false;
+      const hasGatewayId = sub?.latest_payment?.gateway_transaction_id;
+      return sub?.status === 'pending_payment' && hasGatewayId ? 5000 : false;
     },
   });
 
   const { data: quotas, isLoading: isLoadingQuotas, error: quotasError } = useQuery<QuotasData>({
     queryKey: ['quotas'],
     queryFn: subscriptionService.getQuotas,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
-
 
   const upgradeMutation = useMutation({
     mutationFn: (payload: UpgradePayload) => subscriptionService.upgrade(payload),
     onSuccess: () => {
-      // We don't invalidate currentSubscription here immediately because 
-      // the payment is still PENDING. It will be invalidated when verification succeeds.
+      // Invalidate immediately so the UI updates with the 'pending_payment' state
+      // and waits for the user to come back from the bank
+      queryClient.invalidateQueries({ queryKey: ['currentSubscription'] });
     },
   });
 
