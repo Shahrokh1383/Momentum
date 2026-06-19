@@ -4,6 +4,7 @@ import { Category, CategoryPayload } from '@/types/category';
 import CategoryQuotaBanner from '@/components/user/categories/CategoryQuotaBanner';
 import CategoryGrid from '@/components/user/categories/CategoryGrid';
 import CategoryFormModal from '@/components/user/categories/CategoryFormModal';
+import DeleteCategoryModal from '@/components/user/categories/DeleteCategoryModal';
 import '@/styles/categories.css';
 
 const CategoriesPage: React.FC = () => {
@@ -14,8 +15,13 @@ const CategoriesPage: React.FC = () => {
     deleteCategory, isDeleting, deleteError,
   } = useCategories();
 
+  // Form Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+
+  // Delete Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
 
   const handleOpenCreate = () => {
     setEditingCategory(null);
@@ -40,23 +46,42 @@ const CategoriesPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    try {
-      await deleteCategory(id);
-    } catch (err) {
-      console.error('Failed to delete category', err);
+  // Delete Handlers
+  const handleOpenDelete = (category: Category) => {
+    setDeletingCategory(category);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setDeletingCategory(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deletingCategory) {
+      try {
+        await deleteCategory(deletingCategory.id);
+        handleCloseDeleteModal(); // Only close on success
+      } catch (err) {
+        // Error is caught and displayed inside the modal via deleteError prop
+      }
     }
   };
 
-  const getErrorMessage = () => {
-    const err: any = createError || updateError || deleteError;
+  const getFormErrorMessage = () => {
+    const err: any = createError || updateError;
     if (err?.response?.data?.error === 'quota_exceeded') {
       return `You have reached your limit of ${err.response.data.limit} categories. Please upgrade your plan.`;
     }
+    return err?.response?.data?.message || err?.message || 'An unexpected error occurred.';
+  };
+
+  const getDeleteErrorMessage = () => {
+    const err: any = deleteError;
     if (err?.response?.data?.error === 'category_in_use') {
       return 'Cannot delete this category because it contains active habits.';
     }
-    return err?.response?.data?.message || err?.message || 'An unexpected error occurred.';
+    return err?.response?.data?.message || err?.message || 'Failed to delete category.';
   };
 
   return (
@@ -71,19 +96,29 @@ const CategoriesPage: React.FC = () => {
       <CategoryGrid
         categories={categories}
         isLoading={isLoading}
-        isDeleting={isDeleting}
         onEdit={handleOpenEdit}
-        onDelete={handleDelete}
+        onDeleteRequest={handleOpenDelete} // Changed prop name for clarity
         onAddClick={handleOpenCreate}
       />
 
+      {/* Create / Edit Modal */}
       <CategoryFormModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         onSubmit={handleFormSubmit}
         isLoading={isCreating || isUpdating}
         initialData={editingCategory}
-        errorMessage={(createError || updateError) ? getErrorMessage() : null}
+        errorMessage={(createError || updateError) ? getFormErrorMessage() : null}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteCategoryModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleConfirmDelete}
+        isLoading={isDeleting}
+        categoryName={deletingCategory?.name || null}
+        errorMessage={deleteError ? getDeleteErrorMessage() : null}
       />
     </div>
   );

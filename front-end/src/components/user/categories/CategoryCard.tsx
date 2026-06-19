@@ -4,17 +4,10 @@ import { Category } from '@/types/category';
 interface Props {
   category: Category;
   onEdit: (category: Category) => void;
-  onDelete: (id: number) => void;
-  isDeleting: boolean;
+  onDeleteRequest: (category: Category) => void; // Updated signature
 }
 
-const CategoryCard: React.FC<Props> = ({ category, onEdit, onDelete, isDeleting }) => {
-  const handleDelete = async () => {
-    if (window.confirm(`Are you sure you want to delete "${category.name}"?`)) {
-      await onDelete(category.id);
-    }
-  };
-
+const CategoryCard: React.FC<Props> = ({ category, onEdit, onDeleteRequest }) => {
   return (
     <div 
       className="category-card" 
@@ -31,11 +24,11 @@ const CategoryCard: React.FC<Props> = ({ category, onEdit, onDelete, isDeleting 
         </button>
         <button 
           className="category-card__action-btn category-card__action-btn--delete"
-          onClick={handleDelete}
-          disabled={isDeleting || category.is_default}
+          onClick={() => onDeleteRequest(category)} // Simply triggers the parent modal
+          disabled={category.is_default}
           title={category.is_default ? 'Default categories cannot be deleted' : 'Delete Category'}
         >
-          {isDeleting ? <span className="spinner-border spinner-border-sm" /> : <i className="fas fa-trash"></i>}
+          <i className="fas fa-trash"></i>
         </button>
       </div>
 
