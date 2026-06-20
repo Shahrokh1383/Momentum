@@ -95,14 +95,15 @@ const HabitFormModal: React.FC<Props> = ({
     try {
       const payload: HabitPayload = {
         ...data,
-        due_days_of_week: data.frequency !== 'daily' && data.due_days_of_week?.length 
-          ? data.due_days_of_week.join(',') 
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        due_days_of_week: data.frequency !== 'daily' && data.due_days_of_week?.length
+          ? data.due_days_of_week.join(',')
           : undefined,
         reminder_time: data.reminder_time || null,
         target_value: data.type === 'numeric' ? data.target_value : null,
         unit: data.type === 'numeric' ? data.unit : null,
       };
-      
+
       if (payload.description === '') payload.description = null;
       if (payload.unit === '') payload.unit = null;
 

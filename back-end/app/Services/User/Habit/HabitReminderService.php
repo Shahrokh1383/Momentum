@@ -22,14 +22,17 @@ class HabitReminderService
                 $query->whereNotNull('reminder_time')
                       ->orWhereNotNull('schedule');
             })
-            ->with('user') 
+            ->with(['user.settings']) 
             ->chunkById(100, function ($habits) use (&$dispatchedCount) {
                 foreach ($habits as $habit) {
                     if (!$habit->user || !$habit->user->email) {
                         continue;
                     }
 
-                    $tz = $habit->timezone ?? 'UTC';
+                    // Timezone resolution: habit-level > user settings > UTC fallback
+                    $tz = $habit->timezone 
+                        ?? $habit->user->settings?->timezone 
+                        ?? 'UTC';
                     $nowInTz = now($tz);
 
                     // 1. Is the habit scheduled for today in the user's timezone?
