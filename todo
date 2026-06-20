@@ -1,23 +1,5 @@
 
 
-## Sub-Phase 2.3: Habit Management & Scheduling (Subscription-Aware)
-
-### 🎨 Frontend
-**What to Build:**
-1. **Habits Page (`/habits`):** Active habits table, filters.
-2. **Create Habit Modal:** Schedule builder, type selector, reminder input.
-3. **Archived Page (`/archived`):** Grayed-out cards.
-
-**Business Rules:**
-- **Dynamic Type UI:** The type selector dropdown queries the Quota Store for allowed types. Disallowed types are grayed out with a lock icon and upsell tooltip.
-- **Dynamic FAB:** Quick Add FAB is disabled if quota is reached.
-- **Smart Reminders UI:** If `has_smart_reminders` is false in the Quota Store, hide the "Add another reminder" button.
-
-**Expected Output:**
-- UI dynamically adapts to the user's plan. A Free user sees locked types; an Expert sees them as available. Quotas update in real-time on the dashboard.
-
----
-
 ## Sub-Phase 2.4: Tracking, Streaks & Automation (Subscription-Aware)
 
 ### 🛠 Backend

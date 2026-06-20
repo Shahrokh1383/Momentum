@@ -45,7 +45,7 @@ const DAYS_OF_WEEK = [
 const HabitFormModal: React.FC<Props> = ({ 
   isOpen, onClose, onSubmit, isLoading, initialData, categories, existingTags, errorMessage 
 }) => {
-  const { register, handleSubmit, reset, control, setValue ,formState: { errors } } = useForm<HabitFormData>({
+  const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm<HabitFormData>({
     resolver: zodResolver(habitSchema),
     defaultValues: {
       title: '',
@@ -74,7 +74,7 @@ const HabitFormModal: React.FC<Props> = ({
           category_id: initialData.category?.id || null,
           type: initialData.type,
           frequency: initialData.frequency,
-          due_days_of_week: initialData.due_days_of_week || [],
+          due_days_of_week: initialData.due_days_of_week?.map(Number) || [],
           reminder_time: initialData.reminder_time || '',
           schedule: initialData.schedule || { reminders: [] },
           target_value: initialData.target_value,
@@ -92,23 +92,25 @@ const HabitFormModal: React.FC<Props> = ({
   }, [isOpen, initialData, reset]);
 
   const onFormSubmit = async (data: HabitFormData) => {
-    // Format payload for backend
-    const payload: HabitPayload = {
-      ...data,
-      due_days_of_week: data.frequency !== 'daily' && data.due_days_of_week?.length 
-        ? data.due_days_of_week.join(',') 
-        : undefined,
-      reminder_time: data.reminder_time || null,
-      target_value: data.type === 'numeric' ? data.target_value : null,
-      unit: data.type === 'numeric' ? data.unit : null,
-    };
-    
-    // Clean up empty strings to nulls for backend
-    if(payload.description === '') payload.description = null;
-    if(payload.unit === '') payload.unit = null;
+    try {
+      const payload: HabitPayload = {
+        ...data,
+        due_days_of_week: data.frequency !== 'daily' && data.due_days_of_week?.length 
+          ? data.due_days_of_week.join(',') 
+          : undefined,
+        reminder_time: data.reminder_time || null,
+        target_value: data.type === 'numeric' ? data.target_value : null,
+        unit: data.type === 'numeric' ? data.unit : null,
+      };
+      
+      if (payload.description === '') payload.description = null;
+      if (payload.unit === '') payload.unit = null;
 
-    await onSubmit(payload);
-    onClose();
+      await onSubmit(payload);
+      onClose();
+    } catch (err) {
+      // Error handled by parent via mutation error state
+    }
   };
 
   const footer = (
@@ -205,7 +207,7 @@ const HabitFormModal: React.FC<Props> = ({
                 className={`habit-form__freq-btn ${watchedFreq === 'daily' ? 'active' : ''}`} 
                 onClick={() => {
                     setValue('frequency', 'daily');
-                    setValue('due_days_of_week', []); // Clear selected days when switching to Daily
+                    setValue('due_days_of_week', []);
                 }}
                 >
                 Daily

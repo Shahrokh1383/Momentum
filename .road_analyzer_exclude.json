@@ -46,8 +46,14 @@
     "front-end\\src\\pages\\user\\VerifyEmailPage.tsx",
     "front-end\\src\\vite-env.d.ts",
     "fixing_strategy.txt",
-    "tag_implemetation.md"
+    "tag_implemetation.md",
+    "back-end\\app\\Services\\User\\Subscription",
+    "back-end\\app\\Jobs",
+    "back-end\\app\\Http\\Requests\\User\\Subscription",
+    "back-end\\app\\Http\\Controllers\\User\\Subscription",
+    "back-end\\app\\helpers.php",
+    "back-end\\app\\Traits"
   ],
-  "lastModified": "2026-06-20T10:53:02.770Z",
+  "lastModified": "2026-06-20T14:11:00.781Z",
   "version": 1
 }
