@@ -16,6 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 import PaymentResultPage from './pages/user/PaymentResultPage';
 import SettingsPage from '@/pages/user/SettingsPage';
 import CategoriesPage from '@/pages/user/CategoriesPage';
+import HabitsPage from '@/pages/user/HabitsPage';
 
 const DashboardPlaceholder: React.FC = () => (
   <section className="dashboard-page">
@@ -73,6 +74,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPlaceholder /></ProtectedRoute>} />
         <Route path="/settings"  element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="/categories" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
+        <Route path="/habits" element={<ProtectedRoute><HabitsPage /></ProtectedRoute>} />
       </Route>
     </Routes>
   );

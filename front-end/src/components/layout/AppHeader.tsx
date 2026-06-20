@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { to: '/plans', label: 'Plans', icon: 'fa-crown' },
   { to: '/settings', label: 'Settings', icon: 'fa-gear' },
   { to: '/categories', label: 'categories', icon: 'fa-layer-group' },
+  { to: '/habits', label: 'habits', icon: 'fa-bullseye' },
 
 ];
 
