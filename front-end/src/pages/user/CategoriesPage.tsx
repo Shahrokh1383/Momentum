@@ -58,7 +58,7 @@ const CategoriesPage: React.FC = () => {
   const getFormErrorMessage = () => {
     const err: any = createError || updateError;
     if (err?.response?.data?.error === 'quota_exceeded') {
-      return `You have reached your limit of ${err.response.data.limit} categories. Please upgrade your plan.`;
+      return `You have reached your total limit of ${err.response.data.limit} categories. Please permanently delete from trash or upgrade your plan.`;
     }
     return err?.response?.data?.message || err?.message || 'An unexpected error occurred.';
   };
@@ -86,7 +86,11 @@ const CategoriesPage: React.FC = () => {
         </button>
       </div>
 
-      <CategoryQuotaBanner onAddClick={handleOpenCreate} />
+      {/* FIX: Pass the trashed count so the banner knows how to instruct the user */}
+      <CategoryQuotaBanner 
+        onAddClick={handleOpenCreate} 
+        trashCount={trashedCategories.length} 
+      />
 
       <CategoryGrid
         categories={categories}

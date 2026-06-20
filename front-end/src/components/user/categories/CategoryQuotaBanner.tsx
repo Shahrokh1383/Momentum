@@ -3,9 +3,10 @@ import { useSubscription } from '@/hooks/user/useSubscription';
 
 interface Props {
   onAddClick: () => void;
+  trashCount: number; // NEW: Pass the count of trashed items from the parent page
 }
 
-const CategoryQuotaBanner: React.FC<Props> = ({ onAddClick }) => {
+const CategoryQuotaBanner: React.FC<Props> = ({ onAddClick, trashCount }) => {
   const { quotas, isLoadingQuotas } = useSubscription();
 
   if (isLoadingQuotas || !quotas) {
@@ -26,6 +27,15 @@ const CategoryQuotaBanner: React.FC<Props> = ({ onAddClick }) => {
   const percentage = isUnlimited ? 0 : Math.min((used / limit) * 100, 100);
   const isDangerZone = !isUnlimited && percentage >= 80;
 
+  // Determine the specific reason they are blocked
+  const getBlockMessage = () => {
+    if (!isAtLimit) return null;
+    if (trashCount > 0) {
+      return "You've reached your total category limit. Permanently delete items from the trash to create new ones.";
+    }
+    return "Upgrade to Expert for more categories";
+  };
+
   return (
     <div className="glass-panel quota-banner">
       <div className="quota-banner__info">
@@ -35,7 +45,7 @@ const CategoryQuotaBanner: React.FC<Props> = ({ onAddClick }) => {
             {isUnlimited ? (
               <>Unlimited Categories <i className="fas fa-infinity ms-1" style={{ color: 'var(--primary)' }}></i></>
             ) : (
-              <>Categories Usage: <strong className="ms-1">{used} / {limit}</strong></>
+              <>Total Categories: <strong className="ms-1">{used} / {limit}</strong></>
             )}
           </span>
         </div>
@@ -61,7 +71,8 @@ const CategoryQuotaBanner: React.FC<Props> = ({ onAddClick }) => {
         
         {isAtLimit && (
           <div className="quota-banner__upsell">
-            <i className="fas fa-crown me-2"></i> Upgrade to Expert for more categories
+            <i className={`fas ${trashCount > 0 ? 'fa-trash-can' : 'fa-crown'} me-2`}></i> 
+            {getBlockMessage()}
           </div>
         )}
       </div>

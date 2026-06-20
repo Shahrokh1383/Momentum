@@ -6,18 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\User\Category\StoreCategoryRequest;
 use App\Http\Requests\User\Category\UpdateCategoryRequest;
 use App\Http\Resources\User\CategoryResource;
-use App\Models\Category;
+use App\Services\User\CategoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
+    public function __construct(
+        private CategoryService $categoryService
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
-        $categories = $request->user()->categories()
-            ->orderBy('sort_order')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $categories = $this->categoryService->getCategories($request->user());
 
         return $this->successResponse(
             CategoryResource::collection($categories),
@@ -27,7 +28,10 @@ class CategoryController extends Controller
 
     public function store(StoreCategoryRequest $request): JsonResponse
     {
-        $category = $request->user()->categories()->create($request->validated());
+        $category = $this->categoryService->createCategory(
+            $request->user(), 
+            $request->validated()
+        );
 
         return $this->successResponse(
             new CategoryResource($category),
@@ -36,9 +40,12 @@ class CategoryController extends Controller
         );
     }
 
-    public function update(UpdateCategoryRequest $request, Category $category): JsonResponse
+    public function update(UpdateCategoryRequest $request, $category): JsonResponse
     {
-        $category->update($request->validated());
+        $category = $this->categoryService->updateCategory(
+            $category, 
+            $request->validated()
+        );
 
         return $this->successResponse(
             new CategoryResource($category),
@@ -46,28 +53,20 @@ class CategoryController extends Controller
         );
     }
 
-    public function destroy(Category $category): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
-        if ($category->user_id !== auth()->id()) {
-            return $this->errorResponse('forbidden', 'You do not own this category.', 403);
+        try {
+            $this->categoryService->deleteCategory($request->user(), $id);
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse('forbidden', $e->getMessage(), 403);
         }
-
-        if ($category->is_default) {
-            return $this->errorResponse('forbidden', 'Default categories cannot be deleted.', 403);
-        }
-
-        // Soft delete allowed even with active habits (user can restore/move habits later)
-        $category->delete();
 
         return $this->successResponse(null, 'Category moved to trash successfully.');
     }
 
     public function trashed(Request $request): JsonResponse
     {
-        $categories = $request->user()->categories()
-            ->onlyTrashed()
-            ->orderBy('deleted_at', 'desc')
-            ->get();
+        $categories = $this->categoryService->getTrashedCategories($request->user());
 
         return $this->successResponse(
             CategoryResource::collection($categories),
@@ -77,9 +76,9 @@ class CategoryController extends Controller
 
     public function restore(Request $request, int $id): JsonResponse
     {
-        $category = $request->user()->categories()->withTrashed()->findOrFail($id);
-
-        $category->restore();
+        // The QuotaExceededException from the Service is automatically 
+        // caught by Laravel's exception handler and returned as JSON.
+        $category = $this->categoryService->restoreCategory($request->user(), $id);
 
         return $this->successResponse(
             new CategoryResource($category),
@@ -89,15 +88,11 @@ class CategoryController extends Controller
 
     public function forceDelete(Request $request, int $id): JsonResponse
     {
-        $category = $request->user()->categories()->withTrashed()->findOrFail($id);
-
-        if ($category->is_default) {
-            return $this->errorResponse('forbidden', 'Default categories cannot be permanently deleted.', 403);
+        try {
+            $this->categoryService->forceDeleteCategory($request->user(), $id);
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse('forbidden', $e->getMessage(), 403);
         }
-
-        // Will throw a QueryException if DB has restrict foreign keys, 
-        // which is expected behavior for force deleting protected records.
-        $category->forceDelete();
 
         return $this->successResponse(null, 'Category permanently deleted.');
     }

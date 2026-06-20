@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import Modal from '@/components/ui/Modal';
-import { Category } from '@/types/category';
+import { Category, QuotaErrorResponse } from '@/types/category';
+import { AxiosError } from 'axios'; // Import AxiosError for strict typing
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   trashedCategories: Category[];
   isLoading: boolean;
-  onRestore: (id: number) => Promise<unknown>; // Changed from Promise<void>
-  onForceDelete: (id: number) => Promise<unknown>; // Changed from Promise<void>
+  onRestore: (id: number) => Promise<unknown>;
+  onForceDelete: (id: number) => Promise<unknown>;
   isRestoring: boolean;
   isForceDeleting: boolean;
 }
@@ -17,17 +18,29 @@ const TrashedCategoriesModal: React.FC<Props> = ({
   isOpen, onClose, trashedCategories, isLoading, onRestore, onForceDelete, isRestoring, isForceDeleting 
 }) => {
   const [confirmForceDeleteId, setConfirmForceDeleteId] = useState<number | null>(null);
+  // Local state to handle quota block without prop-drilling or breaking parent components
+  const [quotaError, setQuotaError] = useState<QuotaErrorResponse | null>(null);
 
   const handleClose = () => {
     setConfirmForceDeleteId(null);
+    setQuotaError(null); // Clear error on close
     onClose();
   };
 
   const handleRestore = async (id: number) => {
     try {
+      setQuotaError(null); // Clear previous errors before attempting
       await onRestore(id);
     } catch (err) {
-      console.error('Restore failed', err);
+      // Strictly type the error to check for our specific backend exception
+      const axiosError = err as AxiosError<QuotaErrorResponse>;
+      
+      if (axiosError?.response?.data?.error === 'quota_exceeded') {
+        // Set state to show the UI banner
+        setQuotaError(axiosError.response.data);
+      } else {
+        console.error('Restore failed', err);
+      }
     }
   };
 
@@ -54,6 +67,20 @@ const TrashedCategoriesModal: React.FC<Props> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Trashed Categories" footer={footer}>
+      {/* Quota Error Banner - Reusing existing design system classes (DRY) */}
+      {quotaError && (
+        <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
+          <i className="fas fa-exclamation-triangle me-2"></i>
+          <div className="flex-grow-1">
+            <strong>Restore Limit Reached!</strong> You cannot exceed your plan limit of {quotaError.limit} categories.
+          </div>
+          {/* Reusing the exact same upsell styling from CategoryQuotaBanner */}
+          <span className="quota-banner__upsell mb-0">
+            <i className="fas fa-crown me-1"></i> Upgrade to {quotaError.upgrade_required.charAt(0).toUpperCase() + quotaError.upgrade_required.slice(1)}
+          </span>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="d-flex justify-content-center py-4">
           <div className="spinner-border text-primary"></div>

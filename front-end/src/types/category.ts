@@ -15,3 +15,12 @@ export interface CategoryPayload {
   icon: string;
   sort_order?: number;
 }
+export interface QuotaErrorResponse {
+  success: false;
+  error: 'quota_exceeded';
+  message: string;
+  resource: string;
+  limit: number;
+  used: number;
+  upgrade_required: string;
+}
