@@ -23,6 +23,15 @@ class CategoryService
 
     public function createCategory(User $user, array $data): Category
     {
+        // Enforce business rule: Quota limit
+        // includeTrashed: true prevents the exploit (delete -> create -> restore)
+        $this->quotaService->ensureLimitNotExceeded(
+            $user,
+            'categories',
+            'max_categories',
+            includeTrashed: true
+        );
+
         return $user->categories()->create($data);
     }
 
@@ -34,8 +43,6 @@ class CategoryService
 
     public function deleteCategory(User $user, int $categoryId): void
     {
-        // Scoping through $user->categories() inherently ensures ownership, 
-        // eliminating the need for manual user_id checks.
         $category = $user->categories()->findOrFail($categoryId);
 
         if ($category->is_default) {
@@ -55,14 +62,16 @@ class CategoryService
 
     public function restoreCategory(User $user, int $categoryId): Category
     {
-        // 1. Enforce business rule: Quota limit
+        // Enforce business rule: Quota limit
+        // includeTrashed: false allows legitimate restore since total footprint doesn't increase
         $this->quotaService->ensureLimitNotExceeded(
             $user,
             'categories',
-            'max_categories'
+            'max_categories',
+            includeTrashed: false
         );
 
-        // 2. Execute domain action
+        // Execute domain action
         $category = $user->categories()->withTrashed()->findOrFail($categoryId);
         $category->restore();
 

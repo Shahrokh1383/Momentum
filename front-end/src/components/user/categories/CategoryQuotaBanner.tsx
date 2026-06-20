@@ -19,7 +19,7 @@ const CategoryQuotaBanner: React.FC<Props> = ({ onAddClick, trashCount }) => {
     );
   }
 
-  const used = quotas.usage?.categories ?? 0;
+  const used = (quotas.usage?.categories ?? 0) + trashCount;
   const limit = quotas.limits.max_categories;
   const isUnlimited = limit === -1;
   const isAtLimit = !isUnlimited && used >= limit;

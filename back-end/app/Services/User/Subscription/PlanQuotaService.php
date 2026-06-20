@@ -16,7 +16,6 @@ class PlanQuotaService
      */
     public function getPlan(User $user): Plan
     {
-        // Eager load relationship if not already loaded to prevent N+1
         if ($user->relationLoaded('plan') && $user->plan) {
             return $user->plan;
         }
@@ -39,15 +38,17 @@ class PlanQuotaService
     }
 
     /**
-     * Counts current active resources for the user.
-     * Extend this switch statement as you build out Habits, Categories, etc.
+     * Counts current resources for the user.
+     * Added $includeTrashed to handle context-specific quota checks.
      */
-    public function getUsage(User $user, string $resource): int
+    public function getUsage(User $user, string $resource, bool $includeTrashed = false): int
     {
         return match ($resource) {
             'habits' => $user->habits()->count(),
             'groups' => 0,  // TODO: Replace with $user->groups()->count() when ready
-            'categories' => $user->categories()->withTrashed()->count(),
+            'categories' => $includeTrashed 
+                ? $user->categories()->withTrashed()->count() 
+                : $user->categories()->count(),
             default => 0,
         };
     }
@@ -85,8 +86,9 @@ class PlanQuotaService
 
     /**
      * Enforce a limit on a resource. Throws exception if exceeded.
+     * Added $includeTrashed parameter passed down to getUsage.
      */
-    public function ensureLimitNotExceeded(User $user, string $resource, string $limitKey): void
+    public function ensureLimitNotExceeded(User $user, string $resource, string $limitKey, bool $includeTrashed = false): void
     {
         $limit = $this->getLimit($user, $limitKey);
         
@@ -95,7 +97,7 @@ class PlanQuotaService
             return;
         }
 
-        $used = $this->getUsage($user, $resource);
+        $used = $this->getUsage($user, $resource, $includeTrashed);
 
         if ($used >= $limit) {
             $plan = $this->getPlan($user);
