@@ -7,6 +7,7 @@ use App\Http\Controllers\User\Subscription\PlansController;
 use App\Http\Controllers\User\Subscription\SubscriptionController;
 use App\Http\Controllers\User\CategoryController;
 use App\Http\Controllers\User\TagController;
+use App\Http\Controllers\User\HabitController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(function () {
@@ -58,6 +59,18 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
         Route::post('/', [TagController::class, 'store']);
         Route::put('/{tag}', [TagController::class, 'update']);
         Route::delete('/{tag}', [TagController::class, 'destroy']);
+    });
+
+    Route::prefix('habits')->group(function () {
+        Route::get('/', [HabitController::class, 'index']);
+        Route::get('/archived', [HabitController::class, 'archived']);
+        Route::post('/', [HabitController::class, 'store']);
+        Route::get('/{id}', [HabitController::class, 'show'])->whereNumber('id');
+        Route::put('/{habit}', [HabitController::class, 'update']);
+    
+        Route::post('/{id}/archive', [HabitController::class, 'archive'])->whereNumber('id');
+        Route::post('/{id}/restore', [HabitController::class, 'restore'])->whereNumber('id');
+        Route::delete('/{id}', [HabitController::class, 'destroy'])->whereNumber('id');
     });
 
     Route::middleware(['tier:expert'])->prefix('expert')->group(function () {

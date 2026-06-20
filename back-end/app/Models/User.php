@@ -7,6 +7,7 @@ use App\Enums\ProfileVisibility;
 use App\Enums\UserRole;
 use App\Mail\PasswordResetMail;
 use App\Mail\VerificationMail;
+use App\Models\Habit;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -81,6 +82,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function tags(): HasMany
     {
         return $this->hasMany(Tag::class);
+    }
+
+    public function habits(): HasMany
+    {
+        return $this->hasMany(Habit::class);
     }
 
     public function sendEmailVerificationNotification(): void

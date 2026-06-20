@@ -45,9 +45,9 @@ class PlanQuotaService
     public function getUsage(User $user, string $resource): int
     {
         return match ($resource) {
-            'habits' => 0, // TODO: Replace with $user->habits()->active()->count() when ready
-            'groups' => 0, // TODO: Replace with $user->groups()->count() when ready
-            'categories' => $user->categories()->count(), // TODO: Replace with $user->categories()->count() when ready
+            'habits' => $user->habits()->count(),
+            'groups' => 0,  // TODO: Replace with $user->groups()->count() when ready
+            'categories' => $user->categories()->count(),
             default => 0,
         };
     }
