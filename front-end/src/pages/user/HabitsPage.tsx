@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useHabits } from '@/hooks/user/useHabits';
 import { useCategories } from '@/hooks/user/useCategories';
 import { useTags } from '@/hooks/user/useTags';
+import { useSubscription } from '@/hooks/user/useSubscription';
 import { Habit, HabitPayload } from '@/types/habit';
 import HabitQuotaBanner from '@/components/user/habits/HabitQuotaBanner';
 import HabitGrid from '@/components/user/habits/HabitGrid';
@@ -22,6 +23,7 @@ const HabitsPage: React.FC = () => {
 
   const { categories } = useCategories();
   const { tags: existingTags } = useTags();
+  const { quotas } = useSubscription();
 
   const [isArchivedView, setIsArchivedView] = useState(false);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -35,7 +37,6 @@ const HabitsPage: React.FC = () => {
   const isLoading = isArchivedView ? isArchivedLoading : isActiveLoading;
   const isProcessing = isArchiving || isRestoring || isDeleting;
 
-  // Form Handlers
   const handleOpenCreate = () => { setEditingHabit(null); setIsFormModalOpen(true); };
   const handleOpenEdit = (habit: Habit) => { setEditingHabit(habit); setIsFormModalOpen(true); };
   
@@ -47,7 +48,6 @@ const HabitsPage: React.FC = () => {
     }
   };
 
-  // Archive/Restore Handlers
   const handleArchiveToggle = (habit: Habit) => {
     setTargetHabit(habit);
     setIsRestoringAction(!!habit.archived_at);
@@ -127,6 +127,7 @@ const HabitsPage: React.FC = () => {
         initialData={editingHabit}
         categories={categories}
         existingTags={existingTags}
+        canUseReminders={quotas?.features?.smart_reminders ?? false}
         errorMessage={(createError || updateError) ? getErrorMessage() : null}
       />
 

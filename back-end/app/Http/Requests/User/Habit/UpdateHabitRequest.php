@@ -55,17 +55,24 @@ class UpdateHabitRequest extends FormRequest
             if ($this->has('type')) {
                 $type = $this->input('type');
                 if (!$this->quotaService->isHabitTypeAllowed($user, $type)) {
-                    throw new FeatureLockedException('habit_type:' . $type, PlanSlug::EXPERT);
+                    $plan = $this->quotaService->getPlan($user);
+                    $requiredPlan = $this->quotaService->getUpgradeRequiredPlan($plan);
+                    throw new FeatureLockedException('habit_type:' . $type, $requiredPlan ?? PlanSlug::EXPERT);
                 }
             }
 
-            // 2. Enforce Smart Reminders Restriction (if reminders are being updated)
-            if ($this->has('schedule.reminders')) {
-                $reminders = $this->input('schedule.reminders', []);
-                if (is_array($reminders) && count($reminders) > 1) {
-                    if (!$this->quotaService->isFeatureEnabled($user, 'has_smart_reminders')) {
-                        throw new FeatureLockedException('smart_reminders', PlanSlug::EXPERT);
-                    }
+            // 2. Enforce Reminders Restriction (basic + smart, single gate)
+            $hasBasicReminder = $this->has('reminder_time') && $this->filled('reminder_time');
+            $hasScheduleReminders = $this->has('schedule.reminders');
+            $hasSmartReminders = $hasScheduleReminders 
+                && is_array($this->input('schedule.reminders', [])) 
+                && count($this->input('schedule.reminders', [])) > 1;
+
+            if ($hasBasicReminder || $hasSmartReminders) {
+                if (!$this->quotaService->isFeatureEnabled($user, 'has_smart_reminders')) {
+                    $plan = $this->quotaService->getPlan($user);
+                    $requiredPlan = $this->quotaService->getUpgradeRequiredPlan($plan);
+                    throw new FeatureLockedException('reminders', $requiredPlan ?? PlanSlug::EXPERT);
                 }
             }
         });

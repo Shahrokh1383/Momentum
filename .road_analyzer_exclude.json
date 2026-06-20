@@ -47,13 +47,11 @@
     "front-end\\src\\vite-env.d.ts",
     "fixing_strategy.txt",
     "tag_implemetation.md",
-    "back-end\\app\\Services\\User\\Subscription",
     "back-end\\app\\Jobs",
     "back-end\\app\\Http\\Requests\\User\\Subscription",
-    "back-end\\app\\Http\\Controllers\\User\\Subscription",
     "back-end\\app\\helpers.php",
     "back-end\\app\\Traits"
   ],
-  "lastModified": "2026-06-20T14:11:00.781Z",
+  "lastModified": "2026-06-20T14:49:02.350Z",
   "version": 1
 }

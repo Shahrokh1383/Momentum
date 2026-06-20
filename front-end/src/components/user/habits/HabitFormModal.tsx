@@ -34,6 +34,7 @@ interface Props {
   initialData?: Habit | null;
   categories: Category[];
   existingTags: Tag[];
+  canUseReminders: boolean;
   errorMessage?: string | null;
 }
 
@@ -43,7 +44,7 @@ const DAYS_OF_WEEK = [
 ];
 
 const HabitFormModal: React.FC<Props> = ({ 
-  isOpen, onClose, onSubmit, isLoading, initialData, categories, existingTags, errorMessage 
+  isOpen, onClose, onSubmit, isLoading, initialData, categories, existingTags, canUseReminders, errorMessage 
 }) => {
   const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm<HabitFormData>({
     resolver: zodResolver(habitSchema),
@@ -75,7 +76,7 @@ const HabitFormModal: React.FC<Props> = ({
           type: initialData.type,
           frequency: initialData.frequency,
           due_days_of_week: initialData.due_days_of_week?.map(Number) || [],
-          reminder_time: initialData.reminder_time || '',
+          reminder_time: canUseReminders ? (initialData.reminder_time || '') : '',
           schedule: initialData.schedule || { reminders: [] },
           target_value: initialData.target_value,
           unit: initialData.unit || '',
@@ -89,29 +90,27 @@ const HabitFormModal: React.FC<Props> = ({
         });
       }
     }
-  }, [isOpen, initialData, reset]);
+  }, [isOpen, initialData, reset, canUseReminders]);
 
   const onFormSubmit = async (data: HabitFormData) => {
     try {
       const payload: HabitPayload = {
         ...data,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        due_days_of_week: data.frequency !== 'daily' && data.due_days_of_week?.length
-          ? data.due_days_of_week.join(',')
+        due_days_of_week: data.frequency !== 'daily' && data.due_days_of_week?.length 
+          ? data.due_days_of_week.join(',') 
           : undefined,
-        reminder_time: data.reminder_time || null,
+        reminder_time: canUseReminders ? (data.reminder_time || null) : null,
         target_value: data.type === 'numeric' ? data.target_value : null,
         unit: data.type === 'numeric' ? data.unit : null,
       };
-
+      
       if (payload.description === '') payload.description = null;
       if (payload.unit === '') payload.unit = null;
 
       await onSubmit(payload);
       onClose();
-    } catch (err) {
-      // Error handled by parent via mutation error state
-    }
+    } catch (err) {}
   };
 
   const footer = (
@@ -255,7 +254,22 @@ const HabitFormModal: React.FC<Props> = ({
         {/* Reminder */}
         <div className="settings-form__group mb-0">
           <label className="settings-form__label">Basic Reminder Time</label>
-          <input type="time" className="settings-form__input" {...register('reminder_time')} />
+          {canUseReminders ? (
+            <input type="time" className="settings-form__input" {...register('reminder_time')} />
+          ) : (
+            <div className="habit-form__locked-field">
+              <input 
+                type="text" 
+                className="settings-form__input" 
+                value="Upgrade to unlock reminders" 
+                disabled 
+                readOnly 
+              />
+              <a href="/plans" className="habit-form__upgrade-link">
+                <i className="fas fa-crown me-1"></i> Upgrade Plan
+              </a>
+            </div>
+          )}
         </div>
 
         {/* Tags */}

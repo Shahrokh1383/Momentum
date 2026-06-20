@@ -57,14 +57,21 @@ class StoreHabitRequest extends FormRequest
             // 2. Enforce Habit Type Restriction
             $type = $this->input('type', 'boolean');
             if (!$this->quotaService->isHabitTypeAllowed($user, $type)) {
-                throw new FeatureLockedException('habit_type:' . $type, PlanSlug::EXPERT);
+                $plan = $this->quotaService->getPlan($user);
+                $requiredPlan = $this->quotaService->getUpgradeRequiredPlan($plan);
+                throw new FeatureLockedException('habit_type:' . $type, $requiredPlan ?? PlanSlug::EXPERT);
             }
 
-            // 3. Enforce Smart Reminders Restriction
-            $reminders = $this->input('schedule.reminders', []);
-            if (is_array($reminders) && count($reminders) > 1) {
+            // 3. Enforce Reminders Restriction (basic + smart, single gate)
+            $hasBasicReminder = $this->filled('reminder_time');
+            $scheduleReminders = $this->input('schedule.reminders', []);
+            $hasSmartReminders = is_array($scheduleReminders) && count($scheduleReminders) > 1;
+
+            if ($hasBasicReminder || $hasSmartReminders) {
                 if (!$this->quotaService->isFeatureEnabled($user, 'has_smart_reminders')) {
-                    throw new FeatureLockedException('smart_reminders', PlanSlug::EXPERT);
+                    $plan = $this->quotaService->getPlan($user);
+                    $requiredPlan = $this->quotaService->getUpgradeRequiredPlan($plan);
+                    throw new FeatureLockedException('reminders', $requiredPlan ?? PlanSlug::EXPERT);
                 }
             }
         });
