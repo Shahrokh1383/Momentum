@@ -2,24 +2,6 @@
 
 ## Sub-Phase 2.3: Habit Management & Scheduling (Subscription-Aware)
 
-### 🛠 Backend
-**What to Build:**
-1. **HabitController:** CRUD + Archive/Restore/ForceDelete.
-2. **ActiveHabitScope:** Global scope (`whereNull('archived_at')`).
-3. **Schedule Logic:** `isDueToday()` method.
-4. **Custom FormRequests:** `StoreHabitRequest`, `UpdateHabitRequest` utilizing `PlanQuotaService`.
-
-**Business Rules:**
-- **Dynamic Habit Quota:** `PlanQuotaService::getLimit($user, 'max_active_habits')` checked on `store()`. Archived habits do NOT count towards the quota (`whereNull('archived_at')`).
-- **Dynamic Habit Type Restriction:** `PlanQuotaService::isHabitTypeAllowed($user, $type)` parses the `allowed_habit_types` CSV from the DB. 
-  - Free user submits `timer` -> API checks 'boolean,numeric' -> Returns 422 `feature_locked`.
-- **Smart Reminders Restriction:** If `PlanQuotaService::isFeatureEnabled($user, 'has_smart_reminders')` is false, user can only set 1 basic reminder per habit. If true, they can set multiple.
-
-**Expected Output:**
-- Free user creates 5 habits. 6th attempt returns 422 quota error.
-- Free user attempts `type: 'timer'`, API returns 422 feature locked.
-- Expert user creates up to 15 habits and uses `timer` type successfully.
-
 ### 🎨 Frontend
 **What to Build:**
 1. **Habits Page (`/habits`):** Active habits table, filters.

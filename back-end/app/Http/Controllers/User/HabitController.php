@@ -7,7 +7,7 @@ use App\Http\Requests\User\Habit\StoreHabitRequest;
 use App\Http\Requests\User\Habit\UpdateHabitRequest;
 use App\Http\Resources\User\HabitResource;
 use App\Models\Habit;
-use App\Services\User\HabitService;
+use App\Services\User\Habit\HabitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

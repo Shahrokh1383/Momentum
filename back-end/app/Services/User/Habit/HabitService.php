@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\User;
+namespace App\Services\User\Habit;
 
 use App\Models\Habit;
 use App\Models\Tag;
