@@ -3,6 +3,7 @@
 namespace App\Http\Requests\User\Category;
 
 use App\Services\User\Subscription\PlanQuotaService;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreCategoryRequest extends FormRequest
@@ -26,7 +27,7 @@ class StoreCategoryRequest extends FormRequest
         ];
     }
 
-    public function withValidator($validator): void
+    public function withValidator(Validator $validator): void
     {
         $validator->after(function () {
             $this->quotaService->ensureLimitNotExceeded(

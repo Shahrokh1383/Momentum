@@ -7,24 +7,19 @@ use App\Http\Requests\User\Habit\StoreHabitRequest;
 use App\Http\Requests\User\Habit\UpdateHabitRequest;
 use App\Http\Resources\User\HabitResource;
 use App\Models\Habit;
-use App\Models\Tag;
-use App\Services\User\Subscription\PlanQuotaService;
+use App\Services\User\HabitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class HabitController extends Controller
 {
     public function __construct(
-        private PlanQuotaService $quotaService
+        private HabitService $habitService
     ) {}
 
     public function index(Request $request): JsonResponse
     {
-        $habits = $request->user()->habits()
-            ->with('category', 'tags')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $habits = $this->habitService->getActiveHabits($request->user());
 
         return $this->successResponse(
             HabitResource::collection($habits),
@@ -34,11 +29,7 @@ class HabitController extends Controller
 
     public function archived(Request $request): JsonResponse
     {
-        $habits = $request->user()->habits()
-            ->onlyArchived()
-            ->with('category', 'tags')
-            ->orderBy('archived_at', 'desc')
-            ->get();
+        $habits = $this->habitService->getArchivedHabits($request->user());
 
         return $this->successResponse(
             HabitResource::collection($habits),
@@ -48,16 +39,10 @@ class HabitController extends Controller
 
     public function store(StoreHabitRequest $request): JsonResponse
     {
-        $data = $request->validated();
-        $tagsInput = $data['tags'] ?? [];
-        unset($data['tags']);
-
-        $habit = $request->user()->habits()->create($data);
-        
-        $this->syncTags($habit, $tagsInput, $request->user()->id);
+        $habit = $this->habitService->createHabit($request->user(), $request->validated());
 
         return $this->successResponse(
-            new HabitResource($habit->load('category', 'tags')),
+            new HabitResource($habit),
             'Habit created successfully.',
             201
         );
@@ -65,11 +50,7 @@ class HabitController extends Controller
 
     public function show(Request $request, int $id): JsonResponse
     {
-        // Allow fetching a specific habit even if archived
-        $habit = $request->user()->habits()
-            ->withArchived()
-            ->with('category', 'tags')
-            ->findOrFail($id);
+        $habit = $this->habitService->getHabitById($request->user(), $id);
 
         return $this->successResponse(
             new HabitResource($habit),
@@ -79,31 +60,21 @@ class HabitController extends Controller
 
     public function update(UpdateHabitRequest $request, Habit $habit): JsonResponse
     {
-        $data = $request->validated();
-        $tagsInput = $data['tags'] ?? [];
-        unset($data['tags']);
-
-        $habit->update($data);
-        
-        if ($request->has('tags')) {
-            $this->syncTags($habit, $tagsInput, $request->user()->id);
-        }
+        $habit = $this->habitService->updateHabit($habit, $request->validated());
 
         return $this->successResponse(
-            new HabitResource($habit->load('category', 'tags')),
+            new HabitResource($habit),
             'Habit updated successfully.'
         );
     }
 
     public function archive(Request $request, int $id): JsonResponse
     {
-        $habit = $request->user()->habits()->findOrFail($id);
-
-        if ($habit->archived_at !== null) {
-            return $this->errorResponse('already_archived', 'Habit is already archived.', 422);
+        try {
+            $habit = $this->habitService->archiveHabit($request->user(), $id);
+        } catch (\DomainException $e) {
+            return $this->errorResponse('already_archived', $e->getMessage(), 422);
         }
-
-        $habit->update(['archived_at' => now()]);
 
         return $this->successResponse(
             new HabitResource($habit),
@@ -113,57 +84,18 @@ class HabitController extends Controller
 
     public function restore(Request $request, int $id): JsonResponse
     {
-        $habit = $request->user()->habits()
-            ->withArchived()
-            ->whereNotNull('archived_at')
-            ->findOrFail($id);
-
-        // Restoring makes it active again, so we MUST check the quota first
-        $this->quotaService->ensureLimitNotExceeded($request->user(), 'habits', 'max_active_habits');
-
-        $habit->update(['archived_at' => null]);
+        $habit = $this->habitService->restoreHabit($request->user(), $id);
 
         return $this->successResponse(
-            new HabitResource($habit->load('category', 'tags')),
+            new HabitResource($habit),
             'Habit restored successfully.'
         );
     }
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $habit = $request->user()->habits()
-            ->withArchived()
-            ->findOrFail($id);
-
-        $habit->forceDelete();
+        $this->habitService->deleteHabit($request->user(), $id);
 
         return $this->successResponse(null, 'Habit permanently deleted.');
-    }
-
-    /**
-     * Helper to handle inline Tag Creation & Syncing
-     */
-    private function syncTags(Habit $habit, array $tagsInput, int $userId): void
-    {
-        $tagIds = [];
-        
-        foreach ($tagsInput as $tag) {
-            if (is_numeric($tag)) {
-                // Existing Tag ID
-                $tagModel = Tag::where('id', $tag)->where('user_id', $userId)->first();
-                if ($tagModel) {
-                    $tagIds[] = $tagModel->id;
-                }
-            } else {
-                // New Tag Name (Inline Creation)
-                $tagModel = Tag::firstOrCreate(
-                    ['user_id' => $userId, 'slug' => Str::slug($tag)],
-                    ['name' => $tag, 'color' => '#6B7280'] // Default color
-                );
-                $tagIds[] = $tagModel->id;
-            }
-        }
-
-        $habit->tags()->sync(array_unique($tagIds));
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Requests\User\Habit;
 use App\Enums\PlanSlug;
 use App\Exceptions\FeatureLockedException;
 use App\Services\User\Subscription\PlanQuotaService;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -45,7 +46,7 @@ class UpdateHabitRequest extends FormRequest
         ];
     }
 
-    public function withValidator($validator): void
+    public function withValidator(Validator $validator): void
     {
         $validator->after(function () {
             $user = $this->user();
