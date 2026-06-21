@@ -19,7 +19,7 @@ class CheckSubscriptionStatus extends Command
     {
         // 1. Natural Expiration: Downgrade to FREE using Atomic Updates
         $expiredCount = 0;
-        
+
         Subscription::where('status', SubscriptionStatus::ACTIVE)
             ->whereNotNull('expires_at')
             ->where('expires_at', '<', now())
@@ -29,13 +29,17 @@ class CheckSubscriptionStatus extends Command
                         ->where('id', $subscription->id)
                         ->where('status', SubscriptionStatus::ACTIVE->value)
                         ->update([
-                            'status' => SubscriptionStatus::EXPIRED->value,
-                            'plan'   => PlanSlug::FREE->value,
+                            'status'     => SubscriptionStatus::EXPIRED->value,
+                            'plan'       => PlanSlug::FREE->value,
                             'updated_at' => now(),
                         ]);
 
                     if ($affectedRows > 0) {
                         $subscription->refresh();
+
+                        // Keep users.plan_slug in sync with the subscription
+                        $subscription->user->update(['plan_slug' => PlanSlug::FREE]);
+
                         event(new SubscriptionExpired($subscription));
                         $expiredCount++;
                     }
@@ -59,10 +63,10 @@ class CheckSubscriptionStatus extends Command
                         $subscription->payments()
                             ->where('status', PaymentStatus::PENDING)
                             ->update(['status' => PaymentStatus::FAILED->value]);
-                        
+
                         // Cancel the subscription
                         $subscription->update([
-                            'status' => SubscriptionStatus::CANCELLED,
+                            'status'       => SubscriptionStatus::CANCELLED,
                             'cancelled_at' => now(),
                         ]);
                     });
@@ -73,7 +77,7 @@ class CheckSubscriptionStatus extends Command
         $this->info("Downgraded {$expiredCount} expired subscriptions to Free plan.");
         $this->info("Permanently deleted {$deletedCount} old cancelled subscriptions.");
         $this->info("Cancelled {$abandonedCount} abandoned pending payment subscriptions.");
-        
+
         return Command::SUCCESS;
     }
 }

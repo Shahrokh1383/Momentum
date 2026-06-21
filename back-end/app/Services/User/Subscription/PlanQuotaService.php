@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\Cache;
 class PlanQuotaService
 {
     /**
-     * Get the user's effective plan, falling back to Free.
+     * Get the user's effective plan.
+     * Source of truth: active subscription. Falls back to plan_slug column, then FREE.
      */
     public function getPlan(User $user): Plan
     {
@@ -20,10 +21,10 @@ class PlanQuotaService
             return $user->plan;
         }
 
-        $planSlug = $user->plan_slug ?? PlanSlug::FREE;
+        $effectiveSlug = $this->resolveEffectiveSlug($user);
 
-        return Cache::rememberForever("plan_{$planSlug->value}", function () use ($planSlug) {
-            return Plan::where('slug', $planSlug->value)->firstOrFail();
+        return Cache::rememberForever("plan_{$effectiveSlug->value}", function () use ($effectiveSlug) {
+            return Plan::where('slug', $effectiveSlug->value)->firstOrFail();
         });
     }
 
@@ -39,15 +40,14 @@ class PlanQuotaService
 
     /**
      * Counts current resources for the user.
-     * Added $includeTrashed to handle context-specific quota checks.
      */
     public function getUsage(User $user, string $resource, bool $includeTrashed = false): int
     {
         return match ($resource) {
             'habits' => $user->habits()->count(),
             'groups' => 0,  // TODO: Replace with $user->groups()->count() when ready
-            'categories' => $includeTrashed 
-                ? $user->categories()->withTrashed()->count() 
+            'categories' => $includeTrashed
+                ? $user->categories()->withTrashed()->count()
                 : $user->categories()->count(),
             default => 0,
         };
@@ -63,35 +63,62 @@ class PlanQuotaService
     }
 
     /**
-     * Parses the comma-separated allowed_habit_types column into an array and checks.
+     * Parses the comma-separated allowed_habit_types column and checks membership.
      */
     public function isHabitTypeAllowed(User $user, string $type): bool
     {
         $plan = $this->getPlan($user);
         $allowedTypes = explode(',', $plan->allowed_habit_types);
-        return in_array($type, $allowedTypes);
+        return in_array($type, $allowedTypes, true);
     }
 
     /**
-     * Determines the minimum plan required to unlock more resources.
+     * Finds the minimum plan that allows a given habit type.
+     * Returns null if no plan supports it (should never happen with correct seed data).
+     */
+    public function getMinimumPlanForHabitType(string $type): ?PlanSlug
+    {
+        return Cache::rememberForever("min_plan_habit_type_{$type}", function () use ($type) {
+            return Plan::where('allowed_habit_types', 'LIKE', "%{$type}%")
+                ->get()
+                ->sortBy(fn (Plan $plan) => $plan->slug->level())
+                ->first()?->slug;
+        });
+    }
+
+    /**
+     * Finds the minimum plan that has a given boolean feature enabled.
+     * Returns null if no plan supports it.
+     */
+    public function getMinimumPlanForFeature(string $featureKey): ?PlanSlug
+    {
+        return Cache::rememberForever("min_plan_feature_{$featureKey}", function () use ($featureKey) {
+            return Plan::where($featureKey, true)
+                ->get()
+                ->sortBy(fn (Plan $plan) => $plan->slug->level())
+                ->first()?->slug;
+        });
+    }
+
+    /**
+     * Determines the next plan in the tier hierarchy (for quota exceeded scenarios).
      */
     public function getUpgradeRequiredPlan(Plan $currentPlan): ?PlanSlug
     {
         return match ($currentPlan->slug) {
             PlanSlug::FREE => PlanSlug::EXPERT,
             PlanSlug::EXPERT => PlanSlug::PREMIUM,
-            default => null,
+            PlanSlug::PREMIUM => null,
         };
     }
 
     /**
      * Enforce a limit on a resource. Throws exception if exceeded.
-     * Added $includeTrashed parameter passed down to getUsage.
      */
     public function ensureLimitNotExceeded(User $user, string $resource, string $limitKey, bool $includeTrashed = false): void
     {
         $limit = $this->getLimit($user, $limitKey);
-        
+
         // -1 means unlimited
         if ($limit === -1) {
             return;
@@ -118,5 +145,18 @@ class PlanQuotaService
         if (!$this->isFeatureEnabled($user, $featureKey)) {
             throw new FeatureLockedException($featureKey, $requiredPlan);
         }
+    }
+
+    /**
+     * Resolve the effective plan slug for a user.
+     * Active subscription is the source of truth.
+     */
+    private function resolveEffectiveSlug(User $user): PlanSlug
+    {
+        if ($user->subscription?->isActive()) {
+            return $user->subscription->plan;
+        }
+
+        return $user->plan_slug ?? PlanSlug::FREE;
     }
 }

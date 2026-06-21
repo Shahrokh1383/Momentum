@@ -26,8 +26,8 @@ class StoreHabitRequest extends FormRequest
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'category_id' => [
-                'nullable', 
-                'integer', 
+                'nullable',
+                'integer',
                 Rule::exists('categories', 'id')->where('user_id', $this->user()->id)
             ],
             'type' => ['required', 'string', Rule::in(['boolean', 'numeric', 'timer', 'checklist'])],
@@ -68,9 +68,8 @@ class StoreHabitRequest extends FormRequest
             // 2. Enforce Habit Type Restriction
             $type = $this->input('type', 'boolean');
             if (!$this->quotaService->isHabitTypeAllowed($user, $type)) {
-                $plan = $this->quotaService->getPlan($user);
-                $requiredPlan = $this->quotaService->getUpgradeRequiredPlan($plan);
-                throw new FeatureLockedException('habit_type:' . $type, $requiredPlan ?? PlanSlug::EXPERT);
+                $requiredPlan = $this->quotaService->getMinimumPlanForHabitType($type) ?? PlanSlug::EXPERT;
+                throw new FeatureLockedException('habit_type:' . $type, $requiredPlan);
             }
 
             // 3. Enforce Reminders Restriction (basic + smart, single gate)
@@ -80,9 +79,8 @@ class StoreHabitRequest extends FormRequest
 
             if ($hasBasicReminder || $hasSmartReminders) {
                 if (!$this->quotaService->isFeatureEnabled($user, 'has_smart_reminders')) {
-                    $plan = $this->quotaService->getPlan($user);
-                    $requiredPlan = $this->quotaService->getUpgradeRequiredPlan($plan);
-                    throw new FeatureLockedException('reminders', $requiredPlan ?? PlanSlug::EXPERT);
+                    $requiredPlan = $this->quotaService->getMinimumPlanForFeature('has_smart_reminders') ?? PlanSlug::EXPERT;
+                    throw new FeatureLockedException('reminders', $requiredPlan);
                 }
             }
         });
