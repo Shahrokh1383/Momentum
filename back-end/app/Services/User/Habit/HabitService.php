@@ -38,17 +38,21 @@ class HabitService
     }
 
     /**
-     * Create a new habit and sync tags.
+     * Create a new habit and sync tags + checklist items.
      */
     public function createHabit(User $user, array $data): Habit
     {
         $tagsInput = $data['tags'] ?? [];
         unset($data['tags']);
 
+        $checklistItemsInput = $data['checklist_items'] ?? [];
+        unset($data['checklist_items']);
+
         $habit = $user->habits()->create($data);
         $this->syncTags($habit, $tagsInput, $user->id);
+        $this->syncChecklistItems($habit, $checklistItemsInput);
 
-        return $habit->load(['category', 'tags']);
+        return $habit->load(['category', 'tags', 'checklistItems']);
     }
 
     /**
@@ -58,12 +62,12 @@ class HabitService
     {
         return $user->habits()
             ->withArchived()
-            ->with(['category', 'tags'])
+            ->with(['category', 'tags', 'checklistItems'])
             ->findOrFail($id);
     }
 
     /**
-     * Update an existing habit and conditionally sync tags.
+     * Update an existing habit and conditionally sync tags + checklist items.
      */
     public function updateHabit(Habit $habit, array $data): Habit
     {
@@ -71,13 +75,21 @@ class HabitService
         $hasTags = array_key_exists('tags', $data);
         unset($data['tags']);
 
+        $checklistItemsInput = $data['checklist_items'] ?? [];
+        $hasChecklistItems = array_key_exists('checklist_items', $data);
+        unset($data['checklist_items']);
+
         $habit->update($data);
 
         if ($hasTags) {
             $this->syncTags($habit, $tagsInput, $habit->user_id);
         }
 
-        return $habit->load(['category', 'tags']);
+        if ($hasChecklistItems) {
+            $this->syncChecklistItems($habit, $checklistItemsInput);
+        }
+
+        return $habit->load(['category', 'tags', 'checklistItems']);
     }
 
     /**
@@ -109,7 +121,7 @@ class HabitService
         $this->quotaService->ensureLimitNotExceeded($user, 'habits', 'max_active_habits');
 
         $habit->update(['archived_at' => null]);
-        return $habit->load(['category', 'tags']);
+        return $habit->load(['category', 'tags', 'checklistItems']);
     }
 
     /**
@@ -154,5 +166,21 @@ class HabitService
         }
 
         $habit->tags()->sync(array_unique($tagIds));
+    }
+
+    /**
+     * Replace all checklist items for a habit.
+     * Uses delete-all-recreate (same pattern as tag sync — atomic replacement).
+     */
+    private function syncChecklistItems(Habit $habit, array $items): void
+    {
+        $habit->checklistItems()->delete();
+
+        foreach ($items as $index => $item) {
+            $habit->checklistItems()->create([
+                'title' => $item['title'],
+                'sort_order' => $item['sort_order'] ?? $index,
+            ]);
+        }
     }
 }

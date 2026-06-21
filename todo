@@ -19,27 +19,7 @@ Without addressing these, `numeric`/`timer`/`checklist` remain empty shells — 
 
 ## Complete Phased Plan (Single Source of Truth)
 
-### PHASE 1: Database Schema — Type-Specific Log Support
 
-**Goal:** Make `habit_logs` capable of storing data for all 4 types.
-
-| Action | Details |
-|---|---|
-| Add `value` column | `DECIMAL(10,2) NULL` — for numeric logs (e.g., `5.00` glasses) |
-| Add `duration_seconds` column | `INT NULL` — for timer logs (e.g., `932` seconds = 15:32) |
-| Create `habit_checklist_items` table | `id`, `habit_id` (FK), `title` (string), `sort_order` (int) |
-| Create `habit_checklist_logs` table | `id`, `habit_log_id` (FK), `checklist_item_id` (FK), `is_checked` (bool) |
-| Create `streaks` table | `id`, `user_id`, `habit_id`, `current_streak` (int), `longest_streak` (int), `last_log_date` (date) |
-| Create `streak_freezes` table | `id`, `user_id`, `habit_id`, `frozen_date` (date), unique(`user_id`, `habit_id`, `frozen_date`) |
-
-**Files to create:**
-- `database/migrations/xxxx_add_type_columns_to_habit_logs.php`
-- `database/migrations/xxxx_create_habit_checklist_items_table.php`
-- `database/migrations/xxxx_create_habit_checklist_logs_table.php`
-- `database/migrations/xxxx_create_streaks_table.php`
-- `database/migrations/xxxx_create_streak_freezes_table.php`
-
----
 
 ### PHASE 2: Backend — Habit Type CRUD + Logging
 

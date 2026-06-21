@@ -27,6 +27,14 @@ class HabitResource extends JsonResource
             'archived_at' => $this->archived_at,
             'category' => new CategoryResource($this->whenLoaded('category')),
             'tags' => TagResource::collection($this->whenLoaded('tags')),
+            'checklist_items' => $this->when(
+                $this->type === 'checklist' && $this->relationLoaded('checklistItems'),
+                fn() => $this->checklistItems->map(fn($item) => [
+                    'id' => $item->id,
+                    'title' => $item->title,
+                    'sort_order' => $item->sort_order,
+                ])
+            ),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

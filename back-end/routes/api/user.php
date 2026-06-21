@@ -8,6 +8,7 @@ use App\Http\Controllers\User\Subscription\SubscriptionController;
 use App\Http\Controllers\User\CategoryController;
 use App\Http\Controllers\User\TagController;
 use App\Http\Controllers\User\HabitController;
+use App\Http\Controllers\User\HabitLogController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(function () {
@@ -61,6 +62,7 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
         Route::delete('/{tag}', [TagController::class, 'destroy']);
     });
 
+    // Habits
     Route::prefix('habits')->group(function () {
         Route::get('/', [HabitController::class, 'index']);
         Route::get('/archived', [HabitController::class, 'archived']);
@@ -71,6 +73,15 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
         Route::post('/{id}/archive', [HabitController::class, 'archive'])->whereNumber('id');
         Route::post('/{id}/restore', [HabitController::class, 'restore'])->whereNumber('id');
         Route::delete('/{id}', [HabitController::class, 'destroy'])->whereNumber('id');
+
+        // Habit Logs (nested under habit)
+        Route::post('/{id}/logs', [HabitLogController::class, 'store'])->whereNumber('id');
+    });
+
+    // Habit Logs (standalone for update/destroy)
+    Route::prefix('habit-logs')->group(function () {
+        Route::put('/{habit_log}', [HabitLogController::class, 'update']);
+        Route::delete('/{id}', [HabitLogController::class, 'destroy'])->whereNumber('id');
     });
 
     Route::middleware(['tier:expert'])->prefix('expert')->group(function () {

@@ -43,21 +43,36 @@ class UpdateHabitRequest extends FormRequest
             'is_active' => ['sometimes', 'boolean'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['required'],
+            'checklist_items' => ['nullable', 'array'],
+            'checklist_items.*.title' => ['required_with:checklist_items', 'string', 'max:255'],
+            'checklist_items.*.sort_order' => ['nullable', 'integer', 'min:0'],
         ];
     }
 
     public function withValidator(Validator $validator): void
     {
-        $validator->after(function () {
+        $validator->after(function (Validator $validator) {
             $user = $this->user();
 
             // 1. Enforce Habit Type Restriction (if type is being updated)
             if ($this->has('type')) {
                 $type = $this->input('type');
+                
                 if (!$this->quotaService->isHabitTypeAllowed($user, $type)) {
                     $plan = $this->quotaService->getPlan($user);
                     $requiredPlan = $this->quotaService->getUpgradeRequiredPlan($plan);
                     throw new FeatureLockedException('habit_type:' . $type, $requiredPlan ?? PlanSlug::EXPERT);
+                }
+
+                // When switching to checklist, items must be provided
+                if ($type === 'checklist') {
+                    $items = $this->input('checklist_items', []);
+                    if (!is_array($items) || count($items) === 0) {
+                        $validator->errors()->add(
+                            'checklist_items',
+                            'At least one checklist item is required when type is checklist.'
+                        );
+                    }
                 }
             }
 

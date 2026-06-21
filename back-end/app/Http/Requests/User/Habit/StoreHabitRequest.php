@@ -22,7 +22,7 @@ class StoreHabitRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        $rules = [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'category_id' => [
@@ -43,7 +43,18 @@ class StoreHabitRequest extends FormRequest
             'is_active' => ['sometimes', 'boolean'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['required'],
+            'checklist_items' => ['nullable', 'array'],
+            'checklist_items.*.title' => ['required_with:checklist_items', 'string', 'max:255'],
+            'checklist_items.*.sort_order' => ['nullable', 'integer', 'min:0'],
         ];
+
+        // Checklist type requires at least one item
+        if ($this->input('type') === 'checklist') {
+            $rules['checklist_items'] = ['required', 'array', 'min:1'];
+            $rules['checklist_items.*.title'] = ['required', 'string', 'max:255'];
+        }
+
+        return $rules;
     }
 
     public function withValidator(Validator $validator): void

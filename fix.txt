@@ -1,0 +1,226 @@
+خیلی خب من فایل UpdateHabitRequest.php روهم در زیر قرار میدم :
+
+<?php
+
+namespace App\Http\Requests\User\Habit;
+
+use App\Enums\PlanSlug;
+use App\Exceptions\FeatureLockedException;
+use App\Services\User\Subscription\PlanQuotaService;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class UpdateHabitRequest extends FormRequest
+{
+    public function __construct(
+        private PlanQuotaService $quotaService
+    ) {}
+
+    public function authorize(): bool
+    {
+        return $this->route('habit')->user_id === $this->user()->id;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'title' => ['sometimes', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'category_id' => [
+                'nullable', 
+                'integer', 
+                Rule::exists('categories', 'id')->where('user_id', $this->user()->id)
+            ],
+            'type' => ['sometimes', 'string', Rule::in(['boolean', 'numeric', 'timer', 'checklist'])],
+            'schedule' => ['nullable', 'array'],
+            'schedule.reminders' => ['nullable', 'array'],
+            'schedule.reminders.*' => ['date_format:H:i'],
+            'due_days_of_week' => ['nullable', 'string', 'regex:/^[1-7](,[1-7])*$/'],
+            'frequency' => ['sometimes', 'string', Rule::in(['daily', 'weekly', 'custom'])],
+            'reminder_time' => ['nullable', 'date_format:H:i'],
+            'timezone' => ['sometimes', 'string', 'timezone'],
+            'target_value' => ['nullable', 'numeric', 'min:0'],
+            'unit' => ['nullable', 'string', 'max:50'],
+            'is_active' => ['sometimes', 'boolean'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['required'],
+            'checklist_items' => ['nullable', 'array'],
+            'checklist_items.*.title' => ['required_with:checklist_items', 'string', 'max:255'],
+            'checklist_items.*.sort_order' => ['nullable', 'integer', 'min:0'],
+        ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $user = $this->user();
+
+            // 1. Enforce Habit Type Restriction (if type is being updated)
+            if ($this->has('type')) {
+                $type = $this->input('type');
+                
+                if (!$this->quotaService->isHabitTypeAllowed($user, $type)) {
+                    $plan = $this->quotaService->getPlan($user);
+                    $requiredPlan = $this->quotaService->getUpgradeRequiredPlan($plan);
+                    throw new FeatureLockedException('habit_type:' . $type, $requiredPlan ?? PlanSlug::EXPERT);
+                }
+
+                // When switching to checklist, items must be provided
+                if ($type === 'checklist') {
+                    $items = $this->input('checklist_items', []);
+                    if (!is_array($items) || count($items) === 0) {
+                        $validator->errors()->add(
+                            'checklist_items',
+                            'At least one checklist item is required when type is checklist.'
+                        );
+                    }
+                }
+            }
+
+            // 2. Enforce Reminders Restriction (basic + smart, single gate)
+            $hasBasicReminder = $this->has('reminder_time') && $this->filled('reminder_time');
+            $hasScheduleReminders = $this->has('schedule.reminders');
+            $hasSmartReminders = $hasScheduleReminders 
+                && is_array($this->input('schedule.reminders', [])) 
+                && count($this->input('schedule.reminders', [])) > 1;
+
+            if ($hasBasicReminder || $hasSmartReminders) {
+                if (!$this->quotaService->isFeatureEnabled($user, 'has_smart_reminders')) {
+                    $plan = $this->quotaService->getPlan($user);
+                    $requiredPlan = $this->quotaService->getUpgradeRequiredPlan($plan);
+                    throw new FeatureLockedException('reminders', $requiredPlan ?? PlanSlug::EXPERT);
+                }
+            }
+        });
+    }
+}
+
+مسیر درختی سمت بک اندم روهم برات قرار میدم در زیر :
+
+📁 back-end/
+├── 📁 app/
+│   ├── 📁 Console/
+│   │   └── 📁 Commands/
+│   │       ├── 📄 CheckSubscriptionStatus.php
+│   │       └── 📄 SendHabitReminders.php
+│   ├── 📁 Enums/
+│   │   ├── 📄 PaymentStatus.php
+│   │   ├── 📄 PlanSlug.php
+│   │   ├── 📄 ProfileVisibility.php
+│   │   ├── 📄 SubscriptionStatus.php
+│   │   ├── 📄 Theme.php
+│   │   └── 📄 UserRole.php
+│   ├── 📁 Events/
+│   │   └── 📄 SubscriptionExpired.php
+│   ├── 📁 Exceptions/
+│   │   ├── 📄 FeatureLockedException.php
+│   │   └── 📄 QuotaExceededException.php
+│   ├── 📁 Http/
+│   │   ├── 📁 Controllers/
+│   │   │   ├── 📁 Admin/
+│   │   │   ├── 📁 User/
+│   │   │   │   ├── 📁 Profile/
+│   │   │   │   │   ├── 📄 AvatarController.php
+│   │   │   │   │   └── 📄 SettingsController.php
+│   │   │   │   ├── 📁 Subscription/
+│   │   │   │   │   ├── 📄 PlansController.php
+│   │   │   │   │   └── 📄 SubscriptionController.php
+│   │   │   │   ├── 📄 CategoryController.php
+│   │   │   │   ├── 📄 HabitController.php
+│   │   │   │   ├── 📄 HabitLogController.php
+│   │   │   │   └── 📄 TagController.php
+│   │   │   ├── 📄 Controller.php
+│   │   │   └── 📄 PaymentCallbackController.php
+│   │   ├── 📁 middleware/
+│   │   │   ├── 📄 EnsureTier.php
+│   │   │   └── 📄 RoleMiddleware.php
+│   │   ├── 📁 Requests/
+│   │   │   ├── 📁 Admin/
+│   │   │   └── 📁 User/
+│   │   │       ├── 📁 Category/
+│   │   │       │   ├── 📄 StoreCategoryRequest.php
+│   │   │       │   └── 📄 UpdateCategoryRequest.php
+│   │   │       ├── 📁 Habit/
+│   │   │       │   ├── 📄 StoreHabitRequest.php
+│   │   │       │   └── 📄 UpdateHabitRequest.php
+│   │   │       ├── 📁 HabitLog/
+│   │   │       │   ├── 📄 StoreHabitLogRequest.php
+│   │   │       │   └── 📄 UpdateHabitLogRequest.php
+│   │   │       ├── 📁 Profile/
+│   │   │       │   ├── 📄 UpdateAvatarRequest.php
+│   │   │       │   ├── 📄 UpdatePreferencesRequest.php
+│   │   │       │   └── 📄 UpdateProfileRequest.php
+│   │   │       └── 📁 Tag/
+│   │   │           ├── 📄 StoreTagRequest.php
+│   │   │           └── 📄 UpdateTagRequest.php
+│   │   └── 📁 Resources/
+│   │       ├── 📁 Admin/
+│   │       └── 📁 User/
+│   │           ├── 📄 CategoryResource.php
+│   │           ├── 📄 HabitLogResource.php
+│   │           ├── 📄 HabitResource.php
+│   │           ├── 📄 PlanResource.php
+│   │           ├── 📄 SubscriptionResource.php
+│   │           ├── 📄 TagResource.php
+│   │           └── 📄 UserResource.php
+│   ├── 📁 Listeners/
+│   │   └── 📄 SendSubscriptionExpiredEmailListener.php
+│   ├── 📁 Mail/
+│   │   ├── 📄 HabitReminderMail.php
+│   │   ├── 📄 PasswordResetMail.php
+│   │   ├── 📄 SubscriptionConfirmedMail.php
+│   │   ├── 📄 SubscriptionExpiredMail.php
+│   │   └── 📄 VerificationMail.php
+│   ├── 📁 Models/
+│   │   ├── 📁 Scopes/
+│   │   │   └── 📄 ActiveHabitScope.php
+│   │   ├── 📄 Category.php
+│   │   ├── 📄 Habit.php
+│   │   ├── 📄 HabitChecklistItem.php
+│   │   ├── 📄 HabitChecklistLog.php
+│   │   ├── 📄 HabitLog.php
+│   │   ├── 📄 HabitReminderLog.php
+│   │   ├── 📄 Payment.php
+│   │   ├── 📄 PendingRegistration.php
+│   │   ├── 📄 Plan.php
+│   │   ├── 📄 Streak.php
+│   │   ├── 📄 StreakFreeze.php
+│   │   ├── 📄 Subscription.php
+│   │   ├── 📄 Tag.php
+│   │   ├── 📄 User.php
+│   │   └── 📄 UserSetting.php
+│   ├── 📁 Providers/
+│   │   └── 📄 AppServiceProvider.php
+│   └── 📁 Services/
+│       ├── 📁 Admin/
+│       └── 📁 User/
+│           ├── 📁 Habit/
+│           │   ├── 📄 HabitLogService.php
+│           │   ├── 📄 HabitReminderService.php
+│           │   └── 📄 HabitService.php
+│           ├── 📁 Subscription/
+│           │   ├── 📄 PaymenterService.php
+│           │   ├── 📄 PlanQuotaService.php
+│           │   └── 📄 SubscriptionService.php
+│           └── 📄 CategoryService.php
+
+
+حالا از تو میخوام که دقیقا مثل برنامه نویس سینیور با 12 سال تجربه عمل کنی و با رعایت اصول و شروط زیر  به refactor این بخش بپردازی :
+
+
+1 : ریفکتور حتما و دقیقا باید طبق برنامه ریزی که برات قرار دادم باشه 
+
+2 : ابتدا لیست تمام فایل هایی که باید چک بکنی تا به درک کامل برسی رو برام قرار بده و سپس به ریفکتور بپرداز و تا زمانی که اطلاعاتت تکمیل نشده به هیچ عنوان کدنویسیی رو انجام نده 
+
+3 : برای تکمیل اطلاعاتت دائما به چرخه درخواست فایل ها از من ادامه بده
+
+4 : در ریفکتور فایل ها و کدهای پروژه حتما به عنوان برنامه نویس سینیور با 12 سال تجربه عمل کن و حتما از اصول SOLID و SRP و KIIS و DRY پیروی کن تا کد خوانا و تمیز و قابل توسعه داشته باشیم و همینطور به شدت تاکید دارم که از over engeneering دوری کنی
+
+5 : برای ریفکتور کردن پس از اینکه به درک کاملی از الگوی کدنویسی و پیاده سازی های کدبیسم رسیدی بهم بگو قراره چکار بکنی بطور کامل و پس از ان با تایید و نظر من به جلو پیش برو 
+
+6 : پس از اینکه ریفکتور به اتمام رسید حتما بهم تمام فایل هاییکه باید حذف بشن و Dead Code هارو بطور کامل و دقیق شناسایی کن و از کل کدبیس بهم کزارش بده تا بطور کامل حذف کنم تا کدبیس تمیز و سینیور لول داشته باشیم در کل پروژه و اگر هم هیچ کد و فایل بلا استفاده ای در کدبیسم وجود نداشت بهم بازهم گزارش بده که نیازی به حذف هیچ کدی نیست چون Dead code موحود نیست و هیچ فایلی بلا استفاده نیست 
+
+7 : در طول انجام پروژه به زبان انگلیسی حرف بزن باهام بطور کامل و من بهت به فارسی جواب میدم 
+
+حالا طبق اصول و شروطی که برات قرار دادم شروع به انجام کارها بکن
