@@ -2,19 +2,11 @@
 
 namespace App\Http\Requests\User\Habit;
 
-use App\Enums\PlanSlug;
-use App\Exceptions\FeatureLockedException;
-use App\Services\User\Subscription\PlanQuotaService;
-use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreHabitRequest extends FormRequest
 {
-    public function __construct(
-        private PlanQuotaService $quotaService
-    ) {}
-
     public function authorize(): bool
     {
         return true;
@@ -48,41 +40,11 @@ class StoreHabitRequest extends FormRequest
             'checklist_items.*.sort_order' => ['nullable', 'integer', 'min:0'],
         ];
 
-        // Checklist type requires at least one item
         if ($this->input('type') === 'checklist') {
             $rules['checklist_items'] = ['required', 'array', 'min:1'];
             $rules['checklist_items.*.title'] = ['required', 'string', 'max:255'];
         }
 
         return $rules;
-    }
-
-    public function withValidator(Validator $validator): void
-    {
-        $validator->after(function () {
-            $user = $this->user();
-
-            // 1. Enforce Active Habit Quota
-            $this->quotaService->ensureLimitNotExceeded($user, 'habits', 'max_active_habits');
-
-            // 2. Enforce Habit Type Restriction
-            $type = $this->input('type', 'boolean');
-            if (!$this->quotaService->isHabitTypeAllowed($user, $type)) {
-                $requiredPlan = $this->quotaService->getMinimumPlanForHabitType($type) ?? PlanSlug::EXPERT;
-                throw new FeatureLockedException('habit_type:' . $type, $requiredPlan);
-            }
-
-            // 3. Enforce Reminders Restriction (basic + smart, single gate)
-            $hasBasicReminder = $this->filled('reminder_time');
-            $scheduleReminders = $this->input('schedule.reminders', []);
-            $hasSmartReminders = is_array($scheduleReminders) && count($scheduleReminders) > 1;
-
-            if ($hasBasicReminder || $hasSmartReminders) {
-                if (!$this->quotaService->isFeatureEnabled($user, 'has_smart_reminders')) {
-                    $requiredPlan = $this->quotaService->getMinimumPlanForFeature('has_smart_reminders') ?? PlanSlug::EXPERT;
-                    throw new FeatureLockedException('reminders', $requiredPlan);
-                }
-            }
-        });
     }
 }

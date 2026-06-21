@@ -41,12 +41,9 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
 
     // Categories
     Route::prefix('categories')->group(function () {
-        // Trash & Recovery Routes (Must be before /{category})
         Route::get('trashed', [CategoryController::class, 'trashed']);
         Route::post('{id}/restore', [CategoryController::class, 'restore']);
         Route::delete('{id}/force-delete', [CategoryController::class, 'forceDelete']);
-
-        // Standard CRUD Routes
         Route::get('/', [CategoryController::class, 'index']);
         Route::post('/', [CategoryController::class, 'store']);
         Route::put('/{category}', [CategoryController::class, 'update']);
@@ -66,10 +63,10 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
     Route::prefix('habits')->group(function () {
         Route::get('/', [HabitController::class, 'index']);
         Route::get('/archived', [HabitController::class, 'archived']);
-        Route::post('/', [HabitController::class, 'store']);
+        Route::post('/', [HabitController::class, 'store'])->middleware('habit.plan');
         Route::get('/{id}', [HabitController::class, 'show'])->whereNumber('id');
-        Route::put('/{habit}', [HabitController::class, 'update']);
-    
+        Route::put('/{habit}', [HabitController::class, 'update'])->middleware('habit.plan');
+
         Route::post('/{id}/archive', [HabitController::class, 'archive'])->whereNumber('id');
         Route::post('/{id}/restore', [HabitController::class, 'restore'])->whereNumber('id');
         Route::delete('/{id}', [HabitController::class, 'destroy'])->whereNumber('id');
