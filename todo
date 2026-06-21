@@ -1,74 +1,220 @@
-
-
-## Sub-Phase 2.4: Tracking, Streaks & Automation (Subscription-Aware)
-
-### 🛠 Backend
-**What to Build:**
-1. **HabitLogController:** Create/Update logs.
-2. **StreakService:** `calculate()` and `recalculate()`.
-3. **HabitLogObserver:** Triggers streak recalculation.
-4. **StreakFreezeController:** Apply a freeze to a specific date.
-5. **Artisan Commands:** `habits:mark-missed`, `reminders:dispatch`.
-
-**Business Rules:**
-- **Unique Log Constraint:** One log per `habit_id`, `logged_date`, `user_id`.
-- **Dynamic Streak Freeze Quota:** When a user applies a streak freeze, check `PlanQuotaService::getLimit($user, 'max_freezes_per_week')`. If they have used >= limit for the current week, return 422 `quota_exceeded` for `streak_freezes`. `-1` means unlimited.
-- **XP Multiplier Integration (Prep for later):** When a habit is completed, if you dispatch an event, attach the `$user->plan->xp_multiplier` dynamically.
-- **Mark Missed Logic:** Runs every 15 mins, calculates "local yesterday", sets pending/due habits to `missed`.
-
-**Expected Output:**
-- Logging a habit updates the `streaks` table.
-- Free user applies 1 freeze. 2nd attempt in the same week returns 422. Premium user applies freezes freely.
-- Artisan commands accurately process timezones and update logs.
-
-### 🎨 Frontend
-**What to Build:**
-1. **Log Interaction UI:** Checkboxes/Inputs on the habits list.
-2. **Streak Display:** Flame icon + count.
-3. **Freeze Button:** UI to apply a freeze to a missed day.
-
-**Business Rules:**
-- Apply Freeze button checks the Quota Store for `max_freezes_per_week`. If limit reached, button shows lock/upsell.
-- Optimistic UI updates for checking off habits, with revert on API error.
-
-**Expected Output:**
-- User checks off habit, streak increments immediately.
-- Free user sees "Freezes: 1/1" and is blocked from using more without upgrading.
+Honest answer first, then the plan.
 
 ---
 
-## Sub-Phase 2.5: Dashboard & Dynamic Quota Indicators
+## Gap Analysis: Your Sub-Phases Are Incomplete
 
-### 🛠 Backend
-**What to Build:**
-1. **DashboardController:** Aggregation endpoint for today's data + dynamic quota payload.
-2. **UserQuotaController:** Dedicated endpoint `/api/user/quotas` that maps the user's plan limits vs. current usage.
+Your sub-phases 2.4 and 2.5 cover **generic habit completion** (mark as done/missed) and **streaks/freezes/dashboard** — but they **completely miss** making `numeric`, `timer`, and `checklist` types functional. Here's what's missing:
 
-**Business Rules:**
-- The `UserQuotaController` must dynamically build a response like:
-  ```json
-  {
-    "habits": { "used": 3, "limit": 5, "unlimited": false },
-    "categories": { "used": 2, "limit": 3, "unlimited": false },
-    "freezes": { "used": 0, "limit": 1, "unlimited": false },
-    "allowed_habit_types": ["boolean", "numeric"],
-    "features": { "has_smart_reminders": false, "has_advanced_analytics": false }
-  }
-  ```
-  This ensures the frontend never hardcodes plan logic.
+| Type | Your sub-phases cover this? | What's actually needed |
+|---|---|---|
+| **boolean** | ✅ Yes — `status: completed` in `habit_logs` | Nothing extra |
+| **numeric** | ❌ No | `habit_logs.value` column + "I did 5 out of 8" input UI |
+| **timer** | ❌ No | `habit_logs.duration_seconds` column + stopwatch UI component |
+| **checklist** | ❌ No | `habit_checklist_items` table + draggable checklist UI |
 
-**Expected Output:**
-- `GET /api/user/quotas` returns accurate, dynamic limits parsed directly from the `plans` table for the authenticated user.
+Without addressing these, `numeric`/`timer`/`checklist` remain empty shells — users pay to unlock them but get zero functionality beyond a label.
 
-### 🎨 Frontend
-**What to Build:**
-1. **Dashboard Page (`/dashboard`):** Today's Habits list, Progress Overview Cards.
-2. **Dynamic Quota Indicators:** UI components that read from the Quota Store.
+---
 
-**Business Rules:**
-- **Quota Indicators:** Progress bars render dynamically based on the JSON payload. If `unlimited: true`, show an infinity icon (∞) instead of a progress bar.
-- **Upsell Banners:** Show inline upgrade banners *only* when `used >= limit * 0.8` (80% threshold) and `unlimited === false`.
+## Complete Phased Plan (Single Source of Truth)
 
-**Expected Output:**
-- Dashboard perfectly reflects the user's current plan restrictions.
-- If the database `plans` row is updated (e.g., Free habits changed from 5 to 7), the Dashboard progress bar and limits update automatically on the next API fetch without any frontend deployment required.
+### PHASE 1: Database Schema — Type-Specific Log Support
+
+**Goal:** Make `habit_logs` capable of storing data for all 4 types.
+
+| Action | Details |
+|---|---|
+| Add `value` column | `DECIMAL(10,2) NULL` — for numeric logs (e.g., `5.00` glasses) |
+| Add `duration_seconds` column | `INT NULL` — for timer logs (e.g., `932` seconds = 15:32) |
+| Create `habit_checklist_items` table | `id`, `habit_id` (FK), `title` (string), `sort_order` (int) |
+| Create `habit_checklist_logs` table | `id`, `habit_log_id` (FK), `checklist_item_id` (FK), `is_checked` (bool) |
+| Create `streaks` table | `id`, `user_id`, `habit_id`, `current_streak` (int), `longest_streak` (int), `last_log_date` (date) |
+| Create `streak_freezes` table | `id`, `user_id`, `habit_id`, `frozen_date` (date), unique(`user_id`, `habit_id`, `frozen_date`) |
+
+**Files to create:**
+- `database/migrations/xxxx_add_type_columns_to_habit_logs.php`
+- `database/migrations/xxxx_create_habit_checklist_items_table.php`
+- `database/migrations/xxxx_create_habit_checklist_logs_table.php`
+- `database/migrations/xxxx_create_streaks_table.php`
+- `database/migrations/xxxx_create_streak_freezes_table.php`
+
+---
+
+### PHASE 2: Backend — Habit Type CRUD + Logging
+
+**Goal:** Users can define type-specific data when creating habits, and log type-specific data when completing them.
+
+| Build | Business Logic |
+|---|---|
+| `HabitChecklistItem` model | BelongsTo `Habit`, has `title` + `sort_order` |
+| Update `Habit` model | HasMany `checklistItems`, update `$fillable` |
+| Update `HabitResource` | Include `checklist_items` when type is `checklist` |
+| Update `StoreHabitRequest` | Validate `checklist_items` array when type is `checklist` |
+| Update `UpdateHabitRequest` | Same, with `sometimes` |
+| Update `HabitService` | Sync checklist items (similar to how tags are synced) |
+| `HabitLog` model | Add `value`, `duration_seconds` to `$fillable` and `$casts` |
+| `HabitLogService` | `logCompletion()` — handles boolean/numeric/timer/checklist differently |
+| `HabitLogController` | `store` (log a habit), `update` (modify log), `destroy` (remove log) |
+| `HabitLogResource` | Type-aware response — includes `value`, `duration`, `checklist_logs` |
+| Routes | `POST /api/user/habits/{id}/logs`, `PUT /api/user/habit-logs/{id}` |
+
+**Files to create/modify:**
+- `app/Models/HabitChecklistItem.php` (new)
+- `app/Models/HabitLog.php` (modify — add fillable/casts)
+- `app/Services/User/Habit/HabitLogService.php` (new)
+- `app/Http/Controllers/User/HabitLogController.php` (new)
+- `app/Http/Resources/User/HabitLogResource.php` (new)
+- `app/Http/Requests/User/HabitLog/StoreHabitLogRequest.php` (new)
+- `app/Http/Requests/User/HabitLog/UpdateHabitLogRequest.php` (new)
+- Modify: `Habit.php`, `HabitResource.php`, `StoreHabitRequest.php`, `UpdateHabitRequest.php`, `HabitService.php`
+- `routes/api.php` (add log routes)
+
+---
+
+### PHASE 3: Backend — Streaks & Freezes
+
+**Goal:** Automatic streak calculation and quota-aware freeze system.
+
+| Build | Business Logic |
+|---|---|
+| `Streak` model | BelongsTo User, BelongsTo Habit |
+| `StreakFreeze` model | BelongsTo User, BelongsTo Habit |
+| `StreakService` | `calculate(Habit)`, `recalculate(Habit)`, `applyFreeze(Habit, date)` |
+| `HabitLogObserver` | On log created/updated/deleted → trigger `StreakService::recalculate()` |
+| `StreakFreezeController` | `store` — checks `PlanQuotaService::getLimit(user, 'max_freezes_per_week')` |
+| `habits:mark-missed` command | Runs every 15 min, finds habits due yesterday with `pending` status → set `missed` |
+| Update `HabitResource` | Include `streak` relationship |
+
+**Files to create/modify:**
+- `app/Models/Streak.php` (new)
+- `app/Models/StreakFreeze.php` (new)
+- `app/Services/User/Habit/StreakService.php` (new)
+- `app/Observers/HabitLogObserver.php` (new)
+- `app/Http/Controllers/User/StreakFreezeController.php` (new)
+- `app/Http/Requests/User/StreakFreeze/StoreStreakFreezeRequest.php` (new)
+- `app/Console/Commands/MarkMissedHabits.php` (new)
+- `app/Providers/AppServiceProvider.php` (register observer)
+- `routes/console.php` (add mark-missed schedule)
+- Modify: `HabitResource.php`
+
+---
+
+### PHASE 4: Backend — Dashboard & Enhanced Quotas
+
+**Goal:** Single endpoint for dashboard data, enhanced quota endpoint with freeze usage.
+
+| Build | Business Logic |
+|---|---|
+| `DashboardController` | Returns today's habits with logs, streak counts, completion percentage |
+| Update `SubscriptionController@quotas` | Add `freezes.used/limit/unlimited` and `allowed_habit_types` |
+| `DashboardResource` | Structured today's data payload |
+
+**Files to create/modify:**
+- `app/Http/Controllers/User/DashboardController.php` (new)
+- `app/Http/Resources/User/DashboardResource.php` (new)
+- Modify: `SubscriptionController.php`
+- `routes/api.php` (add dashboard route)
+
+---
+
+### PHASE 5: Frontend — Type-Specific Form UI
+
+**Goal:** Habit form shows relevant fields for each type.
+
+| Build | Details |
+|---|---|
+| Update `HabitFormModal` | `numeric` → target + unit (already done). `timer` → default duration input. `checklist` → add/remove/sort checklist items |
+| Update `habit.ts` types | Add `checklist_items` to `Habit`, add log types |
+| Update `HabitPayload` | Add `checklist_items` array |
+
+**Files to modify:**
+- `src/components/user/habits/HabitFormModal.tsx`
+- `src/types/habit.ts`
+
+---
+
+### PHASE 6: Frontend — Logging UI (The Core)
+
+**Goal:** Users can actually complete their habits from the habits page.
+
+| Build | Details |
+|---|---|
+| `useHabitLogs` hook | `logHabit`, `updateLog`, `deleteLog` mutations + today's logs query |
+| `habitLogService` | API calls for log CRUD |
+| Update `HabitCard` | `boolean` → checkbox. `numeric` → number input with progress. `timer` → start/stop/reset stopwatch. `checklist` → checkable sub-items |
+| `TimerWidget` component | Stopwatch with start/pause/reset, returns seconds on save |
+| `ChecklistLog` component | Renders checklist items with checkboxes for today |
+| `NumericLog` component | Number input + "out of {target} {unit}" label |
+| Update `HabitsPage` | Fetch today's logs, pass to `HabitGrid` → `HabitCard` |
+| Optimistic updates | Checkbox/input updates immediately, reverts on API error |
+
+**Files to create/modify:**
+- `src/services/user/habitLogService.ts` (new)
+- `src/hooks/user/useHabitLogs.ts` (new)
+- `src/components/user/habits/TimerWidget.tsx` (new)
+- `src/components/user/habits/ChecklistLog.tsx` (new)
+- `src/components/user/habits/NumericLog.tsx` (new)
+- Modify: `src/components/user/habits/HabitCard.tsx`
+- Modify: `src/components/user/habits/HabitGrid.tsx`
+- Modify: `src/pages/user/HabitsPage.tsx`
+- `src/types/habit.ts`
+
+---
+
+### PHASE 7: Frontend — Streaks, Freezes & Dashboard
+
+**Goal:** Visual streak display, freeze functionality, dashboard page.
+
+| Build | Details |
+|---|---|
+| `useStreaks` hook | Streak data query |
+| `useStreakFreezes` hook | Apply freeze mutation with quota check |
+| `StreakBadge` component | 🔥 12 days |
+| `FreezeButton` component | Checks quota, shows lock if limit reached |
+| Update `HabitCard` | Show streak badge + freeze button for missed days |
+| `DashboardPage` | Today's progress, completion ring, quota indicators |
+| `QuotaIndicator` component | Dynamic progress bar from quota API |
+| `QuotaBanner` component | 80% threshold upsell banner |
+
+**Files to create/modify:**
+- `src/hooks/user/useStreaks.ts` (new)
+- `src/hooks/user/useStreakFreezes.ts` (new)
+- `src/services/user/streakService.ts` (new)
+- `src/components/user/habits/StreakBadge.tsx` (new)
+- `src/components/user/habits/FreezeButton.tsx` (new)
+- `src/components/user/dashboard/QuotaIndicator.tsx` (new)
+- `src/components/user/dashboard/QuotaBanner.tsx` (new)
+- `src/pages/user/DashboardPage.tsx` (new)
+- Modify: `src/components/user/habits/HabitCard.tsx`
+- Modify: `src/types/habit.ts`, `src/types/subscription.ts`
+
+---
+
+## Dependency Graph
+
+```
+PHASE 1 (Schema)
+    ↓
+PHASE 2 (Backend Logging) ← depends on Phase 1
+    ↓
+PHASE 3 (Streaks/Freezes) ← depends on Phase 2
+    ↓
+PHASE 4 (Dashboard/Quotas) ← depends on Phase 3
+    ↓
+PHASE 5 (Frontend Form UI) ← can run parallel with Phase 3
+    ↓
+PHASE 6 (Frontend Logging UI) ← depends on Phase 2 + 5
+    ↓
+PHASE 7 (Frontend Streaks/Dashboard) ← depends on Phase 4 + 6
+```
+
+---
+
+## To Start Phase 1, I Need:
+
+1. **`database/migrations/2026_06_16_215204_create_habit_logs_table.php`** — I saw this earlier but need to confirm exact columns before writing the addition migration.
+2. **`app/Models/HabitLog.php`** — If it exists, I need to see it. If not, confirm it doesn't exist.
+3. **`routes/api.php`** — To see current route structure and where to add new ones.
+
+Confirm you're ready to proceed with this plan, and share those 3 files to begin Phase 1.

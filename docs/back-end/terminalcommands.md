@@ -4,6 +4,6 @@
 
 run the following commands through testing the project :
 
-php artisan queu:work
+php artisan queue:work
 
 php artisan schedule:work

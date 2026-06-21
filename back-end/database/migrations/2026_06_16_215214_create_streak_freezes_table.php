@@ -12,13 +12,15 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('habit_id')->nullable()->constrained()->nullOnDelete();
-            
+
             $table->date('frozen_date')->index();
             $table->timestamp('used_at');
             $table->string('reason')->nullable();
-            
-            // Note: Schema specifies only created_at, no updated_at
-            $table->timestamp('created_at')->nullable(); 
+
+            // Prevent duplicate freeze for the same habit on the same day
+            $table->unique(['user_id', 'habit_id', 'frozen_date'], 'unique_freeze_per_day');
+
+            $table->timestamp('created_at')->nullable();
         });
     }
 

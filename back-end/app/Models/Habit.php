@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
 use App\Models\HabitReminderLog;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Habit extends Model
 {
@@ -61,6 +62,21 @@ class Habit extends Model
     public function reminderLogs(): HasMany
     {
         return $this->hasMany(HabitReminderLog::class);
+    }
+
+    public function logs(): HasMany
+    {
+        return $this->hasMany(HabitLog::class);
+    }
+
+    public function checklistItems(): HasMany
+    {
+        return $this->hasMany(HabitChecklistItem::class);
+    }
+
+    public function streak(): HasOne
+    {
+        return $this->hasOne(Streak::class);
     }
 
     /**

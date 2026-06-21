@@ -89,6 +89,21 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Habit::class);
     }
 
+    public function habitLogs(): HasMany
+    {
+        return $this->hasMany(HabitLog::class);
+    }
+
+    public function streaks(): HasMany
+    {
+        return $this->hasMany(Streak::class);
+    }
+
+    public function streakFreezes(): HasMany
+    {
+        return $this->hasMany(StreakFreeze::class);
+    }
+
     public function sendEmailVerificationNotification(): void
     {
         $finalUrl = app(\App\Services\Auth\EmailVerificationService::class)
