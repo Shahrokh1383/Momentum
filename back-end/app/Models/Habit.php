@@ -79,6 +79,11 @@ class Habit extends Model
         return $this->hasOne(Streak::class);
     }
 
+    public function streakFreezes(): HasMany
+    {
+        return $this->hasMany(StreakFreeze::class);
+    }
+
     /**
      * Scope a query to only include archived habits.
      */
