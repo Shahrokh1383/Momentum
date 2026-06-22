@@ -20,7 +20,7 @@ class HabitService
     public function getActiveHabits(User $user)
     {
         return $user->habits()
-            ->with(['category', 'tags', 'streak'])
+            ->with(['category', 'tags', 'streak', 'todayLog', 'checklistItems'])
             ->orderBy('created_at', 'desc')
             ->get();
     }

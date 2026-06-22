@@ -38,10 +38,7 @@ class HabitResource extends JsonResource
                 ])
             ),
             'streak' => new StreakResource($this->whenLoaded('streak')),
-            'today_log' => $this->when(
-                $this->relationLoaded('logs') && $this->logs->isNotEmpty(),
-                fn () => new HabitLogResource($this->logs->first())
-            ),
+            'today_log' => new HabitLogResource($this->whenLoaded('todayLog')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

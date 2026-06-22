@@ -31,6 +31,12 @@ export interface HabitLog {
   updated_at: string;
 }
 
+export interface Streak {
+  current_streak: number;
+  longest_streak: number;
+  last_log_date: string | null;
+}
+
 export interface Habit {
   id: number;
   title: string;
@@ -50,6 +56,7 @@ export interface Habit {
   tags: Tag[];
   checklist_items?: ChecklistItem[];
   today_log?: HabitLog | null;
+  streak?: Streak | null;
   created_at: string;
   updated_at: string;
 }
@@ -69,4 +76,13 @@ export interface HabitPayload {
   is_active?: boolean;
   tags?: (number | string)[];
   checklist_items?: Omit<ChecklistItem, 'id'>[];
+}
+
+export interface HabitLogPayload {
+  logged_date: string;
+  status?: 'completed' | 'pending' | 'missed' | 'skipped';
+  value?: number | null;
+  duration_seconds?: number | null;
+  checklist_logs?: { checklist_item_id: number; is_checked: boolean }[];
+  notes?: string | null;
 }

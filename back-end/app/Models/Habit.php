@@ -84,6 +84,11 @@ class Habit extends Model
         return $this->hasMany(StreakFreeze::class);
     }
 
+    public function todayLog(): HasOne
+    {
+        return $this->hasOne(HabitLog::class)->whereDate('logged_date', now()->timezone($this->timezone ?? 'UTC'))->latestOfMany();
+    }
+
     /**
      * Scope a query to only include archived habits.
      */

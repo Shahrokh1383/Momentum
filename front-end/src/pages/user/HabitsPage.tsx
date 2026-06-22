@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useHabits } from '@/hooks/user/useHabits';
+import { useHabitLogs } from '@/hooks/user/useHabitLogs';
 import { useCategories } from '@/hooks/user/useCategories';
 import { useTags } from '@/hooks/user/useTags';
 import { useSubscription } from '@/hooks/user/useSubscription';
-import { Habit, HabitPayload } from '@/types/habit';
+import { Habit, HabitPayload, HabitLogPayload } from '@/types/habit';
 import HabitQuotaBanner from '@/components/user/habits/HabitQuotaBanner';
 import HabitGrid from '@/components/user/habits/HabitGrid';
 import HabitFormModal from '@/components/user/habits/HabitFormModal';
@@ -20,6 +21,8 @@ const HabitsPage: React.FC = () => {
     restoreHabit, isRestoring, restoreError,
     deleteHabit, isDeleting,
   } = useHabits();
+
+  const { logHabit, updateLog, deleteLog, isProcessing: isLogProcessing } = useHabitLogs();
 
   const { categories } = useCategories();
   const { tags: existingTags } = useTags();
@@ -64,11 +67,24 @@ const HabitsPage: React.FC = () => {
       }
       setIsArchiveModalOpen(false);
       setTargetHabit(null);
-    } catch (err) {}
+    } catch (_err) { /* Handled by React Query error states */ }
   };
 
   const handleDelete = async (id: number) => {
-    try { await deleteHabit(id); } catch (err) {}
+    try { await deleteHabit(id); } catch (_err) { /* Handled by React Query error states */ }
+  };
+
+  // Logging Handlers
+  const handleLog = async (habitId: number, payload: HabitLogPayload) => {
+    try { await logHabit({ habitId, payload }); } catch (_err) {}
+  };
+
+  const handleUpdateLog = async (logId: number, payload: Partial<HabitLogPayload>) => {
+    try { await updateLog({ logId, payload }); } catch (_err) {}
+  };
+
+  const handleDeleteLog = async (logId: number) => {
+    try { await deleteLog(logId); } catch (_err) {}
   };
 
   const getErrorMessage = () => {
@@ -112,11 +128,15 @@ const HabitsPage: React.FC = () => {
         habits={currentHabits}
         isLoading={isLoading}
         isProcessing={isProcessing}
+        isLogProcessing={isLogProcessing}
         isArchivedView={isArchivedView}
         onEdit={handleOpenEdit}
         onArchiveToggle={handleArchiveToggle}
         onDelete={handleDelete}
         onAddClick={handleOpenCreate}
+        onLog={handleLog}
+        onUpdateLog={handleUpdateLog}
+        onDeleteLog={handleDeleteLog}
       />
 
       <HabitFormModal
