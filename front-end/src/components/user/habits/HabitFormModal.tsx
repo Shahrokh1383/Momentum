@@ -1,30 +1,18 @@
 import React, { useEffect } from 'react';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import Modal from '@/components/ui/Modal';
 import CreatableTagInput from '@/components/ui/CreatableTagInput';
 import { Habit, HabitPayload } from '@/types/habit';
 import { Category } from '@/types/category';
 import { Tag } from '@/types/tag';
+import { habitSchema, HabitFormData } from '@/validation/habitSchema';
 
-const habitSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(255),
-  description: z.string().nullable().optional(),
-  category_id: z.number().nullable().optional(),
-  type: z.enum(['boolean', 'numeric', 'timer', 'checklist']),
-  frequency: z.enum(['daily', 'weekly', 'custom']),
-  due_days_of_week: z.array(z.number()).optional(),
-  reminder_time: z.string().nullable().optional(),
-  schedule: z.object({
-    reminders: z.array(z.string()).optional()
-  }).optional(),
-  target_value: z.number().nullable().optional(),
-  unit: z.string().nullable().optional(),
-  tags: z.array(z.union([z.number(), z.string()])).optional(),
-});
-
-type HabitFormData = z.infer<typeof habitSchema>;
+// Sub-components
+import NumericFields from './form-fields/NumericFields';
+import TimerFields from './form-fields/TimerFields';
+import ChecklistFields from './form-fields/ChecklistFields';
+import ScheduleFields from './form-fields/ScheduleFields';
 
 interface Props {
   isOpen: boolean;
@@ -38,28 +26,16 @@ interface Props {
   errorMessage?: string | null;
 }
 
-const DAYS_OF_WEEK = [
-  { iso: 1, label: 'Mon' }, { iso: 2, label: 'Tue' }, { iso: 3, label: 'Wed' },
-  { iso: 4, label: 'Thu' }, { iso: 5, label: 'Fri' }, { iso: 6, label: 'Sat' }, { iso: 7, label: 'Sun' }
-];
-
 const HabitFormModal: React.FC<Props> = ({ 
   isOpen, onClose, onSubmit, isLoading, initialData, categories, existingTags, canUseReminders, errorMessage 
 }) => {
   const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm<HabitFormData>({
     resolver: zodResolver(habitSchema),
     defaultValues: {
-      title: '',
-      description: '',
-      category_id: null,
-      type: 'boolean',
-      frequency: 'daily',
-      due_days_of_week: [],
-      reminder_time: '',
-      schedule: { reminders: [] },
-      target_value: null,
-      unit: '',
-      tags: [],
+      title: '', description: '', category_id: null, type: 'boolean',
+      frequency: 'daily', due_days_of_week: [], reminder_time: '',
+      schedule: { reminders: [] }, target_value: null, unit: '', tags: [],
+      checklist_items: [],
     },
   });
 
@@ -81,12 +57,14 @@ const HabitFormModal: React.FC<Props> = ({
           target_value: initialData.target_value,
           unit: initialData.unit || '',
           tags: initialData.tags.map(t => t.id),
+          checklist_items: initialData.checklist_items || [],
         });
       } else {
         reset({
           title: '', description: '', category_id: null, type: 'boolean',
           frequency: 'daily', due_days_of_week: [], reminder_time: '',
           schedule: { reminders: [] }, target_value: null, unit: '', tags: [],
+          checklist_items: [],
         });
       }
     }
@@ -101,16 +79,30 @@ const HabitFormModal: React.FC<Props> = ({
           ? data.due_days_of_week.join(',') 
           : undefined,
         reminder_time: canUseReminders ? (data.reminder_time || null) : null,
-        target_value: data.type === 'numeric' ? data.target_value : null,
-        unit: data.type === 'numeric' ? data.unit : null,
       };
+
+      if (data.type !== 'numeric' && data.type !== 'timer') {
+        payload.target_value = null;
+        payload.unit = null;
+      }
+
+      if (data.type === 'checklist') {
+        payload.checklist_items = (data.checklist_items || []).map((item, index) => ({
+          title: item.title,
+          sort_order: index,
+        }));
+      } else {
+        payload.checklist_items = undefined;
+      }
       
       if (payload.description === '') payload.description = null;
       if (payload.unit === '') payload.unit = null;
 
       await onSubmit(payload);
       onClose();
-    } catch (err) {}
+    } catch (err) {
+      console.error('Habit submission error:', err);
+    }
   };
 
   const footer = (
@@ -143,21 +135,18 @@ const HabitFormModal: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Title */}
         <div className="settings-form__group mb-0">
           <label className="settings-form__label">Habit Title</label>
           <input type="text" className={`settings-form__input ${errors.title ? 'is-invalid' : ''}`} {...register('title')} />
-          {errors.title && <p className="category-form__error">{errors.title.message}</p>}
+          {errors.title && <p className="category-form__error">{String(errors.title.message)}</p>}
         </div>
 
-        {/* Description */}
         <div className="settings-form__group mb-0">
           <label className="settings-form__label">Description (Optional)</label>
           <textarea className="settings-form__input settings-form__textarea" rows={2} {...register('description')} />
         </div>
 
         <div className="row g-3">
-          {/* Category */}
           <div className="col-md-6">
             <div className="settings-form__group mb-0 h-100">
               <label className="settings-form__label">Category</label>
@@ -170,7 +159,6 @@ const HabitFormModal: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Type */}
           <div className="col-md-6">
             <div className="settings-form__group mb-0 h-100">
               <label className="settings-form__label">Type</label>
@@ -184,95 +172,19 @@ const HabitFormModal: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Dynamic Fields for Numeric Type */}
-        {watchedType === 'numeric' && (
-          <div className="row g-3 habit-form__dynamic-fields">
-            <div className="col-6">
-              <label className="settings-form__label">Target Value</label>
-              <input type="number" step="0.01" className="settings-form__input" {...register('target_value', { valueAsNumber: true })} />
-            </div>
-            <div className="col-6">
-              <label className="settings-form__label">Unit</label>
-              <input type="text" className="settings-form__input" placeholder="e.g., km, pages" {...register('unit')} />
-            </div>
-          </div>
-        )}
+        {watchedType === 'numeric' && <NumericFields register={register} errors={errors} />}
+        {watchedType === 'timer' && <TimerFields register={register} errors={errors} />}
+        {watchedType === 'checklist' && <ChecklistFields control={control} errors={errors} />}
 
-        {/* Frequency & Schedule */}
-        <div className="settings-form__group mb-0">
-          <label className="settings-form__label">Frequency</label>
-          <div className="d-flex gap-2 mb-2">
-            <button 
-                type="button" 
-                className={`habit-form__freq-btn ${watchedFreq === 'daily' ? 'active' : ''}`} 
-                onClick={() => {
-                    setValue('frequency', 'daily');
-                    setValue('due_days_of_week', []);
-                }}
-                >
-                Daily
-            </button>
-            <button 
-                type="button" 
-                className={`habit-form__freq-btn ${watchedFreq === 'weekly' ? 'active' : ''}`} 
-                onClick={() => setValue('frequency', 'weekly')}
-                >
-                Weekly
-            </button>
-          </div>
-          
-          {watchedFreq !== 'daily' && (
-            <Controller
-              name="due_days_of_week"
-              control={control}
-              render={({ field }) => (
-                <div className="habit-form__days-picker">
-                  {DAYS_OF_WEEK.map(day => {
-                    const isSelected = field.value?.includes(day.iso);
-                    return (
-                      <button
-                        key={day.iso}
-                        type="button"
-                        className={`habit-form__day-btn ${isSelected ? 'active' : ''}`}
-                        onClick={() => {
-                          const newValue = isSelected 
-                            ? field.value?.filter(d => d !== day.iso) 
-                            : [...(field.value || []), day.iso];
-                          field.onChange(newValue);
-                        }}
-                      >
-                        {day.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            />
-          )}
-        </div>
+        <ScheduleFields 
+          control={control} 
+          register={register} 
+          setValue={setValue} 
+          errors={errors} 
+          canUseReminders={canUseReminders} 
+          watchedFreq={watchedFreq} 
+        />
 
-        {/* Reminder */}
-        <div className="settings-form__group mb-0">
-          <label className="settings-form__label">Basic Reminder Time</label>
-          {canUseReminders ? (
-            <input type="time" className="settings-form__input" {...register('reminder_time')} />
-          ) : (
-            <div className="habit-form__locked-field">
-              <input 
-                type="text" 
-                className="settings-form__input" 
-                value="Upgrade to unlock reminders" 
-                disabled 
-                readOnly 
-              />
-              <a href="/plans" className="habit-form__upgrade-link">
-                <i className="fas fa-crown me-1"></i> Upgrade Plan
-              </a>
-            </div>
-          )}
-        </div>
-
-        {/* Tags */}
         <div className="settings-form__group mb-0">
           <label className="settings-form__label">Tags</label>
           <Controller
