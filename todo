@@ -20,35 +20,6 @@ Without addressing these, `numeric`/`timer`/`checklist` remain empty shells — 
 ## Complete Phased Plan (Single Source of Truth)
 
 
-
-### PHASE 3: Backend — Streaks & Freezes
-
-**Goal:** Automatic streak calculation and quota-aware freeze system.
-
-| Build | Business Logic |
-|---|---|
-| `Streak` model | BelongsTo User, BelongsTo Habit |
-| `StreakFreeze` model | BelongsTo User, BelongsTo Habit |
-| `StreakService` | `calculate(Habit)`, `recalculate(Habit)`, `applyFreeze(Habit, date)` |
-| `HabitLogObserver` | On log created/updated/deleted → trigger `StreakService::recalculate()` |
-| `StreakFreezeController` | `store` — checks `PlanQuotaService::getLimit(user, 'max_freezes_per_week')` |
-| `habits:mark-missed` command | Runs every 15 min, finds habits due yesterday with `pending` status → set `missed` |
-| Update `HabitResource` | Include `streak` relationship |
-
-**Files to create/modify:**
-- `app/Models/Streak.php` (new)
-- `app/Models/StreakFreeze.php` (new)
-- `app/Services/User/Habit/StreakService.php` (new)
-- `app/Observers/HabitLogObserver.php` (new)
-- `app/Http/Controllers/User/StreakFreezeController.php` (new)
-- `app/Http/Requests/User/StreakFreeze/StoreStreakFreezeRequest.php` (new)
-- `app/Console/Commands/MarkMissedHabits.php` (new)
-- `app/Providers/AppServiceProvider.php` (register observer)
-- `routes/console.php` (add mark-missed schedule)
-- Modify: `HabitResource.php`
-
----
-
 ### PHASE 4: Backend — Dashboard & Enhanced Quotas
 
 **Goal:** Single endpoint for dashboard data, enhanced quota endpoint with freeze usage.

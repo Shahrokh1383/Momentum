@@ -64,9 +64,10 @@ class StreakService
     }
 
     /**
-     * Walk backwards from most recent completed log, counting consecutive due-days.
-     * Frozen days and non-due days are skipped without breaking the streak.
-     */
+    * Walk backwards from most recent completed log, counting consecutive due-days.
+    * Frozen days on due-dates count toward the streak (that's their purpose).
+    * Non-due days are skipped without breaking the streak.
+    */
     private function performCalculation(Habit $habit): array
     {
         $completedDates = $habit->logs()
@@ -95,22 +96,27 @@ class StreakService
         while (true) {
             $key = $cursor->toDateString();
 
-            if (isset($frozenSet[$key])) {
-                $cursor->subDay();
-                continue;
-            }
-
+            // Non-due days: skip without affecting streak
             if (!$habit->isDueToday($cursor)) {
                 $cursor->subDay();
                 continue;
             }
 
+            // Frozen due-days: count as streak (this is what a freeze is for)
+            if (isset($frozenSet[$key])) {
+                $currentStreak++;
+                $cursor->subDay();
+                continue;
+            }
+
+            // Completed due-days: count as streak
             if (isset($completedSet[$key])) {
                 $currentStreak++;
                 $cursor->subDay();
                 continue;
             }
 
+            // Missed due-day: streak is broken
             break;
         }
 
