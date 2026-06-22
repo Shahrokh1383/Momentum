@@ -86,3 +86,17 @@ export interface HabitLogPayload {
   checklist_logs?: { checklist_item_id: number; is_checked: boolean }[];
   notes?: string | null;
 }
+
+export interface DashboardData {
+  habits: Habit[];
+  completion_percentage: number;
+  streak_counts: {
+    active_streaks: number;
+    best_streak: number;
+  };
+}
+
+export interface StreakFreezePayload {
+  frozen_date: string;
+  reason?: string | null;
+}

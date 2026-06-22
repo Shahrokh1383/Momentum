@@ -51,7 +51,7 @@ export interface PaymentInfo {
   status: string; // 'pending'
   amount: string;
   currency: string;
-  card: string; // Masked card number from backend
+  card: string;
 }
 
 export interface UpgradePayload {
@@ -78,4 +78,10 @@ export interface QuotasData {
   limits: Record<string, number>;
   usage: Record<string, number>;
   features: Record<string, boolean>;
+  freezes: {
+    used: number;
+    limit: number;
+    unlimited: boolean;
+  };
+  allowed_habit_types: string[];
 }

@@ -1,6 +1,8 @@
 import React from 'react';
 import { Habit, HabitLogPayload } from '@/types/habit';
 import HabitLogWidget from './widgets/HabitLogWidget';
+import StreakBadge from './StreakBadge';
+import FreezeButton from './FreezeButton';
 
 interface Props {
   habit: Habit;
@@ -27,9 +29,25 @@ const HabitCard: React.FC<Props> = ({
       style={{ borderLeftColor: borderColor }}
     >
       <div className="habit-card__actions">
-        <button className="habit-card__action-btn habit-card__action-btn--edit" onClick={() => onEdit(habit)} disabled={isProcessing}><i className="fas fa-pen"></i></button>
-        <button className={`habit-card__action-btn ${isArchivedView ? 'habit-card__action-btn--restore' : 'habit-card__action-btn--archive'}`} onClick={() => onArchiveToggle(habit)} disabled={isProcessing}><i className={`fas ${isArchivedView ? 'fa-rotate-left' : 'fa-archive'}`}></i></button>
-        <button className="habit-card__action-btn habit-card__action-btn--delete" onClick={() => { if(window.confirm(`Permanently delete "${habit.title}"?`)) onDelete(habit.id); }} disabled={isProcessing}><i className="fas fa-trash"></i></button>
+        <button className="habit-card__action-btn habit-card__action-btn--edit" onClick={() => onEdit(habit)} disabled={isProcessing} title="Edit Habit">
+          <i className="fas fa-pen"></i>
+        </button>
+        <button 
+          className={`habit-card__action-btn ${isArchivedView ? 'habit-card__action-btn--restore' : 'habit-card__action-btn--archive'}`} 
+          onClick={() => onArchiveToggle(habit)} 
+          disabled={isProcessing}
+          title={isArchivedView ? 'Restore Habit' : 'Archive Habit'}
+        >
+          <i className={`fas ${isArchivedView ? 'fa-rotate-left' : 'fa-archive'}`}></i>
+        </button>
+        <button 
+          className="habit-card__action-btn habit-card__action-btn--delete" 
+          onClick={() => { if(window.confirm(`Permanently delete "${habit.title}"?`)) onDelete(habit.id); }} 
+          disabled={isProcessing}
+          title="Delete Habit"
+        >
+          <i className="fas fa-trash"></i>
+        </button>
       </div>
 
       <div className="habit-card__header">
@@ -45,14 +63,17 @@ const HabitCard: React.FC<Props> = ({
 
       <div className="habit-card__meta">
         {!isArchivedView && habit.is_due_today && (
-          <span className="habit-card__due-badge"><span className="habit-card__due-dot"></span>Due Today</span>
-        )}
-        
-        {habit.streak && habit.streak.current_streak > 0 && (
-          <span className="habit-card__streak-badge">
-            <i className="fas fa-fire me-1"></i>{habit.streak.current_streak} Day Streak
+          <span className="habit-card__due-badge">
+            <span className="habit-card__due-dot"></span>
+            Due Today
           </span>
         )}
+        
+        {/* Modular Streak Badge */}
+        <StreakBadge streak={habit.streak} />
+        
+        {/* Modular Freeze Button (Handles its own visibility & quota logic) */}
+        {!isArchivedView && <FreezeButton habit={habit} />}
       </div>
 
       {/* LOGGING WIDGET INJECTION */}
@@ -71,7 +92,9 @@ const HabitCard: React.FC<Props> = ({
       {habit.tags.length > 0 && (
         <div className="habit-card__tags">
           {habit.tags.map(tag => (
-            <span key={tag.id} className="habit-card__tag" style={{ borderLeftColor: tag.color }}>{tag.name}</span>
+            <span key={tag.id} className="habit-card__tag" style={{ borderLeftColor: tag.color }}>
+              {tag.name}
+            </span>
           ))}
         </div>
       )}

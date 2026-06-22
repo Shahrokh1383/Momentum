@@ -17,17 +17,7 @@ import PaymentResultPage from './pages/user/PaymentResultPage';
 import SettingsPage from '@/pages/user/SettingsPage';
 import CategoriesPage from '@/pages/user/CategoriesPage';
 import HabitsPage from '@/pages/user/HabitsPage';
-
-const DashboardPlaceholder: React.FC = () => (
-  <section className="dashboard-page">
-    <div className="dashboard-page__welcome">
-      <h1 className="dashboard-page__title">Welcome to Momentum</h1>
-      <p className="dashboard-page__subtitle">
-        Your dashboard is coming soon. Stay tuned for habit tracking, insights, and more.
-      </p>
-    </div>
-  </section>
-);
+import DashboardPage from '@/pages/user/DashboardPage';
 
 const LoadingSpinner: React.FC = () => (
   <div className="d-flex justify-content-center align-items-center vh-100">
@@ -71,7 +61,7 @@ const AppRoutes: React.FC = () => {
 
       <Route element={<DashboardLayout />}>
         <Route path="/plans"     element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><DashboardPlaceholder /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/settings"  element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="/categories" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
         <Route path="/habits" element={<ProtectedRoute><HabitsPage /></ProtectedRoute>} />
