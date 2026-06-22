@@ -9,6 +9,7 @@ use App\Http\Controllers\User\CategoryController;
 use App\Http\Controllers\User\TagController;
 use App\Http\Controllers\User\HabitController;
 use App\Http\Controllers\User\HabitLogController;
+use App\Http\Controllers\User\StreakFreezeController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(function () {
@@ -73,6 +74,7 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
 
         // Habit Logs (nested under habit)
         Route::post('/{id}/logs', [HabitLogController::class, 'store'])->whereNumber('id');
+        Route::post('/{id}/freezes', [StreakFreezeController::class, 'store'])->whereNumber('id');
     });
 
     // Habit Logs (standalone for update/destroy)

@@ -21,37 +21,6 @@ Without addressing these, `numeric`/`timer`/`checklist` remain empty shells — 
 
 
 
-### PHASE 2: Backend — Habit Type CRUD + Logging
-
-**Goal:** Users can define type-specific data when creating habits, and log type-specific data when completing them.
-
-| Build | Business Logic |
-|---|---|
-| `HabitChecklistItem` model | BelongsTo `Habit`, has `title` + `sort_order` |
-| Update `Habit` model | HasMany `checklistItems`, update `$fillable` |
-| Update `HabitResource` | Include `checklist_items` when type is `checklist` |
-| Update `StoreHabitRequest` | Validate `checklist_items` array when type is `checklist` |
-| Update `UpdateHabitRequest` | Same, with `sometimes` |
-| Update `HabitService` | Sync checklist items (similar to how tags are synced) |
-| `HabitLog` model | Add `value`, `duration_seconds` to `$fillable` and `$casts` |
-| `HabitLogService` | `logCompletion()` — handles boolean/numeric/timer/checklist differently |
-| `HabitLogController` | `store` (log a habit), `update` (modify log), `destroy` (remove log) |
-| `HabitLogResource` | Type-aware response — includes `value`, `duration`, `checklist_logs` |
-| Routes | `POST /api/user/habits/{id}/logs`, `PUT /api/user/habit-logs/{id}` |
-
-**Files to create/modify:**
-- `app/Models/HabitChecklistItem.php` (new)
-- `app/Models/HabitLog.php` (modify — add fillable/casts)
-- `app/Services/User/Habit/HabitLogService.php` (new)
-- `app/Http/Controllers/User/HabitLogController.php` (new)
-- `app/Http/Resources/User/HabitLogResource.php` (new)
-- `app/Http/Requests/User/HabitLog/StoreHabitLogRequest.php` (new)
-- `app/Http/Requests/User/HabitLog/UpdateHabitLogRequest.php` (new)
-- Modify: `Habit.php`, `HabitResource.php`, `StoreHabitRequest.php`, `UpdateHabitRequest.php`, `HabitService.php`
-- `routes/api.php` (add log routes)
-
----
-
 ### PHASE 3: Backend — Streaks & Freezes
 
 **Goal:** Automatic streak calculation and quota-aware freeze system.

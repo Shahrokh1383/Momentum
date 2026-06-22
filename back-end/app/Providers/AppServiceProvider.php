@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\ServiceProvider;
+use App\Models\HabitLog;
+use App\Observers\HabitLogObserver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -28,5 +30,6 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('reset-limiter', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('api-limiter', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
         RateLimiter::for('upload-limiter', fn (Request $request) => Limit::perMinute(10)->by($request->user()?->id ?: $request->ip()));
+        HabitLog::observe(HabitLogObserver::class);
     }
 }

@@ -20,7 +20,7 @@ class HabitService
     public function getActiveHabits(User $user)
     {
         return $user->habits()
-            ->with(['category', 'tags'])
+            ->with(['category', 'tags', 'streak'])
             ->orderBy('created_at', 'desc')
             ->get();
     }
@@ -32,7 +32,7 @@ class HabitService
     {
         return $user->habits()
             ->onlyArchived()
-            ->with(['category', 'tags'])
+            ->with(['category', 'tags', 'streak'])
             ->orderBy('archived_at', 'desc')
             ->get();
     }
@@ -62,7 +62,7 @@ class HabitService
     {
         return $user->habits()
             ->withArchived()
-            ->with(['category', 'tags', 'checklistItems'])
+            ->with(['category', 'tags', 'checklistItems', 'streak'])
             ->findOrFail($id);
     }
 
@@ -121,7 +121,7 @@ class HabitService
         $this->quotaService->ensureLimitNotExceeded($user, 'habits', 'max_active_habits');
 
         $habit->update(['archived_at' => null]);
-        return $habit->load(['category', 'tags', 'checklistItems']);
+        return $habit->load(['category', 'tags', 'checklistItems', 'streak']);
     }
 
     /**

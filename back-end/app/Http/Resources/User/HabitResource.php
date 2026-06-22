@@ -5,6 +5,7 @@ namespace App\Http\Resources\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\User\StreakResource;
 
 class HabitResource extends JsonResource
 {
@@ -35,6 +36,7 @@ class HabitResource extends JsonResource
                     'sort_order' => $item->sort_order,
                 ])
             ),
+            'streak' => new StreakResource($this->whenLoaded('streak')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

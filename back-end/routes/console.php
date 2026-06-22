@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use App\Console\Commands\CheckSubscriptionStatus;
 use App\Console\Commands\SendHabitReminders;
+use App\Console\Commands\MarkMissedHabits;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -17,4 +18,8 @@ Schedule::command(CheckSubscriptionStatus::class)
 
 Schedule::command(SendHabitReminders::class)
     ->everyMinute()
+    ->withoutOverlapping();
+
+Schedule::command(MarkMissedHabits::class)
+    ->everyFifteenMinutes()
     ->withoutOverlapping();
