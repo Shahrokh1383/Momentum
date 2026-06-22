@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Http\Resources\User\StreakResource;
+use App\Http\Resources\User\HabitLogResource;
 
 class HabitResource extends JsonResource
 {
@@ -37,6 +38,10 @@ class HabitResource extends JsonResource
                 ])
             ),
             'streak' => new StreakResource($this->whenLoaded('streak')),
+            'today_log' => $this->when(
+                $this->relationLoaded('logs') && $this->logs->isNotEmpty(),
+                fn () => new HabitLogResource($this->logs->first())
+            ),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

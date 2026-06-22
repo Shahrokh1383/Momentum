@@ -53,7 +53,7 @@
   - **Command:** `insights:generate` — Chunks active users, dispatches queue jobs for rule-based insight/correlation generation.
   - **Command:** `pdf-quota:reset-monthly` — Sets `users.pdfs_generated_this_month = 0`.
   - **Command:** `reports:clean-old` — Deletes PDF files from disk older than 90 days.
-  - **Scheduler:** Register `insights:generate` daily at 03:00, `pdf-quota:reset-monthly` monthly on 1st at 00:00, `reports:clean-old` weekly in `Kernel.php`.
+  - **Scheduler:** Register `insights:generate` daily at 03:00, `pdf-quota:reset-monthly` monthly on 1st at 00:00, `reports:clean-old` weekly in `app.php`.
 
 ### Frontend Pages
 

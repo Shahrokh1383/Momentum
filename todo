@@ -20,24 +20,6 @@ Without addressing these, `numeric`/`timer`/`checklist` remain empty shells — 
 ## Complete Phased Plan (Single Source of Truth)
 
 
-### PHASE 4: Backend — Dashboard & Enhanced Quotas
-
-**Goal:** Single endpoint for dashboard data, enhanced quota endpoint with freeze usage.
-
-| Build | Business Logic |
-|---|---|
-| `DashboardController` | Returns today's habits with logs, streak counts, completion percentage |
-| Update `SubscriptionController@quotas` | Add `freezes.used/limit/unlimited` and `allowed_habit_types` |
-| `DashboardResource` | Structured today's data payload |
-
-**Files to create/modify:**
-- `app/Http/Controllers/User/DashboardController.php` (new)
-- `app/Http/Resources/User/DashboardResource.php` (new)
-- Modify: `SubscriptionController.php`
-- `routes/api.php` (add dashboard route)
-
----
-
 ### PHASE 5: Frontend — Type-Specific Form UI
 
 **Goal:** Habit form shows relevant fields for each type.

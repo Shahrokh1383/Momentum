@@ -10,6 +10,7 @@ use App\Http\Controllers\User\TagController;
 use App\Http\Controllers\User\HabitController;
 use App\Http\Controllers\User\HabitLogController;
 use App\Http\Controllers\User\StreakFreezeController;
+use App\Http\Controllers\User\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(function () {
@@ -17,7 +18,8 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('logout-all', [AuthController::class, 'logoutAll']);
     Route::get('me', [AuthController::class, 'me']);
-
+    Route::get('dashboard', [DashboardController::class, 'index']);
+    
     // Profile & Settings Module
     Route::prefix('profile')->group(function () {
         Route::get('avatar', [AvatarController::class, 'show']);

@@ -123,11 +123,13 @@ class SubscriptionController extends Controller
         $user = $request->user();
         $plan = $this->quotaService->getPlan($user);
 
+        $freezeLimit = $this->quotaService->getLimit($user, 'max_freezes_per_week');
+
         $limits = [
             'max_active_habits' => $this->quotaService->getLimit($user, 'max_active_habits'),
             'max_groups' => $this->quotaService->getLimit($user, 'max_groups'),
             'max_categories' => $this->quotaService->getLimit($user, 'max_categories'),
-            'max_freezes_per_week' => $this->quotaService->getLimit($user, 'max_freezes_per_week'),
+            'max_freezes_per_week' => $freezeLimit,
             'max_photos_per_log' => $this->quotaService->getLimit($user, 'max_photos_per_log'),
             'max_pdfs_per_month' => $this->quotaService->getLimit($user, 'max_pdfs_per_month'),
         ];
@@ -151,6 +153,14 @@ class SubscriptionController extends Controller
             'limits' => $limits,
             'usage' => $usage,
             'features' => $features,
+            'freezes' => [
+                'used' => $user->streakFreezes()
+                    ->whereBetween('frozen_date', [now()->startOfWeek(), now()->endOfWeek()])
+                    ->count(),
+                'limit' => $freezeLimit,
+                'unlimited' => $freezeLimit === -1,
+            ],
+            'allowed_habit_types' => explode(',', $plan->allowed_habit_types),
         ], 'User quota and feature information retrieved.');
     }
 }
