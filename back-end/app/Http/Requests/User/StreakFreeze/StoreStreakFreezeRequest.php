@@ -41,7 +41,7 @@ class StoreStreakFreezeRequest extends FormRequest
                 'before_or_equal:today',
                 Rule::unique('streak_freezes')->where(fn ($q) => $q->where('habit_id', $habit->id)),
             ],
-            'reason' => ['nullable', 'string'],
+            'reason' => ['required', 'string', 'min:3'],
         ];
     }
 }

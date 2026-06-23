@@ -15,17 +15,22 @@ class HabitLogService
     {
         $habit = $user->habits()->findOrFail($habitId);
 
+        // For checklist type, initial status is 'pending'.
+        // It will be re-evaluated after syncing checklist logs.
+        $initialStatus = $habit->type === 'checklist' ? 'pending' : 'completed';
+
         $logData = array_merge($this->extractLogData($habit->type, $data), [
             'habit_id' => $habit->id,
             'user_id' => $user->id,
             'logged_date' => $data['logged_date'],
-            'status' => 'completed',
+            'status' => $initialStatus,
         ]);
 
         $log = HabitLog::create($logData);
 
         if ($habit->type === 'checklist' && isset($data['checklist_logs'])) {
             $this->syncChecklistLogs($log, $data['checklist_logs']);
+            $this->applyDerivedChecklistStatus($log);
         }
 
         return $log->load(['habit', 'checklistLogs.checklistItem']);
@@ -38,7 +43,9 @@ class HabitLogService
     {
         $logData = $this->extractLogData($habitLog->habit->type, $data);
 
-        if (isset($data['status'])) {
+        // For non-checklist types, allow explicit status changes from the request.
+        // For checklist type, status is always derived from checklist completion.
+        if ($habitLog->habit->type !== 'checklist' && isset($data['status'])) {
             $logData['status'] = $data['status'];
         }
 
@@ -46,6 +53,7 @@ class HabitLogService
 
         if ($habitLog->habit->type === 'checklist' && isset($data['checklist_logs'])) {
             $this->syncChecklistLogs($habitLog, $data['checklist_logs']);
+            $this->applyDerivedChecklistStatus($habitLog);
         }
 
         return $habitLog->load(['habit', 'checklistLogs.checklistItem']);
@@ -96,5 +104,36 @@ class HabitLogService
                 ]
             );
         }
+    }
+
+    /**
+     * Derive checklist log status from actual item completion.
+     * Only updates the log (triggering the observer) if status actually changes,
+     * avoiding unnecessary streak recalculations.
+     */
+    private function applyDerivedChecklistStatus(HabitLog $log): void
+    {
+        $newStatus = $this->resolveChecklistStatus($log);
+
+        if ($log->status !== $newStatus) {
+            $log->update(['status' => $newStatus]);
+        }
+    }
+
+    /**
+     * Determine if all checklist items for a habit log are checked.
+     * Returns 'completed' only when every single item is checked, otherwise 'pending'.
+     */
+    private function resolveChecklistStatus(HabitLog $log): string
+    {
+        $totalItems = $log->habit->checklistItems()->count();
+
+        if ($totalItems === 0) {
+            return 'pending';
+        }
+
+        $checkedCount = $log->checklistLogs()->where('is_checked', true)->count();
+
+        return $checkedCount >= $totalItems ? 'completed' : 'pending';
     }
 }

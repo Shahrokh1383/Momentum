@@ -40,11 +40,34 @@ class StoreHabitLogRequest extends FormRequest
         ];
 
         if ($habit->type === 'numeric') {
-            $rules['value'] = ['required', 'numeric', 'min:0'];
+            $todaySum = $habit->logs()
+                ->whereDate('logged_date', now()->timezone($habit->timezone ?? 'UTC'))
+                ->sum('value');
+            $remaining = (float) $habit->target_value - (float) $todaySum;
+
+            $rules['value'] = [
+                'required', 'numeric', 'min:0',
+                function ($attribute, $value, $fail) use ($remaining) {
+                    if ($remaining <= 0) {
+                        $fail('You have already reached the numeric taarget for today.');
+                    } elseif ($value > $remaining) {
+                        $fail("The logged value cannot exceed the remaining target of {$remaining}.");
+                    }
+                },
+            ];
         }
 
         if ($habit->type === 'timer') {
-            $rules['duration_seconds'] = ['required', 'integer', 'min:1'];
+            $targetSeconds = (int) $habit->target_value;
+
+            $rules['duration_seconds'] = [
+                'required', 'integer', "min:{$targetSeconds}",
+                function ($attribute, $value, $fail) use ($targetSeconds) {
+                    if ($value < $targetSeconds) {
+                        $fail("Timer must reach the target of {$targetSeconds} seconds before it can be saved.");
+                    }
+                },
+            ];
         }
 
         if ($habit->type === 'checklist') {

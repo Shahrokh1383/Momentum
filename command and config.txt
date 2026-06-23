@@ -1,116 +1,118 @@
+خیلی خب من مشکلات زیر رو دارم در پروژم :
 
-### 🛠️ Phase 1: Foundation, Auth & PWA Core
-در این فاز پایه‌های سیستم کاربران، اشتراک و تنظیمات را می‌ریزیم. بنابراین فقط Command های مرتبط با این جداول باید ایجاد شوند.
 
-**۱. `subscriptions:clean-expired`**
-*   **دلیل پیاده‌سازی در این فاز:** جدول `subscriptions` در همین فاز ساخته می‌شود. اگر کاربری اشتراکش تمام شود اما وضعیتش در دیتابیس روی `active` بماند، در فازهای بعدی به اشتباه به امکانات Premium دسترسی خواهد داشت (Bypass امنیتی).
-*   **نکته سینیور:** در این Command، پس از آپدیت استاتوس به `expired`، حتماً یک Event (مثلاً `SubscriptionExpired`) را فایر کن تا در فاز ۴ اگر سیستم نوتیفیکیشن آماده بود، به کاربر اخطار داده شود.
+1 : وقتی نامریک باشه نباید از تعدادی که در بک اند قرار داده شده بیشتر بره فرانت اند 
 
-**۲. ایجاد فایل `config/momentum.php` (نسخه اولیه)**
-*   **دلیل پیاده‌سازی در این فاز:** برای جدا کردن Business Logic از کد، از روز اول باید این فایل وجود داشته باشد.
-*   **محتوای این فاز:** در این فاز فقط مقادیر مربوط به Quota های پلن‌ها (که در جدول `plans` هم هست اما ممکن است بخواهی Override کند) و تنظیمات پایه سیستم را در آن قرار بده. مثلاً:
-    ```php
-    return [
-        'subscription' => [
-            'grace_period_days' => 3, // روز تضمین بازگشت وجه
-        ],
-    ];
-    ```
+2 : وقتی تایمر داریم و یک تایمی رو قرار دادیم و ست کردیم وقتی در سمت فرانت اند اون به ان تایم رسید باید نمایش داده بشه که انجام شد و یک ui/ux بسیار عالی پیاده سازی کنیم براش
 
----
+3 :  اوناییکه تایپ تایمر دارن رو تا قبل از اینکه به تایمی که ست کردن نرسیدن نمیتون ذخیره کنن چیزی رو و وقتی که به تایمی که ست کردن رسیدن با یک انیمیشن جذاب و زیبا باید تکمیل شد
 
-### 🛠️ Phase 2: Enhanced Data Model & Core Tracking
-در این فاز هسته اصلی یعنی عادت‌ها، لاگ‌ها و استریک‌ها شکل می‌گیرند. این فاز بارِ سنگینِ Cron Job های سیستم را به دوش می‌کشد.
+4 : وقتی weekly رو انتخاب میکنم و در روزهاییکه اون habit رو ندارم نباید بهم اصلا نمایش داده بشه 
 
-**۱. `habits:mark-missed`**
-*   **دلیل پیاده‌سازی در این فاز:** جداول `habits` و `habit_logs` در همین فاز ایجاد می‌شوند و منطق `isDueToday` و `user_now()` در کنترلرها تکمیل می‌شود. بدون این Command، استریک کاربران هرگز قطع نمی‌شود و سیستم Gamification فاز ۴ کاملاً باگ‌دار خواهد بود.
-*   **نکته سینیور:** حتماً از `chunkById` استفاده کن تا در صورت افزایش کاربران، Memory Leak نداشته باشی. مطمئن شو منطق Timezone با هلپر `user_now()` که در این فاز می‌نویسی ۱۰۰٪ سینک باشد.
+5 : در حال حاضر در صفحه عادت ها من دکمه ی فریز رو قرار دادم و فقط میتونم روش کلیک کنم تا فریز انجام بشه و همین باعث شده که من نتونم بخش مربوط به دلیل رو در دیتابیس پر کنم پس این مشکل رو باید بطور کامل رفع کنیم
 
-**۲. `reminders:dispatch` (نسخه اولیه - بدون Real-time)**
-*   **دلیل پیاده‌سازی در این فاز:** فیلد `reminder_time` در جدول `habits` در این فاز اضافه می‌شود. این Command باید در این فاز نوشته شود تا کار کند.
-*   **نکته سینیور:** در این فاز Laravel Reverb را هنوز پیاده نکرده‌ایم. پس این Command در این فاز فقط باید نوتیفیکیشن‌ها را در دیتابیس (جدول `notifications` که در فاز ۴ می‌آید) یا در یک Log ذخیره کند. در فاز ۴ این Command را ریفکتور می‌کنی تا Event ها را به Reverb广播 (Broadcast) کند.
 
-**۳. به‌روزرسانی `config/momentum.php`**
-*   **محتوای این فاز:** اضافه کردن تنظیمات مربوط به استریک و عادت:
-    ```php
-    'habits' => [
-        'missed_check_tolerance_minutes' => 15,
-    ],
-    'streaks' => [
-        'freeze_enabled' => true,
-    ]
-    ```
+در سمت بک اند برای حل تمامی این مشکلات فایل های زیر رو تغییر دادم :
 
----
+modified:   back-end/app/Http/Requests/User/HabitLog/StoreHabitLogRequest.php
+modified:   back-end/app/Services/User/Habit/HabitService.php
 
-### 🛠️ Phase 3: Advanced Habit Tracking & Journal
-در این فاز، منطق آفلاین (Offline Sync) و لاگ‌های پیچیده‌تر اضافه می‌شود. هیچ Command جدیدی در لیست ما وجود ندارد که مربوط به این فاز باشد، اما کار نگهداری داریم:
+من یک مشکل دیگری هم در سمت بک اند دارم که ان را هم باید حل کنیم و در زیر برات شرحش میدم :
 
-*   **نکته سینیور:** باید Command `habits:mark-missed` فاز ۲ را آپدیت کنی تا تایپ‌های جدید `skipped` و منطق `skip_reason` را به درستی در محاسبه استریک در نظر بگیرد (طبق سناریوی StreakService در فاز ۳).
+قبل از اینکه دستور git commit رو وارد کنم و برات برنامه ریزی هماهنگ سازی بک اند و فرانت اند رو قرار بدم  باید بگم که یک مشکل دیگه ای هم وجود داره و اونم این هست که عادت هایی که تایپ چک لیست دارن فقط وقتی که تمام چک لیست ها تیک بخورن و انجام بشن باید براشون streak در نظر گرفته بشه نه اینکه با تیک زدن اولین چک لیست استریک حساب بشه 
 
----
+در زیر برات مسیر درختی سمت بک اندم رو قرار میدم :
 
-### 🛠️ Phase 4: Gamification, Social & Real-time
-این فاز زمان شکوفایی سیستم رویدادها و صف‌هاست. جدول `notifications` و `leaderboard_entries` اینجا ساخته می‌شوند.
+📁 back-end/
+├── 📁 app/
+│   ├── 📁 Console/
+│   │   └── 📁 Commands/
+│   │       ├── 📄 CheckSubscriptionStatus.php
+│   │       ├── 📄 MarkMissedHabits.php
+│   │       └── 📄 SendHabitReminders.php
+│   ├── 📁 Exceptions/
+│   │   ├── 📄 FeatureLockedException.php
+│   │   └── 📄 QuotaExceededException.php
+│   ├── 📁 Http/
+│   │   ├── 📁 Controllers/
+│   │   │   ├── 📁 Admin/
+│   │   │   ├── 📁 User/
+│   │   │   │   ├── 📄 CategoryController.php
+│   │   │   │   ├── 📄 DashboardController.php
+│   │   │   │   ├── 📄 HabitController.php
+│   │   │   │   ├── 📄 HabitLogController.php
+│   │   │   │   ├── 📄 StreakFreezeController.php
+│   │   │   │   └── 📄 TagController.php
+│   │   │   └── 📄 Controller.php
+│   │   ├── 📁 middleware/
+│   │   │   ├── 📄 EnforceHabitPlanLimits.php
+│   │   │   ├── 📄 EnsureTier.php
+│   │   │   └── 📄 RoleMiddleware.php
+│   │   ├── 📁 Requests/
+│   │   │   ├── 📁 Admin/
+│   │   │   └── 📁 User/
+│   │   │       ├── 📁 Habit/
+│   │   │       │   ├── 📄 StoreHabitRequest.php
+│   │   │       │   └── 📄 UpdateHabitRequest.php
+│   │   │       ├── 📁 HabitLog/
+│   │   │       │   ├── 📄 StoreHabitLogRequest.php
+│   │   │       │   └── 📄 UpdateHabitLogRequest.php
+│   │   │       ├── 📁 StreakFreeze/
+│   │   │       │   └── 📄 StoreStreakFreezeRequest.php
+│   │   │       └── 📁 Tag/
+│   │   │           ├── 📄 StoreTagRequest.php
+│   │   │           └── 📄 UpdateTagRequest.php
+│   │   └── 📁 Resources/
+│   │       ├── 📁 Admin/
+│   │       └── 📁 User/
+│   │           ├── 📄 CategoryResource.php
+│   │           ├── 📄 HabitLogResource.php
+│   │           ├── 📄 HabitResource.php
+│   │           ├── 📄 StreakResource.php
+│   │           └── 📄 UserResource.php
+│   ├── 📁 Models/
+│   │   ├── 📁 Scopes/
+│   │   │   └── 📄 ActiveHabitScope.php
+│   │   ├── 📄 Category.php
+│   │   ├── 📄 Habit.php
+│   │   ├── 📄 HabitChecklistItem.php
+│   │   ├── 📄 HabitChecklistLog.php
+│   │   ├── 📄 HabitLog.php
+│   │   ├── 📄 HabitReminderLog.php
+│   │   ├── 📄 Payment.php
+│   │   ├── 📄 PendingRegistration.php
+│   │   ├── 📄 Plan.php
+│   │   ├── 📄 Streak.php
+│   │   ├── 📄 StreakFreeze.php
+│   │   ├── 📄 Subscription.php
+│   │   ├── 📄 Tag.php
+│   │   ├── 📄 User.php
+│   │   └── 📄 UserSetting.php
+│   ├── 📁 Observers/
+│   │   └── 📄 HabitLogObserver.php
+│   ├── 📁 Providers/
+│   │   └── 📄 AppServiceProvider.php
+│   └── 📁 Services/
+│       ├── 📁 Admin/
+│       └── 📁 User/
+│           ├── 📁 Habit/
+│           │   ├── 📄 HabitLogService.php
+│           │   ├── 📄 HabitReminderService.php
+│           │   ├── 📄 HabitService.php
+│           │   └── 📄 StreakService.php
+│           └── 📄 CategoryService.php
 
-**۱. `leaderboard:compute`**
-*   **دلیل پیاده‌سازی در این فاز:** جداول `xp_transactions`، `levels` و `leaderboard_entries` در همین فاز ایجاد می‌شوند. محاسبه قبلی (Tie-breaker) نیازمند دیتای XP است که از فاز ۴ به بعد تولید می‌شود.
-*   **نکته سینیور:** حتماً از Transaction های دیتابیس استفاده کن و پاک کردن رکوردهای قبلی دوره (مثلاً هفته گذشته) و درج رکوردهای جدید را در یک DB Transaction انجام بده تا در صورت Fail کردن Job، دیتای leaderboard از بین نرود.
 
-**۲. ریفکتور `reminders:dispatch`**
-*   **عملیات:** حالا که Reverb نصب است، به جای ذخیره ساده، در این Command وقتی زمان فرا رسید، یک `BroadcastEvent` را فایر کن تا از طریق WebSocket به فرانتند پوش شود.
+ازت میخوام که مثل برنامه نویس سینیور با 12 سال تجربه عمل کنی و با رعایت اصول و شروط زیر ریشه مشکل رو برام پیدا کنی و ان را بطور کامل برام حل کنی :
 
-**۳. به‌روزرسانی `config/momentum.php`**
-*   **محتوای این فاز:** اضافه کردن تنظیمات گیمیفیکیشن و گروه:
-    ```php
-    'groups' => [
-        'completion_threshold_percentage' => 80, // 80% اعضا باید لاگ بزنند
-    ],
-    'xp' => [
-        'early_bird_hour' => 8,
-        'default_habit_weight' => 10,
-    ]
-    ```
+1 : ابتدا لیست تمام فایل هایی که باید چک بکنی رو بهم تحویل بده تا برات قرار بدمشون 
 
----
+2 : تا زمانی که اطلاعاتت تکمیل نشده به هیچ عنوان به پیاده سازی و کدنویسی نپرداز و برای تکمیل اطلاعاتت دائما به درخواست فایل ها از من بده تا برات ارسال کنم فایل هارو
 
-### 🛠️ Phase 5: Intelligence, Insights & Reports
-آخرین حلقه زنجیر، تولید گزارش و هوش مصنوعی ساده است که به شدت به Job ها و صف‌ها وابسته است.
+3 : کدنویسی و اصلاح سازی مشکلات به هیچ عنوان نباید الگوی کدبیس فعلی رو خراب کنه پس حتما تمام فایل های کلیدی که باید چک بکنی تا الگوی کدنویسی و روابط درون کدبیسم رو درک کنی رو برام قرار بده تا بهت تحویل بدم و تا زمانی که کدبیسم رو درک نکردی به هیچ عنوان به جلو پیش نرو
 
-**۱. `insights:generate`**
-*   **دلیل پیاده‌سازی در این فاز:** جداول `insights` و `correlations` همین الان ایجاد می‌شوند. دیتای لاگ‌ها هم که از فاز ۲ آماده است.
-*   **نکته سینیور:** طبق برنامه‌ریزی، این Command نباید پردازش را خودش انجام دهد. این Command فقط باید کاربران را `chunkById` کند و برای هر کاربر یک `GenerateUserInsightsJob` به صف (Database Queue) بفرستد. این معماری برای جلوگیری از OOM (Out of Memory) در آینده حیاتی است.
+4 : کدنویسی فایل ها باید بطور کامل از اصول SOLID و KIIS و SRP و DRY پیروی کنه 
 
-**۲. `reports:clean-old`**
-*   **دلیل پیاده‌سازی در این فاز:** فایل‌های PDF و جدول `reports` در همین فاز متولد می‌شوند. بدون این Command، دیسک سرور شما پر از فایل‌های PDF متروکه خواهد شد.
+5 : در طول انجام پروژه باهام به زبان انگلیسی حرف بزن و من به فارسی جواب میدم 
 
-**۳. `pdf-quota:reset-monthly`**
-*   **دلیل پیاده‌سازی در این فاز:** ستون `pdfs_generated_this_month` در جدول `users` در همین فاز اضافه می‌شود. این Command در روز اول هر ماه باید اجرا شود تا سهمیه کاربران رایگان بازنشانی شود.
-
-**۴. به‌روزرسانی نهایی `config/momentum.php`**
-*   **محتوای این فاز:** تنظیمات الگوریتم‌های هوشمند:
-    ```php
-    'insights' => [
-        'risk_weights' => [
-            'late_nights' => 10,
-            'weekend_misses' => 15,
-            'recent_misses' => 20,
-        ],
-        'correlation_threshold' => 0.80,
-        'correlation_min_sample' => 10,
-    ],
-    'reports' => [
-        'retention_days' => 90,
-        'free_tier_monthly_limit' => 1,
-    ]
-    ```
-
----
-
-### 📝 خلاصه اجرایی برای برنامه‌ریزی کدهایت (Checklist)
-
-*   **Phase 1:** `subscriptions:clean-expired` + ایجاد `config/momentum.php`
-*   **Phase 2:** `habits:mark-missed` + `reminders:dispatch` (نسخه پایه)
-*   **Phase 3:** *بدون Command جدید (فقط ریفکتور `habits:mark-missed` برای پشتیبانی از Skip)*
-*   **Phase 4:** `leaderboard:compute` + ارتقاء `reminders:dispatch` به Reverb
-*   **Phase 5:** `insights:generate` + `reports:clean-old` + `pdf-quota:reset-monthly`
+حالا شروع به انجام کارها بکن و پس از اینکه مشکلات رو تشخیص دادی بطور کامل و حلشون کردی بهم دستور git commit نهایی با توجه به اصلاح سازی هاییکه انجام دادیم بهم تحویل بده و همینطور از انجاییکه داریم اصلاح سازی انجام میدیم برای حل مشکلات بهم فقط قطعه کدهایی که باید در فایل هام قرار بگیرن برای حل مشکل رو تحویل بده و پس از اینکه در سمت بک اند تمام مشکلات رو رفع کردیم منتظر ارسال برنامه ریزی هماهنگ سازی بک اند و فرانت اند از سمت من باش
