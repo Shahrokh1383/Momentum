@@ -3,20 +3,17 @@
 namespace App\Services\User\Habit;
 
 use App\Models\Habit\Habit;
-use App\Models\Tag;
 use App\Models\User;
 use App\Services\User\Subscription\PlanQuotaService;
-use Illuminate\Support\Str;
+use App\Services\User\Taxonomy\TagService;
 
 class HabitService
 {
     public function __construct(
-        private PlanQuotaService $quotaService
+        private PlanQuotaService $quotaService,
+        private TagService $tagService
     ) {}
 
-    /**
-     * Fetch active habits for a user.
-     */
     public function getActiveHabits(User $user)
     {
         return $user->habits()
@@ -25,9 +22,6 @@ class HabitService
             ->get();
     }
 
-    /**
-     * Fetch archived habits for a user.
-     */
     public function getArchivedHabits(User $user)
     {
         return $user->habits()
@@ -37,9 +31,6 @@ class HabitService
             ->get();
     }
 
-    /**
-     * Create a new habit and sync tags + checklist items.
-     */
     public function createHabit(User $user, array $data): Habit
     {
         $tagsInput = $data['tags'] ?? [];
@@ -49,15 +40,12 @@ class HabitService
         unset($data['checklist_items']);
 
         $habit = $user->habits()->create($data);
-        $this->syncTags($habit, $tagsInput, $user->id);
+        $this->syncTags($habit, $tagsInput, $user); // Pass $user object instead of ID
         $this->syncChecklistItems($habit, $checklistItemsInput);
 
         return $habit->load(['category', 'tags', 'checklistItems']);
     }
 
-    /**
-     * Fetch a single habit (including archived).
-     */
     public function getHabitById(User $user, int $id): Habit
     {
         return $user->habits()
@@ -66,9 +54,6 @@ class HabitService
             ->findOrFail($id);
     }
 
-    /**
-     * Update an existing habit and conditionally sync tags + checklist items.
-     */
     public function updateHabit(Habit $habit, array $data): Habit
     {
         $tagsInput = $data['tags'] ?? [];
@@ -82,7 +67,7 @@ class HabitService
         $habit->update($data);
 
         if ($hasTags) {
-            $this->syncTags($habit, $tagsInput, $habit->user_id);
+            $this->syncTags($habit, $tagsInput, $habit->user);
         }
 
         if ($hasChecklistItems) {
@@ -92,9 +77,6 @@ class HabitService
         return $habit->load(['category', 'tags', 'checklistItems']);
     }
 
-    /**
-     * Archive a habit.
-     */
     public function archiveHabit(User $user, int $id): Habit
     {
         $habit = $user->habits()->findOrFail($id);
@@ -107,9 +89,6 @@ class HabitService
         return $habit;
     }
 
-    /**
-     * Restore an archived habit (enforces quota).
-     */
     public function restoreHabit(User $user, int $id): Habit
     {
         $habit = $user->habits()
@@ -117,16 +96,12 @@ class HabitService
             ->whereNotNull('archived_at')
             ->findOrFail($id);
 
-        // Enforce quota before restoring
         $this->quotaService->ensureLimitNotExceeded($user, 'habits', 'max_active_habits');
 
         $habit->update(['archived_at' => null]);
         return $habit->load(['category', 'tags', 'checklistItems', 'streak']);
     }
 
-    /**
-     * Permanently delete a habit.
-     */
     public function deleteHabit(User $user, int $id): void
     {
         $habit = $user->habits()
@@ -137,30 +112,15 @@ class HabitService
     }
 
     /**
-     * Sync tags for a habit. (DRY Principle applied)
-     * If a tag is numeric, it links an existing ID.
-     * If it's a string, it creates a new tag (relying on the Tag model's booted slug generator).
+     * Delegates tag resolution to TagService to prevent domain logic leakage.
      */
-    private function syncTags(Habit $habit, array $tagsInput, int $userId): void
+    private function syncTags(Habit $habit, array $tagsInput, User $user): void
     {
         $tagIds = [];
 
-        foreach ($tagsInput as $tag) {
-            if (is_numeric($tag)) {
-                $tagModel = Tag::where('id', $tag)->where('user_id', $userId)->first();
-                if ($tagModel) {
-                    $tagIds[] = $tagModel->id;
-                }
-            } else {
-                // Generate slug to prevent duplicate tag names with different cases
-                $slug = Str::slug($tag);
-                
-                // firstOrCreate will trigger the Tag model's booted creating event 
-                // to set the slug if it doesn't exist, fulfilling DRY.
-                $tagModel = Tag::firstOrCreate(
-                    ['user_id' => $userId, 'slug' => $slug],
-                    ['name' => $tag, 'color' => '#6B7280']
-                );
+        foreach ($tagsInput as $tagInput) {
+            $tagModel = $this->tagService->resolveTagInput($user, $tagInput);
+            if ($tagModel) {
                 $tagIds[] = $tagModel->id;
             }
         }
@@ -168,10 +128,6 @@ class HabitService
         $habit->tags()->sync(array_unique($tagIds));
     }
 
-    /**
-     * Replace all checklist items for a habit.
-     * Uses delete-all-recreate (same pattern as tag sync — atomic replacement).
-     */
     private function syncChecklistItems(Habit $habit, array $items): void
     {
         $habit->checklistItems()->delete();

@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Http\Controllers\User;
+namespace App\Http\Controllers\User\Taxonomy;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\Category\StoreCategoryRequest;
 use App\Http\Requests\User\Category\UpdateCategoryRequest;
 use App\Http\Resources\User\CategoryResource;
-use App\Services\User\CategoryService;
+use App\Models\Taxonomy\Category;
+use App\Services\User\Taxonomy\CategoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -40,7 +41,7 @@ class CategoryController extends Controller
         );
     }
 
-    public function update(UpdateCategoryRequest $request, $category): JsonResponse
+    public function update(UpdateCategoryRequest $request, Category $category): JsonResponse
     {
         $category = $this->categoryService->updateCategory(
             $category, 
@@ -57,7 +58,7 @@ class CategoryController extends Controller
     {
         try {
             $this->categoryService->deleteCategory($request->user(), $id);
-        } catch (\InvalidArgumentException $e) {
+        } catch (\DomainException $e) { // Updated from InvalidArgumentException
             return $this->errorResponse('forbidden', $e->getMessage(), 403);
         }
 
@@ -76,8 +77,6 @@ class CategoryController extends Controller
 
     public function restore(Request $request, int $id): JsonResponse
     {
-        // The QuotaExceededException from the Service is automatically 
-        // caught by Laravel's exception handler and returned as JSON.
         $category = $this->categoryService->restoreCategory($request->user(), $id);
 
         return $this->successResponse(
@@ -90,7 +89,7 @@ class CategoryController extends Controller
     {
         try {
             $this->categoryService->forceDeleteCategory($request->user(), $id);
-        } catch (\InvalidArgumentException $e) {
+        } catch (\DomainException $e) { // Updated from InvalidArgumentException
             return $this->errorResponse('forbidden', $e->getMessage(), 403);
         }
 

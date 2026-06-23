@@ -3,8 +3,8 @@
 namespace App\Models\Habit;
 
 use App\Models\Habit\Scopes\ActiveHabitScope;
-use App\Models\Category;
-use App\Models\Tag;
+use App\Models\Taxonomy\Category;
+use App\Models\Taxonomy\Tag;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

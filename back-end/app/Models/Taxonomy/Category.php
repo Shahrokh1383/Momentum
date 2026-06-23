@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Taxonomy;
 
 use App\Models\Habit\Habit;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;

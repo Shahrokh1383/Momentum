@@ -1,20 +1,25 @@
 <?php
 
-namespace App\Http\Controllers\User;
+namespace App\Http\Controllers\User\Taxonomy;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\Tag\StoreTagRequest;
 use App\Http\Requests\User\Tag\UpdateTagRequest;
 use App\Http\Resources\User\TagResource;
-use App\Models\Tag;
+use App\Models\Taxonomy\Tag;
+use App\Services\User\Taxonomy\TagService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TagController extends Controller
 {
+    public function __construct(
+        private TagService $tagService
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
-        $tags = $request->user()->tags()->orderBy('name')->get();
+        $tags = $this->tagService->getTags($request->user());
 
         return $this->successResponse(
             TagResource::collection($tags),
@@ -24,7 +29,7 @@ class TagController extends Controller
 
     public function store(StoreTagRequest $request): JsonResponse
     {
-        $tag = $request->user()->tags()->create($request->validated());
+        $tag = $this->tagService->createTag($request->user(), $request->validated());
 
         return $this->successResponse(
             new TagResource($tag),
@@ -35,7 +40,7 @@ class TagController extends Controller
 
     public function update(UpdateTagRequest $request, Tag $tag): JsonResponse
     {
-        $tag->update($request->validated());
+        $tag = $this->tagService->updateTag($tag, $request->validated());
 
         return $this->successResponse(
             new TagResource($tag),
@@ -45,11 +50,8 @@ class TagController extends Controller
 
     public function destroy(Request $request, Tag $tag): JsonResponse
     {
-        if ($tag->user_id !== $request->user()->id) {
-            return $this->errorResponse('forbidden', 'You do not own this tag.', 403);
-        }
-
-        $tag->delete();
+        // Delegated to service to ensure ownership validation and SRP
+        $this->tagService->deleteTag($request->user(), $tag->id);
 
         return $this->successResponse(null, 'Tag deleted successfully.');
     }
@@ -57,11 +59,7 @@ class TagController extends Controller
     public function autocomplete(Request $request): JsonResponse
     {
         $query = $request->get('q', '');
-
-        $tags = $request->user()->tags()
-            ->where('name', 'like', "%{$query}%")
-            ->limit(10)
-            ->get();
+        $tags = $this->tagService->getAutocompleteTags($request->user(), $query);
 
         return $this->successResponse(
             TagResource::collection($tags),

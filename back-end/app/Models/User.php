@@ -11,6 +11,8 @@ use App\Models\Habit\Habit;
 use App\Models\Habit\HabitLog;
 use App\Models\Streak\Streak; 
 use App\Models\Streak\StreakFreeze;
+use App\Models\Taxonomy\Category; // Updated
+use App\Models\Taxonomy\Tag;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

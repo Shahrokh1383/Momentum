@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services\User;
+namespace App\Services\User\Taxonomy;
 
 use App\Exceptions\QuotaExceededException;
-use App\Models\Category;
+use App\Models\Taxonomy\Category;
 use App\Models\User;
 use App\Services\User\Subscription\PlanQuotaService;
 
@@ -23,8 +23,6 @@ class CategoryService
 
     public function createCategory(User $user, array $data): Category
     {
-        // Enforce business rule: Quota limit
-        // includeTrashed: true prevents the exploit (delete -> create -> restore)
         $this->quotaService->ensureLimitNotExceeded(
             $user,
             'categories',
@@ -38,16 +36,14 @@ class CategoryService
     public function updateCategory(Category $category, array $data): Category
     {
         $category->update($data);
-        return $category->fresh();
+        // Removed $category->fresh() to avoid unnecessary DB query (KIIS principle)
+        return $category; 
     }
 
     public function deleteCategory(User $user, int $categoryId): void
     {
         $category = $user->categories()->findOrFail($categoryId);
-
-        if ($category->is_default) {
-            throw new \InvalidArgumentException('Default categories cannot be deleted.');
-        }
+        $this->ensureNotDefault($category);
 
         $category->delete();
     }
@@ -62,8 +58,6 @@ class CategoryService
 
     public function restoreCategory(User $user, int $categoryId): Category
     {
-        // Enforce business rule: Quota limit
-        // includeTrashed: false allows legitimate restore since total footprint doesn't increase
         $this->quotaService->ensureLimitNotExceeded(
             $user,
             'categories',
@@ -71,7 +65,6 @@ class CategoryService
             includeTrashed: false
         );
 
-        // Execute domain action
         $category = $user->categories()->withTrashed()->findOrFail($categoryId);
         $category->restore();
 
@@ -81,11 +74,19 @@ class CategoryService
     public function forceDeleteCategory(User $user, int $categoryId): void
     {
         $category = $user->categories()->withTrashed()->findOrFail($categoryId);
-
-        if ($category->is_default) {
-            throw new \InvalidArgumentException('Default categories cannot be permanently deleted.');
-        }
+        $this->ensureNotDefault($category);
 
         $category->forceDelete();
+    }
+
+    /**
+     * Enforces Domain Rule: Default categories are immutable regarding deletion.
+     * Throws DomainException instead of generic InvalidArgumentException.
+     */
+    private function ensureNotDefault(Category $category): void
+    {
+        if ($category->is_default) {
+            throw new \DomainException('Default categories cannot be deleted or permanently removed.');
+        }
     }
 }
