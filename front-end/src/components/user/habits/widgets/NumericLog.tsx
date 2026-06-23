@@ -42,12 +42,13 @@ const NumericLog: React.FC<Props> = ({ habit, onLog, onUpdate, onDelete, isProce
       const numVal = val === '' ? null : parseFloat(val);
       if (isProcessing) return;
 
+      // Status is now derived by the backend — do not send it
       if (numVal === null || isNaN(numVal)) {
         if (habit.today_log) onDelete();
       } else if (habit.today_log) {
         onUpdate(habit.today_log.id, { value: numVal });
       } else {
-        onLog({ logged_date: today, value: numVal, status: 'completed' });
+        onLog({ logged_date: today, value: numVal });
       }
     }, 600);
   };

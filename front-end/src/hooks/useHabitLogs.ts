@@ -18,6 +18,37 @@ const deriveChecklistStatus = (
   return checkedCount >= totalItems ? 'completed' : 'pending';
 };
 
+/**
+ * Derive the correct optimistic status for a numeric habit log.
+ * Only returns 'completed' when value meets or exceeds the target.
+ */
+const deriveNumericStatus = (
+  habit: Habit,
+  value: number | null | undefined
+): LogStatus => {
+  const target = habit.target_value || 0;
+  if (target <= 0) return 'pending';
+  const numValue = value ?? 0;
+  return numValue >= target ? 'completed' : 'pending';
+};
+
+/**
+ * Derive optimistic status for any habit type.
+ */
+const deriveOptimisticStatus = (
+  habit: Habit,
+  payload: HabitLogPayload
+): LogStatus => {
+  switch (habit.type) {
+    case 'checklist':
+      return deriveChecklistStatus(habit, payload.checklist_logs);
+    case 'numeric':
+      return deriveNumericStatus(habit, payload.value);
+    default:
+      return payload.status || 'completed';
+  }
+};
+
 export const useHabitLogs = () => {
   const queryClient = useQueryClient();
 
@@ -32,15 +63,11 @@ export const useHabitLogs = () => {
         if (!oldData) return oldData;
         return oldData.map(h => {
           if (h.id === habitId) {
-            const optimisticStatus: LogStatus = h.type === 'checklist'
-              ? deriveChecklistStatus(h, payload.checklist_logs)
-              : (payload.status || 'completed');
-
             const optimisticLog: HabitLog = {
               id: Math.random(),
               habit_id: habitId,
               logged_date: payload.logged_date,
-              status: optimisticStatus,
+              status: deriveOptimisticStatus(h, payload),
               notes: payload.notes || null,
               value: payload.value,
               duration_seconds: payload.duration_seconds,
@@ -80,9 +107,11 @@ export const useHabitLogs = () => {
           if (h.today_log?.id === logId) {
             const updatedLog = { ...h.today_log, ...payload };
 
-            // For checklist type, derive status from item completion
+            // Derive status for types where it's calculated, not explicitly set
             if (h.type === 'checklist' && payload.checklist_logs) {
               updatedLog.status = deriveChecklistStatus(h, payload.checklist_logs);
+            } else if (h.type === 'numeric' && payload.value !== undefined) {
+              updatedLog.status = deriveNumericStatus(h, payload.value);
             }
 
             return { ...h, today_log: updatedLog };

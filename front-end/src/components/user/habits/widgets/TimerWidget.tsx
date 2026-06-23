@@ -8,8 +8,23 @@ interface Props {
   isProcessing: boolean;
 }
 
+/**
+ * Convert a target value + unit into total seconds.
+ */
+const toSeconds = (value: number | null, unit: string | null): number => {
+  const v = value || 0;
+  switch (unit) {
+    case 'hours': return v * 3600;
+    case 'minutes': return v * 60;
+    default: return v;
+  }
+};
+
 const TimerWidget: React.FC<Props> = ({ habit, onLog, onDelete, isProcessing }) => {
-  const targetSeconds = useMemo(() => Math.max(0, Math.floor(habit.target_value || 0)), [habit.target_value]);
+  const targetSeconds = useMemo(
+    () => Math.max(0, toSeconds(habit.target_value, habit.unit)),
+    [habit.target_value, habit.unit]
+  );
   const hasValidTarget = targetSeconds > 0;
 
   const [seconds, setSeconds] = useState(habit.today_log?.duration_seconds || 0);
@@ -50,17 +65,16 @@ const TimerWidget: React.FC<Props> = ({ habit, onLog, onDelete, isProcessing }) 
   }, [isRunning, hasReachedTarget, targetSeconds, hasValidTarget]);
 
   const formatTime = (totalSecs: number): string => {
-    const m = Math.floor(totalSecs / 60).toString().padStart(2, '0');
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60).toString().padStart(2, '0');
     const s = (totalSecs % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
+    return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
   };
 
-  const formatTargetLabel = (totalSecs: number): string => {
-    const m = Math.floor(totalSecs / 60);
-    const s = totalSecs % 60;
-    if (m === 0) return `${s}s`;
-    if (s === 0) return `${m}m`;
-    return `${m}m ${s}s`;
+  const formatTargetLabel = (): string => {
+    const val = Math.floor(habit.target_value || 0);
+    const unit = habit.unit || 'seconds';
+    return `${val} ${unit}`;
   };
 
   const handleSave = () => {
@@ -84,7 +98,7 @@ const TimerWidget: React.FC<Props> = ({ habit, onLog, onDelete, isProcessing }) 
   return (
     <div className={`timer-widget ${isCompleted ? 'timer-widget--completed' : ''}`}>
       {hasValidTarget && (
-        <div className="timer-widget__target">Target: {formatTargetLabel(targetSeconds)}</div>
+        <div className="timer-widget__target">Target: {formatTargetLabel()}</div>
       )}
 
       <div className="timer-widget__display">

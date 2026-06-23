@@ -49,7 +49,7 @@ class StoreHabitLogRequest extends FormRequest
                 'required', 'numeric', 'min:0',
                 function ($attribute, $value, $fail) use ($remaining) {
                     if ($remaining <= 0) {
-                        $fail('You have already reached the numeric taarget for today.');
+                        $fail('You have already reached the numeric target for today.');
                     } elseif ($value > $remaining) {
                         $fail("The logged value cannot exceed the remaining target of {$remaining}.");
                     }
@@ -58,13 +58,14 @@ class StoreHabitLogRequest extends FormRequest
         }
 
         if ($habit->type === 'timer') {
-            $targetSeconds = (int) $habit->target_value;
+            $targetSeconds = $this->convertToSeconds($habit->target_value, $habit->unit);
+            $targetLabel = (int) $habit->target_value . ' ' . ($habit->unit ?? 'seconds');
 
             $rules['duration_seconds'] = [
                 'required', 'integer', "min:{$targetSeconds}",
-                function ($attribute, $value, $fail) use ($targetSeconds) {
+                function ($attribute, $value, $fail) use ($targetSeconds, $targetLabel) {
                     if ($value < $targetSeconds) {
-                        $fail("Timer must reach the target of {$targetSeconds} seconds before it can be saved.");
+                        $fail("Timer must reach the target of {$targetLabel} before it can be saved.");
                     }
                 },
             ];
@@ -80,5 +81,19 @@ class StoreHabitLogRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    /**
+     * Convert a target value with its unit into total seconds.
+     */
+    private function convertToSeconds(?string $targetValue, ?string $unit): int
+    {
+        $value = (float) ($targetValue ?? 0);
+
+        return (int) match ($unit) {
+            'hours'   => $value * 3600,
+            'minutes' => $value * 60,
+            default   => $value, // seconds
+        };
     }
 }
