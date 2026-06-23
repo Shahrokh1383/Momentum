@@ -1,0 +1,170 @@
+/* =========================================
+   HABIT MODULE - FORM & DYNAMIC FIELDS
+   ========================================= */
+
+.habit-form__dynamic-fields {
+  padding: 1rem;
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  animation: fadeIn 0.3s ease;
+}
+
+.habit-form__freq-btn {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--glass-border);
+  background: var(--input-bg);
+  border-radius: 8px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.habit-form__freq-btn.active {
+  background: var(--gradient-btn);
+  color: white;
+  border-color: transparent;
+}
+
+.habit-form__days-picker {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.habit-form__day-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--input-bg);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.habit-form__day-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* Checklist Panel */
+.habit-form__checklist-panel {
+  padding: 1.25rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  animation: fadeIn 0.3s ease;
+  transition: border-color 0.3s ease;
+}
+
+.habit-form__checklist-panel.has-error {
+  border-color: #dc3545;
+  background: rgba(220, 53, 69, 0.03);
+}
+
+.habit-form__checklist-header { display: flex; justify-content: space-between; align-items: center; }
+
+.habit-form__checklist-count {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--input-bg);
+  padding: 0.25rem 0.6rem;
+  border-radius: 99px;
+  border: 1px solid var(--glass-border);
+}
+
+.habit-form__checklist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.habit-form__checklist-list::-webkit-scrollbar { width: 6px; }
+.habit-form__checklist-list::-webkit-scrollbar-track { background: transparent; }
+.habit-form__checklist-list::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 3px; }
+
+.habit-form__checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.habit-form__checklist-item:hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(17, 153, 142, 0.1); }
+
+.habit-form__checklist-sort { display: flex; flex-direction: column; gap: 2px; }
+
+.habit-form__sort-btn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  font-size: 0.7rem;
+}
+
+.habit-form__sort-btn:hover:not(:disabled) { background: var(--glass-bg-hover); color: var(--primary); }
+.habit-form__sort-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.habit-form__checklist-input { flex: 1; background: transparent; border: none; color: var(--text-main); font-size: 0.95rem; padding: 0.25rem 0; outline: none; }
+.habit-form__checklist-input::placeholder { color: var(--text-muted); }
+
+.habit-form__checklist-remove {
+  width: 32px; height: 32px; border: none; background: transparent; color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 6px; transition: all 0.2s; font-size: 0.85rem;
+}
+.habit-form__checklist-remove:hover { background: rgba(220, 53, 69, 0.1); color: #dc3545; transform: scale(1.05); }
+
+.habit-form__checklist-add {
+  width: 100%; padding: 0.75rem; border: 2px dashed var(--glass-border); background: transparent;
+  border-radius: 8px; color: var(--text-muted); font-weight: 600; font-size: 0.9rem; cursor: pointer;
+  transition: all 0.2s ease; display: flex; align-items: center; justify-content: center;
+}
+.habit-form__checklist-add:hover { border-color: var(--primary); color: var(--primary); background: rgba(17, 153, 142, 0.05); }
+
+/* Locked Premium Fields (UI Bug Fix) */
+.habit-form__locked-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.habit-form__upgrade-link {
+  position: absolute;
+  right: 12px;
+  font-size: 0.85rem;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.habit-form__upgrade-link:hover { text-decoration: underline; }
+
+@media (max-width: 767.98px) {
+  .habit-form__checklist-item { gap: 0.5rem; padding: 0.75rem 0.5rem; }
+  .habit-form__checklist-sort { flex-direction: row; gap: 4px; }
+  .habit-form__sort-btn { width: 24px; height: 24px; font-size: 0.8rem; }
+}

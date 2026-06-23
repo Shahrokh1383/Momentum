@@ -1,0 +1,124 @@
+/* =========================================
+   HABIT MODULE - LOGGING WIDGETS
+   ========================================= */
+
+.habit-card__widget-container {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--glass-border);
+}
+
+/* Shared Notes Input */
+.habit-log-widget__notes { margin-top: 0.75rem; }
+.habit-log-widget__textarea {
+  width: 100%; background: var(--input-bg); border: 1px solid var(--glass-border);
+  border-radius: 10px; color: var(--text-main); padding: 0.6rem 0.75rem; font-size: 0.85rem;
+  font-family: inherit; resize: vertical; transition: border-color 0.2s; box-sizing: border-box; line-height: 1.5;
+}
+.habit-log-widget__textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(17, 153, 142, 0.1); }
+.habit-log-widget__textarea::placeholder { color: var(--text-muted); }
+.habit-log-widget__textarea:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* --- Boolean Widget --- */
+.boolean-log { display: flex; align-items: center; justify-content: center; padding: 0.5rem; cursor: pointer; transition: all 0.2s ease; user-select: none; }
+.boolean-log__checkbox {
+  width: 48px; height: 48px; border-radius: 12px; border: 2px solid var(--glass-border); background: var(--input-bg);
+  display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: transparent;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); margin-right: 1rem;
+}
+.boolean-log__checkbox.checked { background: var(--gradient-btn); border-color: transparent; color: white; transform: scale(1.05); box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3); }
+.boolean-log__label { font-weight: 600; color: var(--text-main); }
+
+/* --- Numeric Widget --- */
+.numeric-log { display: flex; flex-direction: column; gap: 0.75rem; }
+.numeric-log__input-group { display: flex; gap: 0.5rem; align-items: center; }
+.numeric-log__input {
+  flex: 1; max-width: 100px; text-align: center; font-size: 1.25rem; font-weight: 700;
+  background: var(--input-bg); border: 1px solid var(--glass-border); border-radius: 8px;
+  color: var(--text-main); padding: 0.5rem; transition: border-color 0.2s;
+}
+.numeric-log__input:focus { outline: none; border-color: var(--primary); }
+.numeric-log__label { font-size: 0.9rem; color: var(--text-muted); font-weight: 600; }
+.numeric-log__progress { width: 100%; height: 8px; background: var(--input-bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--glass-border); }
+.numeric-log__progress-bar { height: 100%; background: var(--gradient-btn); transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+.numeric-log--completed .numeric-log__input { border-color: rgba(16, 185, 129, 0.4); color: #10b981; background: rgba(16, 185, 129, 0.05); }
+.numeric-log__progress-bar--full { background: linear-gradient(90deg, #10b981, #34d399) !important; }
+.numeric-log__completed-text {
+  display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #10b981;
+  animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* --- Timer Widget --- */
+.timer-widget { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+.timer-widget__display {
+  font-family: 'Courier New', Courier, monospace; font-size: 2.5rem; font-weight: 700;
+  color: var(--text-main); background: var(--input-bg); padding: 0.5rem 1.5rem;
+  border-radius: 12px; border: 1px solid var(--glass-border); min-width: 160px; text-align: center; letter-spacing: 2px;
+}
+.timer-widget__controls { display: flex; gap: 0.75rem; }
+.timer-widget__btn {
+  width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--glass-border);
+  background: var(--glass-bg); color: var(--text-muted); display: flex; align-items: center;
+  justify-content: center; cursor: pointer; transition: all 0.2s ease; font-size: 1rem;
+}
+.timer-widget__btn:hover:not(:disabled) { background: var(--glass-bg-hover); color: var(--primary); transform: translateY(-2px); }
+.timer-widget__btn--play { background: var(--gradient-btn); color: white; border: none; }
+.timer-widget__btn--play:hover { box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3); }
+
+/* UI Bug Fix: Added Stop Button Style */
+.timer-widget__btn--stop {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  border: none;
+}
+.timer-widget__btn--stop:hover { box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); }
+
+.timer-widget__btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.timer-widget__target { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); background: var(--input-bg); padding: 0.25rem 0.75rem; border-radius: 99px; border: 1px solid var(--glass-border); }
+.timer-widget__progress { width: 100%; height: 4px; background: var(--input-bg); border-radius: 2px; overflow: hidden; border: 1px solid var(--glass-border); }
+.timer-widget__progress-bar { height: 100%; background: var(--gradient-btn); transition: width 1s linear; border-radius: 2px; }
+.timer-widget__progress-bar--full { background: linear-gradient(90deg, #10b981, #34d399); }
+
+.timer-widget--completed .timer-widget__display {
+  background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.4); color: #10b981;
+  animation: timerCompleteGlow 2s ease-in-out infinite; position: relative;
+}
+.timer-widget__check { position: absolute; right: -10px; top: -10px; font-size: 1.4rem; color: #10b981; animation: checkPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+.timer-widget__btn--save {
+  background: linear-gradient(135deg, #10b981, #34d399) !important; color: white !important; border: none !important;
+  animation: savePulse 1.5s ease-in-out infinite;
+}
+.timer-widget__btn--save:hover:not(:disabled) { box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4) !important; }
+.timer-widget__completed-text {
+  display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; font-weight: 600; color: #10b981;
+  animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* --- Checklist Widget --- */
+.checklist-log { display: flex; flex-direction: column; gap: 0.5rem; max-height: 220px; overflow-y: auto; padding-right: 4px; }
+.checklist-log__item {
+  display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem; background: var(--input-bg);
+  border: 1px solid var(--glass-border); border-radius: 8px; cursor: pointer; transition: all 0.2s ease;
+}
+.checklist-log__item:hover { border-color: var(--primary); }
+.checklist-log__checkbox {
+  width: 24px; height: 24px; border-radius: 6px; border: 2px solid var(--glass-border);
+  background: transparent; display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; color: transparent; transition: all 0.2s; flex-shrink: 0;
+}
+.checklist-log__checkbox.checked { background: var(--primary); border-color: var(--primary); color: white; }
+.checklist-log__title { font-size: 0.9rem; color: var(--text-main); transition: all 0.2s; }
+.checklist-log__item.checked .checklist-log__title { text-decoration: line-through; color: var(--text-muted); }
+.checklist-log__completed-text {
+  display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600;
+  color: #10b981; padding: 0.5rem 0.75rem; background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; margin-top: 0.25rem;
+  animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* UI Bug Fix: Added Completed State for Checklist */
+.checklist-log--completed .checklist-log__item {
+  opacity: 0.7;
+  pointer-events: none;
+}
