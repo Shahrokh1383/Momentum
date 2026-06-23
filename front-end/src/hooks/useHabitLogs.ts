@@ -91,6 +91,7 @@ export const useHabitLogs = () => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['habits'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 
@@ -124,7 +125,10 @@ export const useHabitLogs = () => {
     onError: (_err, _variables, context) => {
       if (context?.previousHabits) queryClient.setQueryData(['habits'], context.previousHabits);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['habits'] }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['habits'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    }
   });
 
   const deleteMutation = useMutation({
@@ -142,7 +146,10 @@ export const useHabitLogs = () => {
     onError: (_err, _logId, context) => {
       if (context?.previousHabits) queryClient.setQueryData(['habits'], context.previousHabits);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['habits'] }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['habits'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    }
   });
 
   return {

@@ -10,6 +10,7 @@ import HabitQuotaBanner from '@/components/user/habits/HabitQuotaBanner';
 import HabitGrid from '@/components/user/habits/HabitGrid';
 import HabitFormModal from '@/components/user/habits/HabitFormModal';
 import ArchiveHabitModal from '@/components/user/habits/ArchiveHabitModal';
+import DeleteHabitModal from '@/components/user/habits/DeleteHabitModal';
 import '@/styles/habits.css';
 
 const HabitsPage: React.FC = () => {
@@ -20,7 +21,7 @@ const HabitsPage: React.FC = () => {
     updateHabit, isUpdating, updateError,
     archiveHabit, isArchiving, archiveError,
     restoreHabit, isRestoring, restoreError,
-    deleteHabit, isDeleting,
+    deleteHabit, isDeleting, deleteError,
   } = useHabits();
 
   const { logHabit, updateLog, deleteLog, isProcessing: isLogProcessing } = useHabitLogs();
@@ -36,6 +37,9 @@ const HabitsPage: React.FC = () => {
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [targetHabit, setTargetHabit] = useState<Habit | null>(null);
   const [isRestoringAction, setIsRestoringAction] = useState(false);
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [targetDeleteHabit, setTargetDeleteHabit] = useState<Habit | null>(null);
 
   const [logError, setLogError] = useState<string | null>(null);
 
@@ -73,8 +77,18 @@ const HabitsPage: React.FC = () => {
     } catch (_err) { /* Handled by React Query error states */ }
   };
 
-  const handleDelete = async (id: number) => {
-    try { await deleteHabit(id); } catch (_err) { /* Handled by React Query error states */ }
+  const handleOpenDelete = (habit: Habit) => {
+    setTargetDeleteHabit(habit);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!targetDeleteHabit) return;
+    try {
+      await deleteHabit(targetDeleteHabit.id);
+      setIsDeleteModalOpen(false);
+      setTargetDeleteHabit(null);
+    } catch (_err) { /* Handled by React Query error states */ }
   };
 
   // Logging Handlers
@@ -96,7 +110,7 @@ const HabitsPage: React.FC = () => {
   };
 
   const getErrorMessage = () => {
-    const err: any = createError || updateError || archiveError || restoreError;
+    const err: any = createError || updateError || archiveError || restoreError || deleteError;
     if (err?.response?.data?.error === 'quota_exceeded') {
       return `You have reached your limit of ${err.response.data.limit} active habits. Please archive a habit or upgrade your plan.`;
     }
@@ -146,7 +160,7 @@ const HabitsPage: React.FC = () => {
         isArchivedView={isArchivedView}
         onEdit={handleOpenEdit}
         onArchiveToggle={handleArchiveToggle}
-        onDelete={handleDelete}
+        onDelete={handleOpenDelete}
         onAddClick={handleOpenCreate}
         onLog={handleLog}
         onUpdateLog={handleUpdateLog}
@@ -173,6 +187,15 @@ const HabitsPage: React.FC = () => {
         habitTitle={targetHabit?.title || null}
         isRestoring={isRestoringAction}
         errorMessage={(archiveError || restoreError) ? getErrorMessage() : null}
+      />
+
+      <DeleteHabitModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        isLoading={isDeleting}
+        habitTitle={targetDeleteHabit?.title || null}
+        errorMessage={deleteError ? getErrorMessage() : null}
       />
 
       <Modal

@@ -10,6 +10,7 @@ export const useHabits = () => {
     queryClient.invalidateQueries({ queryKey: ['archivedHabits'] });
     queryClient.invalidateQueries({ queryKey: ['quotas'] });
     queryClient.invalidateQueries({ queryKey: ['tags'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
   };
 
   const { data: activeHabits = [], isLoading: isActiveLoading } = useQuery({

@@ -8,7 +8,7 @@ interface Props {
   habit: Habit;
   onEdit: (habit: Habit) => void;
   onArchiveToggle: (habit: Habit) => void;
-  onDelete: (id: number) => void;
+  onDelete: (habit: Habit) => void; // <--- CHANGED TYPE
   onLog: (habitId: number, payload: HabitLogPayload) => void;
   onUpdateLog: (logId: number, payload: Partial<HabitLogPayload>) => void;
   onDeleteLog: (logId: number) => void;
@@ -42,7 +42,7 @@ const HabitCard: React.FC<Props> = ({
         </button>
         <button 
           className="habit-card__action-btn habit-card__action-btn--delete" 
-          onClick={() => { if(window.confirm(`Permanently delete "${habit.title}"?`)) onDelete(habit.id); }} 
+          onClick={() => onDelete(habit)} // <--- REMOVED window.confirm
           disabled={isProcessing}
           title="Delete Habit"
         >
@@ -69,14 +69,10 @@ const HabitCard: React.FC<Props> = ({
           </span>
         )}
         
-        {/* Modular Streak Badge */}
         <StreakBadge streak={habit.streak} />
-        
-        {/* Modular Freeze Button (Handles its own visibility & quota logic) */}
         {!isArchivedView && <FreezeButton habit={habit} />}
       </div>
 
-      {/* LOGGING WIDGET INJECTION */}
       {!isArchivedView && habit.is_due_today && (
         <div className="habit-card__widget-container">
           <HabitLogWidget 

@@ -10,7 +10,7 @@ interface Props {
   isArchivedView: boolean;
   onEdit: (habit: Habit) => void;
   onArchiveToggle: (habit: Habit) => void;
-  onDelete: (id: number) => void;
+  onDelete: (habit: Habit) => void; // <--- CHANGED TYPE
   onAddClick: () => void;
   onLog: (habitId: number, payload: HabitLogPayload) => void;
   onUpdateLog: (logId: number, payload: Partial<HabitLogPayload>) => void;

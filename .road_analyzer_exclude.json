@@ -61,12 +61,10 @@
     "back-end\\app\\Http\\Resources\\User\\TagResource.php",
     "back-end\\app\\Http\\Resources\\User\\PlanResource.php",
     "back-end\\app\\Http\\Resources\\User\\DashboardResource.php",
-    "back-end\\app\\Services\\User\\Subscription",
     "fixing-strategy.txt",
     "front-end\\src\\components\\ui",
     "front-end\\src\\components\\user\\subscription",
     "front-end\\src\\components\\user\\profile",
-    "front-end\\src\\components\\user\\categories",
     "front-end\\src\\styles\\subscription.css",
     "front-end\\src\\styles\\profile.css",
     "front-end\\src\\styles\\categories.css",
@@ -76,6 +74,6 @@
     "back-end\\app\\Listeners",
     "back-end\\app\\Mail"
   ],
-  "lastModified": "2026-06-23T10:08:32.319Z",
+  "lastModified": "2026-06-25T13:07:27.567Z",
   "version": 1
 }
