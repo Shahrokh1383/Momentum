@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import Modal from '@/components/ui/Modal';
-import { useAuthStore } from '@/context/user/authStore';
+import { useAuthStore } from '@/context/authStore';
 
 interface AvatarModalProps {
   isOpen: boolean;

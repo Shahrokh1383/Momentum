@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useCategories } from '@/hooks/user/useCategories';
+import { useCategories } from '@/hooks/useCategories';
 import { Category, CategoryPayload } from '@/types/category';
 import CategoryQuotaBanner from '@/components/user/categories/CategoryQuotaBanner';
 import CategoryGrid from '@/components/user/categories/CategoryGrid';

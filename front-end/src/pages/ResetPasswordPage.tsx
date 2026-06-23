@@ -4,7 +4,7 @@ import { z } from 'zod';
 import AuthLayout from '@/components/user/auth/AuthLayout';
 import PasswordInput from '@/components/user/auth/PasswordInput';
 import PasswordStrengthMeter from '@/components/user/auth/PasswordStrengthMeter';
-import { useAuth } from '@/hooks/user/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useSearchParams, Link } from 'react-router-dom';
 
 const resetSchema = z.object({

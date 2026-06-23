@@ -1,9 +1,9 @@
 import React from 'react';
-import { useSubscription } from '@/hooks/user/useSubscription';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface Props {
   onAddClick: () => void;
-  trashCount: number; // NEW: Pass the count of trashed items from the parent page
+  trashCount: number;
 }
 
 const CategoryQuotaBanner: React.FC<Props> = ({ onAddClick, trashCount }) => {

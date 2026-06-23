@@ -5,7 +5,7 @@ import AuthLayout from '@/components/user/auth/AuthLayout';
 import PasswordInput from '@/components/user/auth/PasswordInput';
 import PasswordStrengthMeter from '@/components/user/auth/PasswordStrengthMeter';
 import OAuthButtons from '@/components/user/auth/OAuthButtons';
-import { useAuth } from '@/hooks/user/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
 import { AxiosError } from 'axios';
 

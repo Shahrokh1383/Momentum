@@ -19,7 +19,7 @@ const PaymentResultPage: React.FC = () => {
   const handleSuccess = async () => {
     await queryClient.invalidateQueries({ queryKey: ['currentSubscription'] });
     await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-    setTimeout(() => navigate('/dashboard'), 3000); // Redirect after success animation
+    setTimeout(() => navigate('/dashboard'), 3000);
   };
 
   const handleFailure = () => {

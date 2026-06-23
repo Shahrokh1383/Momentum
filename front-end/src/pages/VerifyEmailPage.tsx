@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import AuthLayout from '@/components/user/auth/AuthLayout';
-import { useAuth } from '@/hooks/user/useAuth';
-import { useAuthStore } from '@/context/user/authStore';
+import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/context/authStore';
 
 const VerifyEmailPage = () => {
   const [searchParams] = useSearchParams();

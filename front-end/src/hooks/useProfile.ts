@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { profileService, UpdateProfilePayload, UpdatePreferencesPayload } from '@/services/user/profileService';
-import { useAuthStore } from '@/context/user/authStore';
+import { useAuthStore } from '@/context/authStore';
 
 export const useProfile = () => {
   const queryClient = useQueryClient();

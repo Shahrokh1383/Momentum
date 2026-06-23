@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useAuth } from '@/hooks/user/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 
 type Theme = 'light' | 'dark' | 'system';
 

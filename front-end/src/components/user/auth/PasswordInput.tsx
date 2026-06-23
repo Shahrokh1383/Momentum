@@ -3,7 +3,7 @@ import { useState } from 'react';
 interface PasswordInputProps {
   id: string;
   label: string;
-  registration: object; // React Hook Form register object
+  registration: object;
 }
 
 const PasswordInput = ({ id, label, registration }: PasswordInputProps) => {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Habit } from '@/types/habit';
-import { useSubscription } from '@/hooks/user/useSubscription';
-import { useStreakFreezes } from '@/hooks/user/useStreakFreezes';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useStreakFreezes } from '@/hooks/useStreakFreezes';
 import { useNavigate } from 'react-router-dom';
 
 interface Props { habit: Habit; }

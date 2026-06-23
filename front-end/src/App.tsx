@@ -2,22 +2,22 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/services/queryClient';
-import LoginPage from '@/pages/user/LoginPage';
-import RegisterPage from '@/pages/user/RegisterPage';
-import ForgotPasswordPage from '@/pages/user/ForgotPasswordPage';
-import ResetPasswordPage from '@/pages/user/ResetPasswordPage';
-import VerifyEmailPage from '@/pages/user/VerifyEmailPage';
-import OAuthCallbackPage from '@/pages/user/OAuthCallbackPage';
-import PlansPage from '@/pages/user/PlansPage';
+import LoginPage from '@/pages/LoginPage';
+import RegisterPage from '@/pages/RegisterPage';
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
+import ResetPasswordPage from '@/pages/ResetPasswordPage';
+import VerifyEmailPage from '@/pages/VerifyEmailPage';
+import OAuthCallbackPage from '@/pages/OAuthCallbackPage';
+import PlansPage from '@/pages/PlansPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { useAuth } from '@/hooks/user/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
-import PaymentResultPage from './pages/user/PaymentResultPage';
-import SettingsPage from '@/pages/user/SettingsPage';
-import CategoriesPage from '@/pages/user/CategoriesPage';
-import HabitsPage from '@/pages/user/HabitsPage';
-import DashboardPage from '@/pages/user/DashboardPage';
+import PaymentResultPage from './pages/PaymentResultPage';
+import SettingsPage from '@/pages/SettingsPage';
+import CategoriesPage from '@/pages/CategoriesPage';
+import HabitsPage from '@/pages/HabitsPage';
+import DashboardPage from '@/pages/DashboardPage';
 
 const LoadingSpinner: React.FC = () => (
   <div className="d-flex justify-content-center align-items-center vh-100">

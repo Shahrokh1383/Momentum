@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks/user/useAuth';
-import { useAuthStore } from '@/context/user/authStore';
+import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/context/authStore';
 import PremiumBadge from '@/components/user/subscription/PremiumBadge';
 
 const NAV_LINKS = [
@@ -15,7 +15,7 @@ const NAV_LINKS = [
 
 const AppHeader: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
-  const { avatarVersion } = useAuthStore(); // Injected for reactive cache-busting
+  const { avatarVersion } = useAuthStore();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const location = useLocation();
 
@@ -163,19 +163,6 @@ const AppHeader: React.FC = () => {
               <span>{link.label}</span>
             </Link>
           ))}
-
-          {!isAuthenticated && (
-            <>
-              <Link to="/login" className="mobile-drawer__link">
-                <i className="fas fa-right-to-bracket" />
-                <span>Sign In</span>
-              </Link>
-              <Link to="/register" className="mobile-drawer__link">
-                <i className="fas fa-user-plus" />
-                <span>Get Started</span>
-              </Link>
-            </>
-          )}
         </nav>
 
         {isAuthenticated && (

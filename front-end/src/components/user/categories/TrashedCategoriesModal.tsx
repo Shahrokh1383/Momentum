@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import { Category, QuotaErrorResponse } from '@/types/category';
-import { AxiosError } from 'axios'; // Import AxiosError for strict typing
+import { AxiosError } from 'axios';
 
 interface Props {
   isOpen: boolean;

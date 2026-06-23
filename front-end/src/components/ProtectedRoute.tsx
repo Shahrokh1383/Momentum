@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/user/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 
 const LoadingSpinner: React.FC = () => (
   <div className="d-flex justify-content-center align-items-center vh-100">

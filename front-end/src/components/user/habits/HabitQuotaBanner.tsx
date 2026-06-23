@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSubscription } from '@/hooks/user/useSubscription';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface Props {
   onAddClick: () => void;

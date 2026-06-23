@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { authService } from '@/services/user/authService';
-import { useAuthStore } from '@/context/user/authStore';
+import { useAuthStore } from '@/context/authStore';
 import { useNavigate } from 'react-router-dom';
 import { VerifyEmailPayload, User } from '@/types/user';
 import { SubscriptionDetail } from '@/types/subscription';

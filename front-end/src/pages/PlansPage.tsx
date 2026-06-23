@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/user/useAuth';
-import { useSubscription } from '@/hooks/user/useSubscription';
+import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Plan } from '@/types/subscription';
 import PlanCard from '@/components/user/subscription/PlanCard';
 import PaymentModal from '@/components/user/subscription/PaymentModal';
@@ -103,7 +103,7 @@ const PlansPage: React.FC = () => {
         </div>
 
         <SubscriptionStatusBanner 
-          subscription={currentSubscription} 
+          subscription={currentSubscription ?? null}
           isLoading={isLoadingSubscription}
           onCancel={handleCancelRequest}
           isCancelling={isCancelling}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '@/hooks/user/useAuth';
-import { useProfile } from '@/hooks/user/useProfile';
+import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
 import { UserSettings } from '@/types/user';
 
 const PreferencesForm: React.FC = () => {

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import AuthLayout from '@/components/user/auth/AuthLayout';
-import { useAuth } from '@/hooks/user/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
 
 const forgotSchema = z.object({

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useHabits } from '@/hooks/user/useHabits';
-import { useHabitLogs } from '@/hooks/user/useHabitLogs';
-import { useCategories } from '@/hooks/user/useCategories';
-import { useTags } from '@/hooks/user/useTags';
-import { useSubscription } from '@/hooks/user/useSubscription';
+import { useHabits } from '@/hooks/useHabits';
+import { useHabitLogs } from '@/hooks/useHabitLogs';
+import { useCategories } from '@/hooks/useCategories';
+import { useTags } from '@/hooks/useTags';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Habit, HabitPayload, HabitLogPayload } from '@/types/habit';
 import HabitQuotaBanner from '@/components/user/habits/HabitQuotaBanner';
 import HabitGrid from '@/components/user/habits/HabitGrid';

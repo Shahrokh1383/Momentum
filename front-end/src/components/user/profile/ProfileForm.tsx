@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/user/useAuth';
-import { useProfile } from '@/hooks/user/useProfile';
-import { useAuthStore } from '@/context/user/authStore';
+import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
+import { useAuthStore } from '@/context/authStore';
 import AvatarModal from './AvatarModal';
 
 const ProfileForm: React.FC = () => {
