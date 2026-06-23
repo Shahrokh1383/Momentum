@@ -2,9 +2,9 @@
 
 namespace App\Http\Middleware;
 
-use App\Enums\PlanSlug;
+use App\Enums\Billing\PlanSlug;
 use App\Exceptions\FeatureLockedException;
-use App\Services\User\Subscription\PlanQuotaService;
+use App\Services\User\Billing\PlanQuotaService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;

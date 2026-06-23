@@ -3,8 +3,8 @@
 namespace App\Services\User\Habit;
 
 use App\Models\Habit\Habit;
-use App\Models\User;
-use App\Services\User\Subscription\PlanQuotaService;
+use App\Models\Identity\User;
+use App\Services\User\Billing\PlanQuotaService;
 use App\Services\User\Taxonomy\TagService;
 
 class HabitService

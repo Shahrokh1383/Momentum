@@ -2,7 +2,7 @@
 
 namespace App\Exceptions;
 
-use App\Enums\PlanSlug;
+use App\Enums\Billing\PlanSlug;
 use RuntimeException;
 
 class QuotaExceededException extends RuntimeException

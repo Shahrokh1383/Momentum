@@ -1,10 +1,10 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\User\Profile\AvatarController;
-use App\Http\Controllers\User\Profile\SettingsController;
-use App\Http\Controllers\User\Subscription\PlansController;
-use App\Http\Controllers\User\Subscription\SubscriptionController;
+use App\Http\Controllers\User\Identity\Auth\AuthController;
+use App\Http\Controllers\User\Identity\AvatarController;
+use App\Http\Controllers\User\Identity\SettingsController;
+use App\Http\Controllers\User\Billing\PlansController;
+use App\Http\Controllers\User\Billing\SubscriptionController;
 use App\Http\Controllers\User\Taxonomy\CategoryController;
 use App\Http\Controllers\User\Taxonomy\TagController;
 use App\Http\Controllers\User\Habit\HabitController;

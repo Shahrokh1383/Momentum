@@ -2,9 +2,9 @@
 
 namespace App\Services\User\Habit;
 
-use App\Mail\HabitReminderMail;
+use App\Mail\Habit\HabitReminderMail;
 use App\Models\Habit\Habit;
-use App\Services\User\Subscription\PlanQuotaService;
+use App\Services\User\Billing\PlanQuotaService;;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 

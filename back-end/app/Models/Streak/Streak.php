@@ -2,7 +2,7 @@
 
 namespace App\Models\Streak;
 
-use App\Models\User;
+use App\Models\Identity\User;
 use App\Models\Habit\Habit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

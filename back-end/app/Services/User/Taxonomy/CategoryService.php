@@ -2,10 +2,9 @@
 
 namespace App\Services\User\Taxonomy;
 
-use App\Exceptions\QuotaExceededException;
 use App\Models\Taxonomy\Category;
-use App\Models\User;
-use App\Services\User\Subscription\PlanQuotaService;
+use App\Models\Identity\User;
+use App\Services\User\Billing\PlanQuotaService;
 
 class CategoryService
 {

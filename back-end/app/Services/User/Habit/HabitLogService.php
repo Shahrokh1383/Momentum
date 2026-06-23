@@ -4,7 +4,7 @@ namespace App\Services\User\Habit;
 
 use App\Models\Habit\HabitChecklistLog;
 use App\Models\Habit\HabitLog; 
-use App\Models\User;
+use App\Models\Identity\User;
 
 class HabitLogService
 {

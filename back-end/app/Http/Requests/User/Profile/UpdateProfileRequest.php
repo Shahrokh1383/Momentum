@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\User\Profile;
 
-use App\Enums\ProfileVisibility;
+use App\Enums\Identity\ProfileVisibility;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 

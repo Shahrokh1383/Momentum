@@ -1,7 +1,8 @@
 <?php
 
-use App\Models\User;
+use App\Models\Identity\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 if (!function_exists('user_now')) {
     /**
@@ -14,12 +15,21 @@ if (!function_exists('user_now')) {
      */
     function user_now(?User $user = null): Carbon
     {
-        $user ??= auth()->user();
-        $appTimezone = config('app.timezone', 'UTC');
+        // FIXED: Deterministic resolution with strict type checking
+        if ($user === null) {
+            $authUser = Auth::user();
+            
+            // Ensures we are strictly dealing with the Identity\User model, 
+            // satisfying the static analyzer and preventing Guard mismatch errors.
+            if ($authUser instanceof User) {
+                $user = $authUser;
+            }
+        }
         
+        $appTimezone = config('app.timezone', 'UTC');
         $timezone = $appTimezone;
         
-        if ($user?->settings?->timezone) {
+        if ($user !== null && $user->settings?->timezone) {
             $userTimezone = $user->settings->timezone;
             // Validate timezone string to prevent Carbon exceptions
             if (@timezone_open($userTimezone)) {

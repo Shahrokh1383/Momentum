@@ -6,8 +6,8 @@ use App\Exceptions\QuotaExceededException;
 use App\Models\Habit\Habit;
 use App\Models\Streak\Streak;
 use App\Models\Streak\StreakFreeze;
-use App\Models\User;
-use App\Services\User\Subscription\PlanQuotaService;
+use App\Models\Identity\User;
+use App\Services\User\Billing\PlanQuotaService; 
 use Carbon\Carbon;
 
 class StreakService

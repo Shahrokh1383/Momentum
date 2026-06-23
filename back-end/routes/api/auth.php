@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\Auth\EmailVerificationController;
-use App\Http\Controllers\Auth\OAuthController;
-use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\User\Identity\Auth\AuthController;
+use App\Http\Controllers\User\Identity\Auth\EmailVerificationController;
+use App\Http\Controllers\User\Identity\Auth\OAuthController;
+use App\Http\Controllers\User\Identity\Auth\PasswordResetController;
 use Illuminate\Support\Facades\Route;
 
 // ─── Credential Auth ──────────────────────────────────────────────────────────

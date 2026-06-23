@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\ServiceProvider;
+use App\Services\User\Billing\PlanQuotaService;
 use App\Models\Habit\HabitLog;
 use App\Observers\HabitLogObserver;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Bind as singleton to optimize quota/plan lookups per request
-        $this->app->singleton(\App\Services\User\Subscription\PlanQuotaService::class);
+        $this->app->singleton(PlanQuotaService::class);
     }
 
     /**

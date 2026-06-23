@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\User\Subscription;
 
-use App\Enums\PlanSlug;
+use App\Enums\Billing\PlanSlug;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 

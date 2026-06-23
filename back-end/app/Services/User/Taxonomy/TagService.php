@@ -2,8 +2,8 @@
 
 namespace App\Services\User\Taxonomy;
 
+use App\Models\Identity\User;
 use App\Models\Taxonomy\Tag;
-use App\Models\User;
 use Illuminate\Support\Str;
 
 class TagService

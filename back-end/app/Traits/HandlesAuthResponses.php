@@ -3,7 +3,7 @@
 namespace App\Traits;
 
 use App\Http\Resources\User\UserResource;
-use App\Models\User;
+use App\Models\Identity\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
