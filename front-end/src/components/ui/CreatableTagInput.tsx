@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useTagAutocomplete } from '@/hooks/useTags';
+import { useTagAutocomplete } from '@/hooks/habits/useTags';
 import { Tag } from '@/types/tag';
 import '@/styles/ui/creatable-tag-input.css';
 

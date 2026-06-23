@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React from 'react';
 import { Habit, HabitLogPayload } from '@/types/habit';
+import { useTimer } from '@/hooks/habits/useTimer';
 
 interface Props {
   habit: Habit;
@@ -8,78 +9,17 @@ interface Props {
   isProcessing: boolean;
 }
 
-/**
- * Convert a target value + unit into total seconds.
- */
-const toSeconds = (value: number | null, unit: string | null): number => {
-  const v = value || 0;
-  switch (unit) {
-    case 'hours': return v * 3600;
-    case 'minutes': return v * 60;
-    default: return v;
-  }
-};
-
 const TimerWidget: React.FC<Props> = ({ habit, onLog, onDelete, isProcessing }) => {
-  const targetSeconds = useMemo(
-    () => Math.max(0, toSeconds(habit.target_value, habit.unit)),
-    [habit.target_value, habit.unit]
-  );
-  const hasValidTarget = targetSeconds > 0;
-
-  const [seconds, setSeconds] = useState(habit.today_log?.duration_seconds || 0);
-  const [isRunning, setIsRunning] = useState(false);
-  const [isCompleted, setIsCompleted] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const today = new Date().toISOString().split('T')[0];
-
-  const isLoggedToday = !!habit.today_log;
-  const hasReachedTarget = hasValidTarget && seconds >= targetSeconds;
-
-  // Sync completion state from an existing log (e.g. page reload)
-  useEffect(() => {
-    if (isLoggedToday && hasValidTarget && habit.today_log!.duration_seconds! >= targetSeconds) {
-      setIsCompleted(true);
-    }
-  }, [isLoggedToday, habit.today_log?.duration_seconds, targetSeconds, hasValidTarget]);
-
-  useEffect(() => {
-    if (isRunning && !hasReachedTarget) {
-      intervalRef.current = setInterval(() => {
-        setSeconds(prev => {
-          const next = prev + 1;
-          if (hasValidTarget && next >= targetSeconds) {
-            setIsRunning(false);
-            setIsCompleted(true);
-            return next;
-          }
-          return next;
-        });
-      }, 1000);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isRunning, hasReachedTarget, targetSeconds, hasValidTarget]);
-
-  const formatTime = (totalSecs: number): string => {
-    const h = Math.floor(totalSecs / 3600);
-    const m = Math.floor((totalSecs % 3600) / 60).toString().padStart(2, '0');
-    const s = (totalSecs % 60).toString().padStart(2, '0');
-    return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
-  };
-
-  const formatTargetLabel = (): string => {
-    const val = Math.floor(habit.target_value || 0);
-    const unit = habit.unit || 'seconds';
-    return `${val} ${unit}`;
-  };
+  const {
+    seconds, isRunning, isCompleted, hasValidTarget, targetSeconds,
+    isLoggedToday, hasReachedTarget, formatTime, formatTargetLabel,
+    start, pause, reset
+  } = useTimer(habit);
 
   const handleSave = () => {
     if (!hasReachedTarget) return;
-    setIsRunning(false);
+    pause();
     onLog({ logged_date: today, duration_seconds: seconds, status: 'completed' });
   };
 
@@ -87,9 +27,7 @@ const TimerWidget: React.FC<Props> = ({ habit, onLog, onDelete, isProcessing }) 
     if (isLoggedToday) {
       onDelete();
     } else {
-      setIsRunning(false);
-      setSeconds(0);
-      setIsCompleted(false);
+      reset();
     }
   };
 
@@ -97,17 +35,11 @@ const TimerWidget: React.FC<Props> = ({ habit, onLog, onDelete, isProcessing }) 
 
   return (
     <div className={`timer-widget ${isCompleted ? 'timer-widget--completed' : ''}`}>
-      {hasValidTarget && (
-        <div className="timer-widget__target">Target: {formatTargetLabel()}</div>
-      )}
+      {hasValidTarget && <div className="timer-widget__target">Target: {formatTargetLabel()}</div>}
 
       <div className="timer-widget__display">
         {formatTime(seconds)}
-        {isCompleted && (
-          <span className="timer-widget__check">
-            <i className="fas fa-check-circle"></i>
-          </span>
-        )}
+        {isCompleted && <span className="timer-widget__check"><i className="fas fa-check-circle"></i></span>}
       </div>
 
       {hasValidTarget && (
@@ -123,7 +55,7 @@ const TimerWidget: React.FC<Props> = ({ habit, onLog, onDelete, isProcessing }) 
         {!isLoggedToday && !isCompleted && (
           <button
             className={`timer-widget__btn ${!isRunning ? 'timer-widget__btn--play' : 'timer-widget__btn--stop'}`}
-            onClick={() => setIsRunning(!isRunning)}
+            onClick={() => isRunning ? pause() : start()}
             disabled={isProcessing}
           >
             <i className={`fas ${isRunning ? 'fa-pause' : 'fa-play'}`}></i>
@@ -131,34 +63,21 @@ const TimerWidget: React.FC<Props> = ({ habit, onLog, onDelete, isProcessing }) 
         )}
 
         {!isLoggedToday && isCompleted && (
-          <button
-            className="timer-widget__btn timer-widget__btn--save"
-            onClick={handleSave}
-            disabled={isProcessing}
-            title="Save completed timer"
-          >
+          <button className="timer-widget__btn timer-widget__btn--save" onClick={handleSave} disabled={isProcessing} title="Save completed timer">
             <i className="fas fa-check"></i>
           </button>
         )}
 
-        <button
-          className="timer-widget__btn"
-          onClick={handleReset}
-          disabled={isProcessing || (seconds === 0 && !isLoggedToday)}
-        >
+        <button className="timer-widget__btn" onClick={handleReset} disabled={isProcessing || (seconds === 0 && !isLoggedToday)}>
           <i className={`fas ${isLoggedToday ? 'fa-trash' : 'fa-rotate-left'}`}></i>
         </button>
       </div>
 
       {isCompleted && !isLoggedToday && (
-        <div className="timer-widget__completed-text">
-          <i className="fas fa-trophy"></i> Target reached! Save to confirm.
-        </div>
+        <div className="timer-widget__completed-text"><i className="fas fa-trophy"></i> Target reached! Save to confirm.</div>
       )}
 
-      {isLoggedToday && (
-        <small className="text-muted-custom">Logged for today. Reset to clear.</small>
-      )}
+      {isLoggedToday && <small className="text-muted-custom">Logged for today. Reset to clear.</small>}
     </div>
   );
 };

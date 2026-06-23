@@ -7,6 +7,7 @@ import { Habit, HabitPayload } from '@/types/habit';
 import { Category } from '@/types/category';
 import { Tag } from '@/types/tag';
 import { habitSchema, HabitFormData } from '@/validation/habitSchema';
+import { transformFormDataToPayload } from '@/utils/habit/habitFormUtils';
 
 // Sub-components
 import NumericFields from './form-fields/NumericFields';
@@ -63,8 +64,7 @@ const HabitFormModal: React.FC<Props> = ({
         reset({
           title: '', description: '', category_id: null, type: 'boolean',
           frequency: 'daily', due_days_of_week: [], reminder_time: '',
-          schedule: { reminders: [] }, target_value: null, unit: '', tags: [],
-          checklist_items: [],
+          schedule: { reminders: [] }, target_value: null, unit: '', tags: [], checklist_items: [],
         });
       }
     }
@@ -72,32 +72,7 @@ const HabitFormModal: React.FC<Props> = ({
 
   const onFormSubmit = async (data: HabitFormData) => {
     try {
-      const payload: HabitPayload = {
-        ...data,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        due_days_of_week: data.frequency !== 'daily' && data.due_days_of_week?.length 
-          ? data.due_days_of_week.join(',') 
-          : undefined,
-        reminder_time: canUseReminders ? (data.reminder_time || null) : null,
-      };
-
-      if (data.type !== 'numeric' && data.type !== 'timer') {
-        payload.target_value = null;
-        payload.unit = null;
-      }
-
-      if (data.type === 'checklist') {
-        payload.checklist_items = (data.checklist_items || []).map((item, index) => ({
-          title: item.title,
-          sort_order: index,
-        }));
-      } else {
-        payload.checklist_items = undefined;
-      }
-      
-      if (payload.description === '') payload.description = null;
-      if (payload.unit === '') payload.unit = null;
-
+      const payload = transformFormDataToPayload(data, canUseReminders);
       await onSubmit(payload);
       onClose();
     } catch (err) {
@@ -107,21 +82,9 @@ const HabitFormModal: React.FC<Props> = ({
 
   const footer = (
     <div className="d-flex gap-2 w-100 justify-content-end">
-      <button type="button" className="btn btn-outline-secondary" onClick={onClose} disabled={isLoading}>
-        Cancel
-      </button>
-      <button 
-        type="submit" 
-        form="habit-form" 
-        className="btn btn-primary" 
-        style={{ background: 'var(--gradient-btn)', border: 'none' }}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <><span className="spinner-border spinner-border-sm me-2" /> Saving...</>
-        ) : (
-          initialData ? 'Update Habit' : 'Create Habit'
-        )}
+      <button type="button" className="btn btn-outline-secondary" onClick={onClose} disabled={isLoading}>Cancel</button>
+      <button type="submit" form="habit-form" className="btn btn-primary" style={{ background: 'var(--gradient-btn)', border: 'none' }} disabled={isLoading}>
+        {isLoading ? <><span className="spinner-border spinner-border-sm me-2" /> Saving...</> : (initialData ? 'Update Habit' : 'Create Habit')}
       </button>
     </div>
   );
@@ -130,9 +93,7 @@ const HabitFormModal: React.FC<Props> = ({
     <Modal isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Habit' : 'New Habit'} footer={footer}>
       <form id="habit-form" onSubmit={handleSubmit(onFormSubmit)} className="d-flex flex-column gap-3 habit-form">
         {errorMessage && (
-          <div className="category-form__api-error">
-            <i className="fas fa-exclamation-circle me-2"></i> {errorMessage}
-          </div>
+          <div className="category-form__api-error"><i className="fas fa-exclamation-circle me-2"></i> {errorMessage}</div>
         )}
 
         <div className="settings-form__group mb-0">
@@ -152,9 +113,7 @@ const HabitFormModal: React.FC<Props> = ({
               <label className="settings-form__label">Category</label>
               <select className="settings-form__input" {...register('category_id', { valueAsNumber: true })}>
                 <option value="">Uncategorized</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
+                {categories.map(cat => (<option key={cat.id} value={cat.id}>{cat.name}</option>))}
               </select>
             </div>
           </div>
@@ -177,12 +136,8 @@ const HabitFormModal: React.FC<Props> = ({
         {watchedType === 'checklist' && <ChecklistFields control={control} errors={errors} />}
 
         <ScheduleFields 
-          control={control} 
-          register={register} 
-          setValue={setValue} 
-          errors={errors} 
-          canUseReminders={canUseReminders} 
-          watchedFreq={watchedFreq} 
+          control={control} register={register} setValue={setValue} errors={errors} 
+          canUseReminders={canUseReminders} watchedFreq={watchedFreq} 
         />
 
         <div className="settings-form__group mb-0">

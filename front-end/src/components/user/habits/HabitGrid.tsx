@@ -1,6 +1,6 @@
 import React from 'react';
-import { Habit, HabitLogPayload } from '@/types/habit';
-import HabitCard from './HabitCard';
+import HabitCard, { HabitActions, LogActions } from './HabitCard';
+import { Habit } from '@/types/habit';
 
 interface Props {
   habits: Habit[];
@@ -8,18 +8,14 @@ interface Props {
   isProcessing: boolean;
   isLogProcessing: boolean;
   isArchivedView: boolean;
-  onEdit: (habit: Habit) => void;
-  onArchiveToggle: (habit: Habit) => void;
-  onDelete: (habit: Habit) => void; // <--- CHANGED TYPE
+  habitActions: HabitActions;
+  logActions: LogActions;
   onAddClick: () => void;
-  onLog: (habitId: number, payload: HabitLogPayload) => void;
-  onUpdateLog: (logId: number, payload: Partial<HabitLogPayload>) => void;
-  onDeleteLog: (logId: number) => void;
 }
 
 const HabitGrid: React.FC<Props> = ({ 
   habits, isLoading, isProcessing, isLogProcessing, isArchivedView,
-  onEdit, onArchiveToggle, onDelete, onAddClick, onLog, onUpdateLog, onDeleteLog
+  habitActions, logActions, onAddClick
 }) => {
   if (isLoading) {
     return (
@@ -48,12 +44,8 @@ const HabitGrid: React.FC<Props> = ({
         <HabitCard
           key={habit.id}
           habit={habit}
-          onEdit={onEdit}
-          onArchiveToggle={onArchiveToggle}
-          onDelete={onDelete}
-          onLog={onLog}
-          onUpdateLog={onUpdateLog}
-          onDeleteLog={onDeleteLog}
+          habitActions={habitActions}
+          logActions={logActions}
           isArchivedView={isArchivedView}
           isProcessing={isProcessing}
           isLogProcessing={isLogProcessing}

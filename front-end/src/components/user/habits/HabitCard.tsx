@@ -4,22 +4,29 @@ import HabitLogWidget from './widgets/HabitLogWidget';
 import StreakBadge from './StreakBadge';
 import FreezeButton from './FreezeButton';
 
-interface Props {
-  habit: Habit;
+export interface HabitActions {
   onEdit: (habit: Habit) => void;
   onArchiveToggle: (habit: Habit) => void;
-  onDelete: (habit: Habit) => void; // <--- CHANGED TYPE
+  onDelete: (habit: Habit) => void;
+}
+
+export interface LogActions {
   onLog: (habitId: number, payload: HabitLogPayload) => void;
   onUpdateLog: (logId: number, payload: Partial<HabitLogPayload>) => void;
   onDeleteLog: (logId: number) => void;
+}
+
+interface Props {
+  habit: Habit;
+  habitActions: HabitActions;
+  logActions: LogActions;
   isArchivedView: boolean;
   isProcessing: boolean;
   isLogProcessing: boolean;
 }
 
 const HabitCard: React.FC<Props> = ({ 
-  habit, onEdit, onArchiveToggle, onDelete, onLog, onUpdateLog, onDeleteLog, 
-  isArchivedView, isProcessing, isLogProcessing 
+  habit, habitActions, logActions, isArchivedView, isProcessing, isLogProcessing 
 }) => {
   const borderColor = habit.category?.color || '#64748b';
 
@@ -29,12 +36,12 @@ const HabitCard: React.FC<Props> = ({
       style={{ borderLeftColor: borderColor }}
     >
       <div className="habit-card__actions">
-        <button className="habit-card__action-btn habit-card__action-btn--edit" onClick={() => onEdit(habit)} disabled={isProcessing} title="Edit Habit">
+        <button className="habit-card__action-btn habit-card__action-btn--edit" onClick={() => habitActions.onEdit(habit)} disabled={isProcessing} title="Edit Habit">
           <i className="fas fa-pen"></i>
         </button>
         <button 
           className={`habit-card__action-btn ${isArchivedView ? 'habit-card__action-btn--restore' : 'habit-card__action-btn--archive'}`} 
-          onClick={() => onArchiveToggle(habit)} 
+          onClick={() => habitActions.onArchiveToggle(habit)} 
           disabled={isProcessing}
           title={isArchivedView ? 'Restore Habit' : 'Archive Habit'}
         >
@@ -42,7 +49,7 @@ const HabitCard: React.FC<Props> = ({
         </button>
         <button 
           className="habit-card__action-btn habit-card__action-btn--delete" 
-          onClick={() => onDelete(habit)} // <--- REMOVED window.confirm
+          onClick={() => habitActions.onDelete(habit)} 
           disabled={isProcessing}
           title="Delete Habit"
         >
@@ -64,8 +71,7 @@ const HabitCard: React.FC<Props> = ({
       <div className="habit-card__meta">
         {!isArchivedView && habit.is_due_today && (
           <span className="habit-card__due-badge">
-            <span className="habit-card__due-dot"></span>
-            Due Today
+            <span className="habit-card__due-dot"></span> Due Today
           </span>
         )}
         
@@ -77,9 +83,9 @@ const HabitCard: React.FC<Props> = ({
         <div className="habit-card__widget-container">
           <HabitLogWidget 
             habit={habit} 
-            onLog={onLog} 
-            onUpdate={onUpdateLog} 
-            onDeleteLog={onDeleteLog}
+            onLog={logActions.onLog} 
+            onUpdate={logActions.onUpdateLog} 
+            onDeleteLog={logActions.onDeleteLog}
             isProcessing={isLogProcessing}
           />
         </div>

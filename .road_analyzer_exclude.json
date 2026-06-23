@@ -72,8 +72,12 @@
     "front-end\\src\\styles\\dashboard.css",
     "back-end\\app\\Http\\Controllers\\PaymentCallbackController.php",
     "back-end\\app\\Listeners",
-    "back-end\\app\\Mail"
+    "back-end\\app\\Mail",
+    "front-end\\src\\components\\user\\habits",
+    "front-end\\src\\hooks\\habits",
+    "front-end\\src\\styles",
+    "front-end\\src\\utils\\habit"
   ],
-  "lastModified": "2026-06-25T13:07:27.567Z",
+  "lastModified": "2026-06-23T14:40:34.234Z",
   "version": 1
 }
