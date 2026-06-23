@@ -1,16 +1,20 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Habit;
 
-use App\Models\Scopes\ActiveHabitScope;
+use App\Models\Habit\Scopes\ActiveHabitScope;
+use App\Models\Category;
+use App\Models\Tag;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
-use App\Models\HabitReminderLog;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\Streak\Streak;
+use App\Models\Streak\StreakFreeze;
 
 class Habit extends Model
 {
@@ -40,7 +44,6 @@ class Habit extends Model
 
     protected static function booted(): void
     {
-        // Apply global scope so archived habits are hidden by default
         static::addGlobalScope(new ActiveHabitScope());
     }
 
@@ -89,29 +92,20 @@ class Habit extends Model
         return $this->hasOne(HabitLog::class)->whereDate('logged_date', now()->timezone($this->timezone ?? 'UTC'))->latestOfMany();
     }
 
-    /**
-     * Scope a query to only include archived habits.
-     */
     public function scopeOnlyArchived(Builder $query): Builder
     {
         return $query->withoutGlobalScope(ActiveHabitScope::class)->whereNotNull('archived_at');
     }
 
-    /**
-     * Scope a query to include both active and archived habits.
-     */
     public function scopeWithArchived(Builder $query): Builder
     {
         return $query->withoutGlobalScope(ActiveHabitScope::class);
     }
 
-    /**
-     * Determines if the habit is scheduled for today based on frequency and due days.
-     */
     public function isDueToday(?Carbon $date = null): bool
     {
         $date = $date ?? Carbon::now($this->timezone);
-        $todayIsoDay = (int) $date->format('N'); // 1 (Mon) to 7 (Sun)
+        $todayIsoDay = (int) $date->format('N');
 
         if ($this->frequency === 'daily') {
             return true;
@@ -122,7 +116,6 @@ class Habit extends Model
             return in_array((string) $todayIsoDay, $days, true);
         }
 
-        // Fallback for weekly/custom without specific days defined
         return true; 
     }
 }

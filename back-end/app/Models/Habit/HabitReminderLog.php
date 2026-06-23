@@ -1,24 +1,22 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Habit;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Streak extends Model
+class HabitReminderLog extends Model
 {
     protected $fillable = [
         'user_id',
         'habit_id',
-        'current_streak',
-        'longest_streak',
-        'last_log_date',
+        'scheduled_time',
+        'reminder_date',
     ];
 
     protected $casts = [
-        'current_streak' => 'integer',
-        'longest_streak' => 'integer',
-        'last_log_date' => 'date',
+        'reminder_date' => 'date',
     ];
 
     public function user(): BelongsTo

@@ -2,8 +2,8 @@
 
 namespace App\Services\User\Habit;
 
-use App\Models\HabitChecklistLog;
-use App\Models\HabitLog;
+use App\Models\Habit\HabitChecklistLog;
+use App\Models\Habit\HabitLog; 
 use App\Models\User;
 
 class HabitLogService

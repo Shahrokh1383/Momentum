@@ -1,21 +1,27 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Streak;
 
+use App\Models\User;
+use App\Models\Habit\Habit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class HabitReminderLog extends Model
+class StreakFreeze extends Model
 {
+    public const UPDATED_AT = null;
+
     protected $fillable = [
         'user_id',
         'habit_id',
-        'scheduled_time',
-        'reminder_date',
+        'frozen_date',
+        'used_at',
+        'reason',
     ];
 
     protected $casts = [
-        'reminder_date' => 'date',
+        'frozen_date' => 'date',
+        'used_at' => 'datetime',
     ];
 
     public function user(): BelongsTo

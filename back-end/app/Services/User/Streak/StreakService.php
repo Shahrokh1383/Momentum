@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Services\User\Habit;
+namespace App\Services\User\Streak;
 
 use App\Exceptions\QuotaExceededException;
-use App\Models\Habit;
-use App\Models\Streak;
-use App\Models\StreakFreeze;
+use App\Models\Habit\Habit;
+use App\Models\Streak\Streak;
+use App\Models\Streak\StreakFreeze;
 use App\Models\User;
 use App\Services\User\Subscription\PlanQuotaService;
 use Carbon\Carbon;
@@ -16,17 +16,11 @@ class StreakService
         private PlanQuotaService $quotaService
     ) {}
 
-    /**
-     * Calculate or recalculate streak for a habit (full from-scratch).
-     */
     public function calculate(Habit $habit): Streak
     {
         return $this->recalculate($habit);
     }
 
-    /**
-     * Recalculate streak from scratch. Called by observers on log changes.
-     */
     public function recalculate(Habit $habit): Streak
     {
         $result = $this->performCalculation($habit);
@@ -42,10 +36,6 @@ class StreakService
         );
     }
 
-    /**
-     * Apply a freeze to a specific date for a habit.
-     * Enforces weekly freeze quota then recalculates streak.
-     */
     public function applyFreeze(Habit $habit, string $frozenDate, ?string $reason = null): StreakFreeze
     {
         $this->ensureFreezeQuotaNotExceeded($habit->user, Carbon::parse($frozenDate));
@@ -63,11 +53,6 @@ class StreakService
         return $freeze;
     }
 
-    /**
-    * Walk backwards from most recent completed log, counting consecutive due-days.
-    * Frozen days on due-dates count toward the streak (that's their purpose).
-    * Non-due days are skipped without breaking the streak.
-    */
     private function performCalculation(Habit $habit): array
     {
         $completedDates = $habit->logs()
@@ -96,36 +81,29 @@ class StreakService
         while (true) {
             $key = $cursor->toDateString();
 
-            // Non-due days: skip without affecting streak
             if (!$habit->isDueToday($cursor)) {
                 $cursor->subDay();
                 continue;
             }
 
-            // Frozen due-days: count as streak (this is what a freeze is for)
             if (isset($frozenSet[$key])) {
                 $currentStreak++;
                 $cursor->subDay();
                 continue;
             }
 
-            // Completed due-days: count as streak
             if (isset($completedSet[$key])) {
                 $currentStreak++;
                 $cursor->subDay();
                 continue;
             }
 
-            // Missed due-day: streak is broken
             break;
         }
 
         return ['current' => $currentStreak, 'last_date' => $lastDate->toDateString()];
     }
 
-    /**
-     * Check if the user has exceeded their weekly freeze quota.
-     */
     private function ensureFreezeQuotaNotExceeded(User $user, Carbon $date): void
     {
         $limit = $this->quotaService->getLimit($user, 'max_freezes_per_week');

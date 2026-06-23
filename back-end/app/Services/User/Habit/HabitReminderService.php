@@ -3,7 +3,7 @@
 namespace App\Services\User\Habit;
 
 use App\Mail\HabitReminderMail;
-use App\Models\Habit;
+use App\Models\Habit\Habit;
 use App\Services\User\Subscription\PlanQuotaService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;

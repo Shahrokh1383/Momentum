@@ -2,7 +2,7 @@
 
 namespace App\Services\User\Habit;
 
-use App\Models\Habit;
+use App\Models\Habit\Habit;
 use App\Models\Tag;
 use App\Models\User;
 use App\Services\User\Subscription\PlanQuotaService;

@@ -4,7 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\ServiceProvider;
-use App\Models\HabitLog;
+use App\Models\Habit\HabitLog;
 use App\Observers\HabitLogObserver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;

@@ -7,9 +7,9 @@ use App\Http\Controllers\User\Subscription\PlansController;
 use App\Http\Controllers\User\Subscription\SubscriptionController;
 use App\Http\Controllers\User\CategoryController;
 use App\Http\Controllers\User\TagController;
-use App\Http\Controllers\User\HabitController;
-use App\Http\Controllers\User\HabitLogController;
-use App\Http\Controllers\User\StreakFreezeController;
+use App\Http\Controllers\User\Habit\HabitController;
+use App\Http\Controllers\User\Habit\HabitLogController;
+use App\Http\Controllers\User\Streak\StreakFreezeController;
 use App\Http\Controllers\User\DashboardController;
 use Illuminate\Support\Facades\Route;
 

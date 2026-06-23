@@ -2,9 +2,9 @@
 
 namespace App\Observers;
 
-use App\Models\Habit;
-use App\Models\HabitLog;
-use App\Services\User\Habit\StreakService;
+use App\Models\Habit\Habit;
+use App\Models\Habit\HabitLog;
+use App\Services\User\Streak\StreakService;
 
 class HabitLogObserver
 {

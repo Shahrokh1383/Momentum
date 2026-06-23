@@ -1,26 +1,26 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Streak;
 
+use App\Models\User;
+use App\Models\Habit\Habit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class StreakFreeze extends Model
+class Streak extends Model
 {
-    // Migration only has created_at, not updated_at
-    public const UPDATED_AT = null;
-
     protected $fillable = [
         'user_id',
         'habit_id',
-        'frozen_date',
-        'used_at',
-        'reason',
+        'current_streak',
+        'longest_streak',
+        'last_log_date',
     ];
 
     protected $casts = [
-        'frozen_date' => 'date',
-        'used_at' => 'datetime',
+        'current_streak' => 'integer',
+        'longest_streak' => 'integer',
+        'last_log_date' => 'date',
     ];
 
     public function user(): BelongsTo

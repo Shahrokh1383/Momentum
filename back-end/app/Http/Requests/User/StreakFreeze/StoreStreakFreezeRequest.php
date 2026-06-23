@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\User\StreakFreeze;
 
-use App\Models\Habit;
+use App\Models\Habit\Habit;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 

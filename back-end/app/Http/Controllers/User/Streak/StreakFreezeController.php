@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Controllers\User;
+namespace App\Http\Controllers\User\Streak;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\StreakFreeze\StoreStreakFreezeRequest;
 use App\Http\Resources\User\StreakResource;
-use App\Models\Habit;
-use App\Services\User\Habit\StreakService;
+use App\Models\Habit\Habit;
+use App\Services\User\Streak\StreakService;
 use Illuminate\Http\JsonResponse;
 
 class StreakFreezeController extends Controller

@@ -1,13 +1,12 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Habit;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class HabitChecklistLog extends Model
 {
-    // Pure junction table — no temporal data needed
     public $timestamps = false;
 
     protected $fillable = [
