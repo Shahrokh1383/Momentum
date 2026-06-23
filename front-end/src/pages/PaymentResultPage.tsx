@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import PaymentProcessing from '@/components/user/subscription/PaymentProcessing';
-import PaymentResult from '@/components/user/subscription/PaymentResult';
+import PaymentProcessing from '@/components/user/billing/PaymentProcessing';
+import PaymentResult from '@/components/user/billing/PaymentResult';
 import { useQueryClient } from '@tanstack/react-query';
 
 const PaymentResultPage: React.FC = () => {

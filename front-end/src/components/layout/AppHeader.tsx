@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/context/authStore';
-import PremiumBadge from '@/components/user/subscription/PremiumBadge';
+import PremiumBadge from '@/components/user/billing/PremiumBadge';
 
 const NAV_LINKS = [
   { to: '/dashboard', label: 'Dashboard', icon: 'fa-house' },

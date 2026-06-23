@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Plan } from '@/types/subscription';
-import PlanCard from '@/components/user/subscription/PlanCard';
-import PaymentModal from '@/components/user/subscription/PaymentModal';
-import SubscriptionStatusBanner from '@/components/user/subscription/SubscriptionStatusBanner';
+import PlanCard from '@/components/user/billing/PlanCard';
+import PaymentModal from '@/components/user/billing/PaymentModal';
+import SubscriptionStatusBanner from '@/components/user/billing/SubscriptionStatusBanner';
 import Modal from '@/components/ui/Modal';
 
 const PlansPage: React.FC = () => {
