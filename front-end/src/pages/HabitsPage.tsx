@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useCategories } from '@/hooks/useCategories';
+import { useCategories } from '@/hooks/categories/useCategories';
 import { useTags } from '@/hooks/habits/useTags';
 import { useSubscription } from '@/hooks/useSubscription';
 import Modal from '@/components/ui/Modal';

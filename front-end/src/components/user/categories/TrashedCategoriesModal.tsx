@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Modal from '@/components/ui/Modal';
-import { Category, QuotaErrorResponse } from '@/types/category';
-import { AxiosError } from 'axios';
+import { Category } from '@/types/category';
+import { parseRestoreQuotaError } from '@/utils/category/categoryErrors';
 
 interface Props {
   isOpen: boolean;
@@ -18,26 +18,22 @@ const TrashedCategoriesModal: React.FC<Props> = ({
   isOpen, onClose, trashedCategories, isLoading, onRestore, onForceDelete, isRestoring, isForceDeleting 
 }) => {
   const [confirmForceDeleteId, setConfirmForceDeleteId] = useState<number | null>(null);
-  // Local state to handle quota block without prop-drilling or breaking parent components
-  const [quotaError, setQuotaError] = useState<QuotaErrorResponse | null>(null);
+  const [quotaError, setQuotaError] = useState<{ limit: number; upgrade_required: string } | null>(null);
 
   const handleClose = () => {
     setConfirmForceDeleteId(null);
-    setQuotaError(null); // Clear error on close
+    setQuotaError(null); 
     onClose();
   };
 
   const handleRestore = async (id: number) => {
     try {
-      setQuotaError(null); // Clear previous errors before attempting
+      setQuotaError(null); 
       await onRestore(id);
     } catch (err) {
-      // Strictly type the error to check for our specific backend exception
-      const axiosError = err as AxiosError<QuotaErrorResponse>;
-      
-      if (axiosError?.response?.data?.error === 'quota_exceeded') {
-        // Set state to show the UI banner
-        setQuotaError(axiosError.response.data);
+      const parsedError = parseRestoreQuotaError(err);
+      if (parsedError) {
+        setQuotaError({ limit: parsedError.limit, upgrade_required: parsedError.upgrade_required });
       } else {
         console.error('Restore failed', err);
       }
@@ -59,22 +55,18 @@ const TrashedCategoriesModal: React.FC<Props> = ({
 
   const footer = (
     <div className="w-100 d-flex justify-content-end">
-      <button type="button" className="modal-btn modal-btn--secondary" onClick={handleClose}>
-        Close
-      </button>
+      <button type="button" className="modal-btn modal-btn--secondary" onClick={handleClose}>Close</button>
     </div>
   );
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Trashed Categories" footer={footer}>
-      {/* Quota Error Banner - Reusing existing design system classes (DRY) */}
       {quotaError && (
         <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
           <i className="fas fa-exclamation-triangle me-2"></i>
           <div className="flex-grow-1">
             <strong>Restore Limit Reached!</strong> You cannot exceed your plan limit of {quotaError.limit} categories.
           </div>
-          {/* Reusing the exact same upsell styling from CategoryQuotaBanner */}
           <span className="quota-banner__upsell mb-0">
             <i className="fas fa-crown me-1"></i> Upgrade to {quotaError.upgrade_required.charAt(0).toUpperCase() + quotaError.upgrade_required.slice(1)}
           </span>
@@ -93,30 +85,19 @@ const TrashedCategoriesModal: React.FC<Props> = ({
       ) : (
         <div className="trashed-list">
           {trashedCategories.map((cat) => (
-            <div 
-              key={cat.id} 
-              className="trashed-list__item"
-              onClick={handleCancelForceDelete}
-            >
+            <div key={cat.id} className="trashed-list__item" onClick={handleCancelForceDelete}>
               <div className="trashed-list__info">
                 <div className="trashed-list__icon" style={{ color: cat.color, background: `${cat.color}15` }}>
                   <i className={cat.icon}></i>
                 </div>
                 <div>
                   <div className="trashed-list__name">{cat.name}</div>
-                  <div className="trashed-list__date">
-                    Deleted {new Date(cat.deleted_at!).toLocaleDateString()}
-                  </div>
+                  <div className="trashed-list__date">Deleted {new Date(cat.deleted_at!).toLocaleDateString()}</div>
                 </div>
               </div>
 
               <div className="trashed-list__actions" onClick={(e) => e.stopPropagation()}>
-                <button 
-                  className="modal-btn modal-btn--secondary btn-sm"
-                  onClick={() => handleRestore(cat.id)}
-                  disabled={isRestoring || isForceDeleting}
-                  title="Restore Category"
-                >
+                <button className="modal-btn modal-btn--secondary btn-sm" onClick={() => handleRestore(cat.id)} disabled={isRestoring || isForceDeleting} title="Restore Category">
                   <i className="fas fa-rotate-left me-1"></i> Restore
                 </button>
 

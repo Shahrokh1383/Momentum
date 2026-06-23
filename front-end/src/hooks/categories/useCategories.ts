@@ -12,7 +12,8 @@ export const useCategories = () => {
     queryClient.invalidateQueries({ queryKey: ['quotas'] });
   };
 
-  const { data: categories = [], isLoading, error } = useQuery({
+  // Removed unused `error` export (Dead Code elimination)
+  const { data: categories = [], isLoading } = useQuery({
     queryKey: ['categories'],
     queryFn: categoryService.getAll,
   });
@@ -51,7 +52,6 @@ export const useCategories = () => {
   return {
     categories,
     isLoading,
-    error,
     trashedCategories,
     isTrashedLoading,
     

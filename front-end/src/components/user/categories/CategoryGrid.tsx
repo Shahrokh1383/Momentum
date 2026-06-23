@@ -1,17 +1,16 @@
 import React from 'react';
 import { Category } from '@/types/category';
-import CategoryCard from './CategoryCard';
+import CategoryCard, { CategoryActions } from './CategoryCard';
 
 interface Props {
   categories: Category[];
-  onEdit: (category: Category) => void;
-  onDeleteRequest: (category: Category) => void; // Updated signature
+  categoryActions: CategoryActions;
   isLoading: boolean;
   onAddClick: () => void;
 }
 
 const CategoryGrid: React.FC<Props> = ({ 
-  categories, onEdit, onDeleteRequest, isLoading, onAddClick 
+  categories, categoryActions, isLoading, onAddClick 
 }) => {
   if (isLoading) {
     return (
@@ -46,8 +45,7 @@ const CategoryGrid: React.FC<Props> = ({
         <CategoryCard
           key={category.id}
           category={category}
-          onEdit={onEdit}
-          onDeleteRequest={onDeleteRequest} // Passed down
+          categoryActions={categoryActions}
         />
       ))}
     </div>

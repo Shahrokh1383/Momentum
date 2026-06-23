@@ -1,13 +1,17 @@
 import React from 'react';
 import { Category } from '@/types/category';
 
-interface Props {
-  category: Category;
+export interface CategoryActions {
   onEdit: (category: Category) => void;
-  onDeleteRequest: (category: Category) => void; // Updated signature
+  onDeleteRequest: (category: Category) => void;
 }
 
-const CategoryCard: React.FC<Props> = ({ category, onEdit, onDeleteRequest }) => {
+interface Props {
+  category: Category;
+  categoryActions: CategoryActions;
+}
+
+const CategoryCard: React.FC<Props> = ({ category, categoryActions }) => {
   return (
     <div 
       className="category-card" 
@@ -16,7 +20,7 @@ const CategoryCard: React.FC<Props> = ({ category, onEdit, onDeleteRequest }) =>
       <div className="category-card__actions">
         <button 
           className="category-card__action-btn category-card__action-btn--edit"
-          onClick={() => onEdit(category)}
+          onClick={() => categoryActions.onEdit(category)}
           title="Edit Category"
           disabled={category.is_default}
         >
@@ -24,7 +28,7 @@ const CategoryCard: React.FC<Props> = ({ category, onEdit, onDeleteRequest }) =>
         </button>
         <button 
           className="category-card__action-btn category-card__action-btn--delete"
-          onClick={() => onDeleteRequest(category)} // Simply triggers the parent modal
+          onClick={() => categoryActions.onDeleteRequest(category)} 
           disabled={category.is_default}
           title={category.is_default ? 'Default categories cannot be deleted' : 'Delete Category'}
         >
