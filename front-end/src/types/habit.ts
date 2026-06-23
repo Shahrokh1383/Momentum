@@ -98,5 +98,5 @@ export interface DashboardData {
 
 export interface StreakFreezePayload {
   frozen_date: string;
-  reason?: string | null;
+  reason: string;
 }

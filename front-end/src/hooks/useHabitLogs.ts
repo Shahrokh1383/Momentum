@@ -2,25 +2,45 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { habitLogService } from '@/services/user/habitLogService';
 import { Habit, HabitLog, HabitLogPayload } from '@/types/habit';
 
+type LogStatus = HabitLog['status'];
+
+/**
+ * Derive the correct optimistic status for a checklist habit log.
+ * Only returns 'completed' when every single checklist item is checked.
+ */
+const deriveChecklistStatus = (
+  habit: Habit,
+  checklistLogs: HabitLogPayload['checklist_logs']
+): LogStatus => {
+  const totalItems = habit.checklist_items?.length || 0;
+  if (totalItems === 0) return 'pending';
+  const checkedCount = checklistLogs?.filter(cl => cl.is_checked).length || 0;
+  return checkedCount >= totalItems ? 'completed' : 'pending';
+};
+
 export const useHabitLogs = () => {
   const queryClient = useQueryClient();
 
   const logMutation = useMutation({
-    mutationFn: ({ habitId, payload }: { habitId: number; payload: HabitLogPayload }) => 
+    mutationFn: ({ habitId, payload }: { habitId: number; payload: HabitLogPayload }) =>
       habitLogService.log(habitId, payload),
     onMutate: async ({ habitId, payload }) => {
       await queryClient.cancelQueries({ queryKey: ['habits'] });
       const previousHabits = queryClient.getQueryData(['habits']);
-      
+
       queryClient.setQueryData(['habits'], (oldData: Habit[] | undefined) => {
         if (!oldData) return oldData;
         return oldData.map(h => {
           if (h.id === habitId) {
+            const optimisticStatus: LogStatus = h.type === 'checklist'
+              ? deriveChecklistStatus(h, payload.checklist_logs)
+              : (payload.status || 'completed');
+
             const optimisticLog: HabitLog = {
-              id: Math.random(), // Temporary UI ID
+              id: Math.random(),
               habit_id: habitId,
               logged_date: payload.logged_date,
-              status: payload.status || 'completed',
+              status: optimisticStatus,
               notes: payload.notes || null,
               value: payload.value,
               duration_seconds: payload.duration_seconds,
@@ -48,20 +68,24 @@ export const useHabitLogs = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ logId, payload }: { logId: number; payload: Partial<HabitLogPayload> }) => 
+    mutationFn: ({ logId, payload }: { logId: number; payload: Partial<HabitLogPayload> }) =>
       habitLogService.update(logId, payload),
     onMutate: async ({ logId, payload }) => {
       await queryClient.cancelQueries({ queryKey: ['habits'] });
       const previousHabits = queryClient.getQueryData(['habits']);
-      
+
       queryClient.setQueryData(['habits'], (oldData: Habit[] | undefined) => {
         if (!oldData) return oldData;
         return oldData.map(h => {
           if (h.today_log?.id === logId) {
-            return {
-              ...h,
-              today_log: { ...h.today_log, ...payload }
-            };
+            const updatedLog = { ...h.today_log, ...payload };
+
+            // For checklist type, derive status from item completion
+            if (h.type === 'checklist' && payload.checklist_logs) {
+              updatedLog.status = deriveChecklistStatus(h, payload.checklist_logs);
+            }
+
+            return { ...h, today_log: updatedLog };
           }
           return h;
         });
@@ -79,7 +103,7 @@ export const useHabitLogs = () => {
     onMutate: async (logId) => {
       await queryClient.cancelQueries({ queryKey: ['habits'] });
       const previousHabits = queryClient.getQueryData(['habits']);
-      
+
       queryClient.setQueryData(['habits'], (oldData: Habit[] | undefined) => {
         if (!oldData) return oldData;
         return oldData.map(h => h.today_log?.id === logId ? { ...h, today_log: null } : h);

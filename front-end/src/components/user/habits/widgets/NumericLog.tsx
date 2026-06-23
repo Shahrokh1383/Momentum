@@ -14,16 +14,30 @@ const NumericLog: React.FC<Props> = ({ habit, onLog, onUpdate, onDelete, isProce
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const today = new Date().toISOString().split('T')[0];
 
+  const targetValue = habit.target_value || 0;
+  const hasValidTarget = targetValue > 0;
+  const currentValue = parseFloat(localValue) || 0;
+  const isCompleted = hasValidTarget && currentValue >= targetValue;
+
   useEffect(() => {
     setLocalValue(habit.today_log?.value?.toString() || '');
   }, [habit.today_log?.id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
+    let val = e.target.value;
+
+    // Clamp to target value to prevent exceeding backend limit
+    if (hasValidTarget) {
+      const numVal = parseFloat(val);
+      if (!isNaN(numVal) && numVal > targetValue) {
+        val = targetValue.toString();
+      }
+    }
+
     setLocalValue(val);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    
+
     debounceRef.current = setTimeout(() => {
       const numVal = val === '' ? null : parseFloat(val);
       if (isProcessing) return;
@@ -38,29 +52,38 @@ const NumericLog: React.FC<Props> = ({ habit, onLog, onUpdate, onDelete, isProce
     }, 600);
   };
 
-  const progress = habit.target_value && localValue 
-    ? Math.min((parseFloat(localValue) / habit.target_value) * 100, 100) 
+  const progress = hasValidTarget && localValue
+    ? Math.min((currentValue / targetValue) * 100, 100)
     : 0;
 
   return (
-    <div className="numeric-log">
+    <div className={`numeric-log ${isCompleted ? 'numeric-log--completed' : ''}`}>
       <div className="numeric-log__input-group">
-        <input 
-          type="number" 
-          className="numeric-log__input" 
-          value={localValue} 
+        <input
+          type="number"
+          className="numeric-log__input"
+          value={localValue}
           onChange={handleChange}
           placeholder="0"
           min="0"
+          max={hasValidTarget ? targetValue : undefined}
           step="any"
         />
         <span className="numeric-log__label">
-          / {habit.target_value} {habit.unit}
+          / {targetValue} {habit.unit}
         </span>
       </div>
-      {habit.target_value && (
+      {hasValidTarget && (
         <div className="numeric-log__progress">
-          <div className="numeric-log__progress-bar" style={{ width: `${progress}%` }}></div>
+          <div
+            className={`numeric-log__progress-bar ${isCompleted ? 'numeric-log__progress-bar--full' : ''}`}
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
+      )}
+      {isCompleted && (
+        <div className="numeric-log__completed-text">
+          <i className="fas fa-check-circle"></i> Target reached!
         </div>
       )}
     </div>
