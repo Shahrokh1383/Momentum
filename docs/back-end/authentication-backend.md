@@ -3,12 +3,12 @@
 ## 1. Overview
 The Authentication module provides a secure, flexible, and stateless/stateful dual-authentication system for the application. It supports traditional credential-based authentication (Email/Password), OAuth2 integration (Google/GitHub), email verification, and password reset functionalities. 
 
-The architecture serves both Single Page Applications (SPAs) using session-based authentication (via Laravel Sanctum's SPA authentication) and mobile/external clients using token-based authentication (via Sanctum API tokens). The module strictly adheres to the Single Responsibility Principle (SRP) and DRY (Don't Repeat Yourself) principles by delegating business logic to dedicated Services, leveraging Form Requests for validation, and centralizing dual-auth response logic in the `HandlesAuthResponses` trait. Security is hardened with deterministic dual-auth detection, Cache-based OAuth state validation, WAF-safe synthetic request validation for signed URLs, strict provider-specific email verification, and a `PendingRegistration` model to keep the primary `User` table free of unverified accounts.
+The architecture serves both Single Page Applications (SPAs) using session-based authentication (via Laravel Sanctum's SPA authentication) and mobile/external clients using token-based authentication (via Sanctum API tokens). The module strictly adheres to the Single Responsibility Principle (SRP) and DRY (Don't Repeat Yourself) principles by delegating business logic to dedicated Services, leveraging Form Requests for validation, and centralizing dual-auth response logic in the `HandlesAuthResponses` trait. Security is hardened with deterministic dual-auth detection, Cache-based OAuth state validation, WAF-safe JSON-body payload validation with native cryptographic regeneration for signed URLs, strict provider-specific email verification, and a `PendingRegistration` model to keep the primary `User` table free of unverified accounts.
 
 ## 2. Business Rules
 *   **Registration:** Users must provide a unique name, a strictly unique email (across the `users` table), and a strong password. Upon registration, credentials are temporarily stored in a `PendingRegistration` model. A verification email is dispatched using a centralized `EmailVerificationService` to generate cryptographic signed URLs. The user is only moved to the main `User` table and logged in once email verification is complete.
 *   **Login:** Users can log in via credentials. Authentication supports a "remember me" toggle. The system deterministically determines the response format (Session vs. Token) based on Bearer token presence and `Origin`/`Referer` headers matching `config('sanctum.stateful')`. For API clients, the "remember me" toggle dynamically adjusts the Bearer token expiration (1 year if true, 24 hours if false).
-*   **Email Verification:** Email verification is mandatory for accessing protected routes. Verification links are cryptographic signed URLs valid for 60 minutes. To bypass enterprise WAF/Load Balancer query-string stripping on POST requests, the frontend sends signature parameters in the JSON body, and the backend validates them using a synthetic GET request.
+*   **Email Verification:** Email verification is mandatory for accessing protected routes. Verification links are cryptographic signed URLs valid for 60 minutes. To bypass enterprise WAF/Load Balancer query-string stripping on POST requests, the frontend sends signature parameters in the JSON body. The backend validates them by cryptographically regenerating the expected signature using Laravel's native URL generator, ensuring 100% HMAC accuracy in decoupled environments without relying on fragile synthetic request reconstruction.
 *   **Password Reset:** Password reset requests always return a generic success message to prevent email enumeration. Valid tokens allow the user to update their password, which automatically revokes all existing API tokens, invalidates the `remember_token`, and forces SPA session invalidation via the `AuthenticateSession` middleware checking the `password_hash`.
 *   **OAuth:** Users can authenticate via Google or GitHub. The system matches users by email. If an account exists, the OAuth provider is linked **only if** the provider has explicitly verified the email (handling GitHub's specific `emails` array payload vs Google's base payload). Users can unlink providers, provided they have a password set as a fallback. OAuth state validation is enforced strictly via a Cache-based mechanism to prevent CSRF attacks.
 *   **Throttling:** Strict rate limiting is applied to authentication endpoints using composite keys (`IP + Email/Endpoint`).
@@ -20,12 +20,12 @@ The architecture serves both Single Page Applications (SPAs) using session-based
 
 ### Controllers
 *   **AuthController:** Handles register, login, logout, `logoutAll`, and `me` endpoints. Uses the `HandlesAuthResponses` trait.
-*   **EmailVerificationController:** Verifies signed URLs natively by reconstructing a synthetic GET request from JSON body parameters, ensuring compatibility with strict WAFs. Handles resend requests with generic responses.
+*   **EmailVerificationController:** Verifies signed URLs by applying strict type casting to JSON body parameters and delegating cryptographic validation to the service layer, ensuring compatibility with strict WAFs and preventing PHP type-juggling issues. Handles resend requests with generic responses.
 *   **PasswordResetController:** Manages the forgot/reset password flow.
 *   **OAuthController:** Generates OAuth redirect URLs, handles provider callbacks, and manages provider unlinking. Delegates provider-specific email verification logic to the `OAuthService`.
 
 ### Services
-*   **EmailVerificationService:** Centralizes the generation of frontend-compatible temporary signed URLs (`generateVerificationUrl`) to strictly enforce DRY across the `User` model and `PendingRegistrationService`. Delegates notification sending and handles hash validation during verification.
+*   **EmailVerificationService:** Centralizes the generation of frontend-compatible temporary signed URLs (`generateVerificationUrl`) to strictly enforce DRY across the `User` model and `PendingRegistrationService`. Validates incoming signed URL parameters by regenerating the expected HMAC signature using `URL::temporarySignedRoute` to bypass framework-level request reconstruction quirks. Delegates notification sending and handles hash validation during verification.
 *   **PasswordResetService:** Interfaces with Laravel's `Password` broker to generate tokens and reset passwords. Automatically revokes all Sanctum tokens and regenerates the `remember_token` upon password reset.
 *   **OAuthService:** Interfaces with Laravel Socialite. Generates and stores a cryptographically secure `state` parameter in the Cache (10 min TTL). Contains the `isEmailVerified()` method to abstract provider-specific payload quirks (e.g., parsing GitHub's `emails` array).
 *   **PendingRegistrationService:** Manages the lifecycle of unverified users. Creates temporary records, handles the dispatching of verification emails, and promotes the pending record to a verified `User` upon successful signature validation.
@@ -47,7 +47,7 @@ The architecture serves both Single Page Applications (SPAs) using session-based
 
 ### We should put below infos in Header in Postman
 Content-Type application/json
-Accespt application/json
+Accept application/json
 *   **`POST /api/auth/register`**
     *   *Body:* `{ name, email, password, password_confirmation }`
     *   *Response:* `201` `{ email, message }` (Returns the registered email for frontend state persistence).
@@ -102,8 +102,8 @@ Accespt application/json
 1.  Backend generates a temporary signed route via `EmailVerificationService::generateVerificationUrl()`.
 2.  User clicks link -> SPA loads `VerifyEmailPage`.
 3.  SPA reads parameters from the URL and sends a `POST /verify-email` with `{ id, hash, expires, signature }` in the **JSON Body**.
-4.  Backend reconstructs a synthetic GET request using `Request::create()` and validates the HMAC via `$syntheticRequest->hasValidSignature()`.
-5.  If valid, `EmailVerificationService` marks email verified and promotes `PendingRegistration` to `User` if applicable.
+4.  Backend applies strict type casting to the JSON payload and delegates validation to `EmailVerificationService`, which regenerates the expected signature using `URL::temporarySignedRoute` and performs a constant-time `hash_equals` comparison.
+5.  If valid, `EmailVerificationService` marks email verified and promotes `PendingRegistration` to `User` if applicable. The frontend captures the successful mutation state and renders a success UI, allowing seamless navigation to the dashboard.
 
 ### Password Reset Flow
 1.  User requests `POST /forgot-password`.
@@ -124,7 +124,8 @@ Accespt application/json
 ## 6. Edge Cases & Security Vulnerabilities (Resolved)
 
 *   **Flawed Dual-Auth Detection (Resolved):** Replaced `$request->hasSession()` with a deterministic `isStatefulRequest()` method that checks Bearer tokens and validates headers against `sanctum.stateful` domains. Prevents mobile apps from accidentally triggering SPA logic.
-*   **WAF Query String Stripping (Resolved):** Email verification parameters are now sent in the JSON body. The backend uses a synthetic `Request::create()` to validate the signature, bypassing enterprise WAFs that strip query strings from POST requests.
+*   **WAF Query String Stripping & Cryptographic Mismatch (Resolved):** Email verification parameters are sent in the JSON body to bypass WAFs. The backend validates the signature by regenerating the expected HMAC using Laravel's native URL generator (`URL::temporarySignedRoute`). This eliminates microscopic query-string formatting and routing prefix mismatches inherent in synthetic request reconstruction (`Request::create`), permanently resolving 422 errors in decoupled SPAs.
+*   **Frontend Infinite Loading State (Resolved):** Implemented explicit success state handling in the frontend verification component (`VerifyEmailPage.tsx`). The UI now properly `await`s the verification mutation and transitions to a success state, preventing infinite loading spinners and providing a seamless UX transition to the dashboard.
 *   **True Session Invalidation (Resolved):** Added `\Illuminate\Session\Middleware\AuthenticateSession::class` to protected routes. This ensures that changing the `password_hash` during a reset actively kills hijacked SPA sessions on the very next request.
 *   **GitHub `email_verified` Quirk (Resolved):** Extracted provider-specific logic into `OAuthService::isEmailVerified()`. It correctly parses GitHub's `emails` array for the primary verified email, preventing false 403 rejections.
 *   **"Remember Me" Token Expiration (Resolved):** API tokens now respect the `remember` flag. Unchecked = 24-hour expiry. Checked = 1-year expiry.
@@ -137,7 +138,7 @@ Accespt application/json
 ## 7. Tests
 
 *   **Registration/Login:** Verify dynamic token expiration (24h vs 1y) based on `remember`. Verify `isStatefulRequest()` correctly routes SPA vs API clients. Test that registering with an existing email returns a 422 validation error.
-*   **Email Verification:** Test synthetic request validation via JSON body. Test expired/tampered signature rejection. Verify promotion of `PendingRegistration` to `User`.
+*   **Email Verification:** Test JSON body payload validation via native signature regeneration. Test strict type casting in the controller. Test expired/tampered signature rejection. Verify promotion of `PendingRegistration` to `User`.
 *   **Password Reset:** Verify that existing Sanctum tokens are deleted. Verify that `AuthenticateSession` middleware blocks access after a password reset.
 *   **OAuth:** 
     *   Test GitHub email verification logic (mocking the `emails` array).
@@ -151,8 +152,11 @@ Accespt application/json
     1. The frontend **must not** use `sessionStorage` for OAuth state. It must read it from the callback URL. 
     2. The frontend **must** send email verification parameters in the JSON body, not the query string.
     3. The frontend **must** map backend 422 validation errors (specifically for duplicate emails) directly to the form UI.
+    4. The frontend **must** handle the explicit success state of the verification mutation to prevent infinite loading UIs and allow proper dashboard redirection.
 *   **Infrastructure Constraint (Cache):** The OAuth flow strictly requires a centralized Cache driver (`redis` or `memcached`). Using `file` or `array` in a load-balanced environment will cause random 401 CSRF errors.
 *   **Architectural Decision - DRY Trait:** The `HandlesAuthResponses` trait centralizes auth logic, ensuring `AuthController` and `OAuthController` follow exact standards without duplication.
 *   **Architectural Decision - SRP:** Provider-specific payload quirks (GitHub vs Google) are isolated in the `OAuthService`, keeping the Controller clean and focused on HTTP orchestration.
 *   **Architectural Decision - Centralized URL Generation:** Signed URL generation is strictly isolated in `EmailVerificationService::generateVerificationUrl()`. This prevents logic duplication between the `User` model and `PendingRegistrationService`, ensuring any future changes to URL formatting or expiration times only need to be made in one place.
-*   **Native Query String Validation:** Replaced with Synthetic Request validation to guarantee compatibility with strict enterprise network infrastructure (WAFs/ALBs).
+*   **Architectural Decision - Native Cryptographic Regeneration:** Replaced synthetic request validation (`Request::create`) with native signature regeneration (`URL::temporarySignedRoute`) in the `EmailVerificationService`. This ensures 100% HMAC accuracy by letting Laravel's own engine compute the expected hash, strictly adhering to SRP by keeping cryptographic logic out of the Controller and guaranteeing compatibility with strict enterprise network infrastructure (WAFs/ALBs).
+
+***

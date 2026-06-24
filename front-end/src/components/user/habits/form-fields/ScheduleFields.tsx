@@ -74,7 +74,7 @@ const ScheduleFields: React.FC<Props> = ({
       </div>
 
       <div className="settings-form__group mb-0">
-        <label className="settings-form__label">Basic Reminder Time</label>
+        <label className="settings-form__label">Smart Reminder Time</label>
         {canUseReminders ? (
           <input type="time" className={`settings-form__input ${errors.reminder_time ? 'is-invalid' : ''}`} {...register('reminder_time')} />
         ) : (
