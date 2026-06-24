@@ -28,13 +28,14 @@ class EmailVerificationController extends Controller
             'signature' => ['required', 'string'],
         ]);
 
-        // Sort params and validate signature (unchanged)
-        $queryParams = $validated;
-        ksort($queryParams);
-        $uri = $request->url() . '?' . http_build_query($queryParams);
-        $syntheticRequest = Request::create($uri, 'GET');
+        // Strict type casting to ensure service layer receives exact types
+        $id = (int) $validated['id'];
+        $hash = $validated['hash'];
+        $expires = (int) $validated['expires'];
+        $signature = $validated['signature'];
 
-        if (! $syntheticRequest->hasValidSignature(false)) {
+        // Delegate signature validation to the service (SRP)
+        if (! $this->emailVerificationService->hasValidSignature($id, $hash, $expires, $signature)) {
             return $this->errorResponse(
                 'invalid_token',
                 'The verification link is invalid or has expired. Please request a new one.',
@@ -43,12 +44,9 @@ class EmailVerificationController extends Controller
         }
 
         // Try existing User verification first (backward compatible)
-        $user = User::find($validated['id']);
+        $user = User::find($id);
         if ($user) {
-            $verified = $this->emailVerificationService->verifySignedUrl(
-                $validated['id'],
-                $validated['hash']
-            );
+            $verified = $this->emailVerificationService->verifySignedUrl($id, $hash);
             if ($verified) {
                 return $this->successResponse(null, 'Email verified successfully. You can now access your account.');
             }
@@ -57,10 +55,9 @@ class EmailVerificationController extends Controller
 
         // Fallback to pending registration verification
         $pendingService = app(PendingRegistrationService::class);
-        $newUser = $pendingService->verify($validated['id'], $validated['hash']);
+        $newUser = $pendingService->verify($id, $hash);
 
         if ($newUser) {
-            // Log in the newly created user (stateful SPA)
             Auth::login($newUser);
             $request->session()->regenerate();
 

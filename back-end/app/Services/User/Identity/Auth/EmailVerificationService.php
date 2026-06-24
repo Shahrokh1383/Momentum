@@ -4,12 +4,12 @@ namespace App\Services\User\Identity\Auth;
 
 use App\Models\Identity\User;
 use Illuminate\Support\Facades\URL;
+use Carbon\Carbon;
 
 class EmailVerificationService
 {
     /**
      * Generate the frontend-compatible signed verification URL.
-     * Centralized to adhere to DRY principles across User and PendingRegistration models.
      */
     public function generateVerificationUrl(int $id, string $email): string
     {
@@ -19,7 +19,7 @@ class EmailVerificationService
             'api.verification.verify',
             now()->addMinutes(60),
             ['id' => $id, 'hash' => sha1($email)],
-            false
+            false // Relative URL
         );
 
         return $frontendUrl . '/verify-email?' . parse_url($verificationUrl, PHP_URL_QUERY);
@@ -34,7 +34,7 @@ class EmailVerificationService
     }
 
     /**
-     * Validate the cryptographic signature of the Laravel Signed URL.
+     * Validate an existing User's email verification.
      */
     public function verifySignedUrl(int $id, string $hash): bool
     {
@@ -49,5 +49,33 @@ class EmailVerificationService
         }
 
         return $user->markEmailAsVerified();
+    }
+
+    /**
+     * Cryptographically verify the signed URL parameters.
+     * Bypasses manual HMAC reconstruction by regenerating the signed URL 
+     * using Laravel's own engine with the exact same parameters and expiration.
+     */
+    public function hasValidSignature(int $id, string $hash, int $expires, string $signature): bool
+    {
+        // 1. Check expiration immediately
+        if (now()->greaterThan(Carbon::createFromTimestamp($expires))) {
+            return false;
+        }
+
+        // 2. Regenerate the signed URL using the exact same expiration and parameters
+        $expectedUrl = URL::temporarySignedRoute(
+            'api.verification.verify',
+            Carbon::createFromTimestamp($expires),
+            ['id' => $id, 'hash' => $hash],
+            false
+        );
+
+        // 3. Extract the signature from the regenerated URL
+        parse_str(parse_url($expectedUrl, PHP_URL_QUERY), $queryParams);
+        $expectedSignature = $queryParams['signature'] ?? '';
+
+        // 4. Constant-time comparison to prevent timing attacks
+        return hash_equals($expectedSignature, $signature);
     }
 }
