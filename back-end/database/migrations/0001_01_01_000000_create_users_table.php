@@ -14,11 +14,11 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable(); // Nullable for OAuth users
-            $table->string('role')->default(\App\Enums\UserRole::USER->value);
+            $table->string('role')->default(\App\Enums\Identity\UserRole::USER->value);
             $table->string('provider')->nullable();
             $table->string('provider_id')->nullable()->unique();
             $table->string('avatar')->nullable();
-            $table->string('profile_visibility')->default(\App\Enums\ProfileVisibility::PUBLIC->value);
+            $table->string('profile_visibility')->default(\App\Enums\Identity\ProfileVisibility::PUBLIC->value);
             $table->text('bio')->nullable();
             $table->rememberToken();
             $table->timestamps();

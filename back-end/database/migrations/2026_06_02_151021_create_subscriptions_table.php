@@ -11,8 +11,8 @@ return new class extends Migration
         Schema::create('subscriptions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->string('plan')->default(\App\Enums\PlanSlug::FREE->value);
-            $table->string('status')->default(\App\Enums\SubscriptionStatus::PENDING_PAYMENT->value);
+            $table->string('plan')->default(\App\Enums\Billing\PlanSlug::FREE->value);
+            $table->string('status')->default(\App\Enums\Billing\SubscriptionStatus::PENDING_PAYMENT->value);
             $table->timestamp('starts_at')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->timestamp('cancelled_at')->nullable();
