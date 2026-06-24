@@ -33,6 +33,15 @@ class HabitService
 
     public function createHabit(User $user, array $data): Habit
     {
+        // Enforce quota BEFORE creation
+        // includeArchived: true ensures we count ALL habits (active + archived) to prevent the musical chairs exploit.
+        $this->quotaService->ensureLimitNotExceeded(
+            $user,
+            'habits',
+            'max_active_habits',
+            includeArchived: true
+        );
+        
         $tagsInput = $data['tags'] ?? [];
         unset($data['tags']);
 
@@ -40,7 +49,7 @@ class HabitService
         unset($data['checklist_items']);
 
         $habit = $user->habits()->create($data);
-        $this->syncTags($habit, $tagsInput, $user); // Pass $user object instead of ID
+        $this->syncTags($habit, $tagsInput, $user);
         $this->syncChecklistItems($habit, $checklistItemsInput);
 
         return $habit->load(['category', 'tags', 'checklistItems']);

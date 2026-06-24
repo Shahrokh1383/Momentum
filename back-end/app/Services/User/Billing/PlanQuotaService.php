@@ -41,10 +41,12 @@ class PlanQuotaService
     /**
      * Counts current resources for the user.
      */
-    public function getUsage(User $user, string $resource, bool $includeTrashed = false): int
+    public function getUsage(User $user, string $resource, bool $includeTrashed = false, bool $includeArchived = false): int
     {
         return match ($resource) {
-            'habits' => $user->habits()->count(),
+            'habits' => $includeArchived
+                ? $user->habits()->withArchived()->count()
+                : $user->habits()->count(),
             'groups' => 0,  // TODO: Replace with $user->groups()->count() when ready
             'categories' => $includeTrashed
                 ? $user->categories()->withTrashed()->count()
@@ -115,7 +117,7 @@ class PlanQuotaService
     /**
      * Enforce a limit on a resource. Throws exception if exceeded.
      */
-    public function ensureLimitNotExceeded(User $user, string $resource, string $limitKey, bool $includeTrashed = false): void
+    public function ensureLimitNotExceeded(User $user, string $resource, string $limitKey, bool $includeTrashed = false, bool $includeArchived = false): void
     {
         $limit = $this->getLimit($user, $limitKey);
 
@@ -124,7 +126,7 @@ class PlanQuotaService
             return;
         }
 
-        $used = $this->getUsage($user, $resource, $includeTrashed);
+        $used = $this->getUsage($user, $resource, $includeTrashed, $includeArchived);
 
         if ($used >= $limit) {
             $plan = $this->getPlan($user);

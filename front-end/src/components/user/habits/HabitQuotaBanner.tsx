@@ -33,9 +33,9 @@ const HabitQuotaBanner: React.FC<Props> = ({ onAddClick }) => {
           <i className="fas fa-bullseye"></i>
           <span>
             {isUnlimited ? (
-              <>Unlimited Active Habits <i className="fas fa-infinity ms-1" style={{ color: 'var(--primary)' }}></i></>
+              <>Unlimited Habits <i className="fas fa-infinity ms-1" style={{ color: 'var(--primary)' }}></i></>
             ) : (
-              <>Active Habits: <strong className="ms-1">{used} / {limit}</strong></>
+              <>Total Habits: <strong className="ms-1">{used} / {limit}</strong></>
             )}
           </span>
         </div>
@@ -61,7 +61,7 @@ const HabitQuotaBanner: React.FC<Props> = ({ onAddClick }) => {
         
         {isAtLimit && (
           <div className="quota-banner__upsell">
-            <i className="fas fa-crown me-2"></i> Upgrade to Expert for more habits
+            <i className="fas fa-crown me-2"></i> Delete old habits or upgrade your plan for more
           </div>
         )}
       </div>

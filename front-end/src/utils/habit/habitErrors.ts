@@ -12,7 +12,9 @@ export const getLogErrorMessage = (err: unknown): string => {
  */
 export const getHabitErrorMessage = (err: any): string => {
   if (err?.response?.data?.error === 'quota_exceeded') {
-    return `You have reached your limit of ${err.response.data.limit} active habits. Please archive a habit or upgrade your plan.`;
+    // Updated to reflect that the backend now counts Active + Archived habits.
+    // Archiving no longer frees up space; permanent deletion is required.
+    return `You have reached your limit of ${err.response.data.limit} total habits. Please permanently delete an existing habit or upgrade your plan.`;
   }
   if (err?.response?.data?.error === 'feature_locked') {
     return `This feature requires the ${err.response.data.required_plan} plan. Please upgrade to continue.`;

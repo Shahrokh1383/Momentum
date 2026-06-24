@@ -10,7 +10,6 @@ const NAV_LINKS = [
   { to: '/settings', label: 'Settings', icon: 'fa-gear' },
   { to: '/categories', label: 'categories', icon: 'fa-layer-group' },
   { to: '/habits', label: 'habits', icon: 'fa-bullseye' },
-
 ];
 
 const AppHeader: React.FC = () => {
@@ -68,7 +67,7 @@ const AppHeader: React.FC = () => {
 
           {/* Right Actions */}
           <div className="app-header__actions">
-            {isAuthenticated && user ? (
+            {isAuthenticated && user && (
               <>
                 <PremiumBadge planSlug={user.active_plan} />
                 <div className="app-header__user">
@@ -88,11 +87,6 @@ const AppHeader: React.FC = () => {
                   </button>
                 </div>
               </>
-            ) : (
-              <div className="app-header__auth">
-                <Link to="/login" className="app-header__link">Sign In</Link>
-                <Link to="/register" className="btn btn-sm btn-momentum">Get Started</Link>
-              </div>
             )}
 
             {/* Hamburger */}
