@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useCurrentUser } from '@/hooks/auth/useCurrentUser';;
 
 type Theme = 'light' | 'dark' | 'system';
 
 export const useTheme = () => {
-  const { user } = useAuth();
+  const { user } = useCurrentUser();
 
   useEffect(() => {
     const getSystemTheme = (): 'light' | 'dark' => 

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useCurrentUser } from '@/hooks/auth/useCurrentUser';;
 import { useProfile } from '@/hooks/useProfile';
 import { useAuthStore } from '@/context/authStore';
 import AvatarModal from './AvatarModal';
 
 const ProfileForm: React.FC = () => {
-  const { user } = useAuth();
+  const { user } = useCurrentUser();
   const { 
     updateProfile, isUpdatingProfile,
     uploadAvatar, isUploadingAvatar,

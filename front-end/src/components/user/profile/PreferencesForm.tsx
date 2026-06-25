@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useCurrentUser } from '@/hooks/auth/useCurrentUser';;
 import { useProfile } from '@/hooks/useProfile';
 import { UserSettings } from '@/types/user';
 
 const PreferencesForm: React.FC = () => {
-  const { user } = useAuth();
+  const { user } = useCurrentUser();
   const { updatePreferences, isUpdatingPreferences } = useProfile();
 
   const [timezone, setTimezone] = useState(user?.settings?.timezone || 'UTC');

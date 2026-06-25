@@ -4,12 +4,11 @@ import { useAuthStore } from '@/context/authStore';
 
 export const useProfile = () => {
   const queryClient = useQueryClient();
-  const { setUser, bustAvatarCache } = useAuthStore();
+  const { bustAvatarCache } = useAuthStore();
 
   const updateProfileMutation = useMutation({
     mutationFn: (payload: UpdateProfilePayload) => profileService.updateProfile(payload),
     onSuccess: (user) => {
-      setUser(user);
       queryClient.setQueryData(['currentUser'], user);
     },
   });
@@ -17,7 +16,6 @@ export const useProfile = () => {
   const updatePreferencesMutation = useMutation({
     mutationFn: (payload: UpdatePreferencesPayload) => profileService.updatePreferences(payload),
     onSuccess: (user) => {
-      setUser(user);
       queryClient.setQueryData(['currentUser'], user);
     },
   });

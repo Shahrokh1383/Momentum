@@ -1,23 +1,14 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
-const LoadingSpinner: React.FC = () => (
-  <div className="d-flex justify-content-center align-items-center vh-100">
-    <div className="spinner-border text-primary" role="status">
-      <span className="visually-hidden">Loading...</span>
-    </div>
-  </div>
-);
-
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isFetchingUser, user } = useAuth();
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, isFetchingUser, user } = useCurrentUser();
 
   if (isFetchingUser) return <LoadingSpinner />;
-
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-  // Prevent unverified users from accessing protected routes
   if (user && !user.email_verified_at) {
     return <Navigate to="/verify-email" replace />;
   }

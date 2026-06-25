@@ -11,54 +11,33 @@ import OAuthCallbackPage from '@/pages/auth/OAuthCallbackPage';
 import PlansPage from '@/pages/billing/PlansPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { useAuth } from '@/hooks/useAuth';
+import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
 import { useTheme } from '@/hooks/useTheme';
 import PaymentResultPage from './pages/billing/PaymentResultPage';
 import SettingsPage from '@/pages/settings/SettingsPage';
 import CategoriesPage from '@/pages/taxonomy/CategoriesPage';
 import HabitsPage from '@/pages/habit/HabitsPage';
 import DashboardPage from '@/pages/dashboard/DashboardPage';
-
-const LoadingSpinner: React.FC = () => (
-  <div className="d-flex justify-content-center align-items-center vh-100">
-    <div className="spinner-border text-primary" role="status">
-      <span className="visually-hidden">Loading...</span>
-    </div>
-  </div>
-);
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const RootRedirect: React.FC = () => {
-  const { isAuthenticated, isFetchingUser } = useAuth();
-
+  const { isAuthenticated, isFetchingUser } = useCurrentUser();
   if (isFetchingUser) return <LoadingSpinner />;
-
-  return isAuthenticated
-    ? <Navigate to="/dashboard" replace />
-    : <Navigate to="/login" replace />;
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
 };
 
-/**
- * Inner component responsible for rendering routes and consuming global hooks.
- * It is rendered INSIDE both QueryClientProvider and BrowserRouter so hooks 
- * like useTheme -> useAuth have access to React Query and React Router contexts.
- */
 const AppRoutes: React.FC = () => {
-  // Apply global theme management - Now safely inside both Providers
   useTheme();
-
   return (
     <Routes>
       <Route path="/" element={<RootRedirect />} />
-
       <Route path="/login"           element={<div className="auth-page-wrapper"><LoginPage /></div>} />
       <Route path="/register"        element={<div className="auth-page-wrapper"><RegisterPage /></div>} />
       <Route path="/forgot-password" element={<div className="auth-page-wrapper"><ForgotPasswordPage /></div>} />
       <Route path="/reset-password"  element={<div className="auth-page-wrapper"><ResetPasswordPage /></div>} />
       <Route path="/verify-email"    element={<div className="auth-page-wrapper"><VerifyEmailPage /></div>} />
       <Route path="/auth/callback/:provider" element={<div className="auth-page-wrapper"><OAuthCallbackPage /></div>} />
-
       <Route path="/payment-result" element={<ProtectedRoute><PaymentResultPage /></ProtectedRoute>} />
-
       <Route element={<DashboardLayout />}>
         <Route path="/plans"     element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
@@ -70,20 +49,8 @@ const AppRoutes: React.FC = () => {
   );
 };
 
-/**
- * Wrapper component to provide Router context.
- */
-const AppContent: React.FC = () => {
-  return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
-  );
-};
+const AppContent: React.FC = () => (<BrowserRouter><AppRoutes /></BrowserRouter>);
 
-/**
- * Root component strictly responsible for initializing top-level providers.
- */
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -91,5 +58,4 @@ function App() {
     </QueryClientProvider>
   );
 }
-
 export default App;
