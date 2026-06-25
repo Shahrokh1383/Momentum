@@ -24,7 +24,7 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
   const isDismissed = useMemo(() => {
     if (userDismissed) return true;
     
-    if (!subscription || (subscription.status !== 'cancelled' && subscription.status !== 'expired')) {
+    if (!subscription || (subscription.status !== 'cancelled' && subscription.status !== 'expired' && subscription.status !== 'payment_failed')) {
       return false;
     }
     
@@ -107,6 +107,30 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
             disabled={isCancelling}
           >
             {isCancelling ? 'Cancelling...' : 'Cancel Plan'}
+          </button>
+        )}
+      </div>
+    );
+  }
+  
+  // State: Payment Failed
+  if (status === 'payment_failed') {
+    return (
+      <div className="subscription-banner subscription-banner--error">
+        <button className="subscription-banner__close" onClick={handleDismiss} aria-label="Dismiss">
+          ✕
+        </button>
+        <div className="subscription-banner__icon">❌</div>
+        <div className="subscription-banner__content">
+          <h4>Payment Failed</h4>
+          <p>
+            Your payment was rejected by the bank. You can try again at any time.
+          </p>
+          {transaction_ref && <span className="subscription-banner__ref">Ref: {transaction_ref}</span>}
+        </div>
+        {onUpgrade && (
+          <button className="btn btn-primary" onClick={onUpgrade}>
+            Try Again
           </button>
         )}
       </div>

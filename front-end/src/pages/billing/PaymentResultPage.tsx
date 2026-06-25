@@ -44,7 +44,7 @@ const PaymentResultPage: React.FC = () => {
       <div className="payment-result-page">
         <PaymentResult 
           status="failed" 
-          message="Payment was cancelled or failed." 
+          message="Payment failed. Please try again or use a different payment method." 
           onClose={handleClose}
           onRetry={handleTryAgain}
         />

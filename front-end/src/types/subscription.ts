@@ -34,7 +34,7 @@ export interface SubscriptionDetail {
   id: number;
   plan: Plan | null;
   plan_slug: 'free' | 'expert' | 'premium';
-  status: 'pending_payment' | 'active' | 'cancelled' | 'expired';
+  status: 'pending_payment' | 'active' | 'cancelled' | 'expired' | 'payment_failed';
   starts_at: string | null;
   expires_at: string | null;
   cancelled_at: string | null;

@@ -62,7 +62,7 @@ class SubscriptionService
                 if ($current->latestPayment && $current->latestPayment->isPending()) {
                     $current->latestPayment()->update(['status' => PaymentStatus::FAILED]);
                 }
-                $current->update(['status' => SubscriptionStatus::CANCELLED]);
+                $current->update(['status' => SubscriptionStatus::PAYMENT_FAILED]);
             }
         });
 
@@ -86,7 +86,7 @@ class SubscriptionService
                 $callbackUrl
             );
         } catch (\Exception $e) {
-            $subscription->update(['status' => SubscriptionStatus::CANCELLED]);
+            $subscription->update(['status' => SubscriptionStatus::PAYMENT_FAILED]);
             throw $e;
         }
 
@@ -226,8 +226,7 @@ class SubscriptionService
             ]);
 
             $payment->subscription->update([
-                'status'       => SubscriptionStatus::CANCELLED,
-                'cancelled_at' => now(),
+                'status'       => SubscriptionStatus::PAYMENT_FAILED,
             ]);
         });
 
