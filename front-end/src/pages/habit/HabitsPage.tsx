@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useCategories } from '@/hooks/categories/useCategories';
 import { useTags } from '@/hooks/habits/useTags';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription } from '@/hooks/billing/useSubscription';
 import Modal from '@/components/ui/Modal';
 import HabitQuotaBanner from '@/components/user/habits/HabitQuotaBanner';
 import HabitGrid from '@/components/user/habits/HabitGrid';

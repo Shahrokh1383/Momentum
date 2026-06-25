@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDashboard } from '@/hooks/useDashboard';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription } from '@/hooks/billing/useSubscription';
 import CompletionRing from '@/components/user/dashboard/CompletionRing';
 import StreakStatsCard from '@/components/user/dashboard/StreakStatsCard';
 import TodayHabitsList from '@/components/user/dashboard/TodayHabitsList';

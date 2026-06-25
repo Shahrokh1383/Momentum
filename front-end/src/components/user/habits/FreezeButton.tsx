@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Habit } from '@/types/habit';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription } from '@/hooks/billing/useSubscription';
 import { useStreakFreezes } from '@/hooks/habits/useStreakFreezes';
 import { useNavigate } from 'react-router-dom';
 import FreezeStreakModal from './FreezeStreakModal';

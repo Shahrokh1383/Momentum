@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plan, UpgradePayload } from '@/types/subscription';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription } from '@/hooks/billing/useSubscription';
 
 interface PaymentModalProps {
   isOpen: boolean;

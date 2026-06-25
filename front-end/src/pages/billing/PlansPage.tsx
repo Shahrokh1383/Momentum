@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '@/hooks/auth/useCurrentUser';;
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription } from '@/hooks/billing/useSubscription';
 import { Plan } from '@/types/subscription';
 import PlanCard from '@/components/user/billing/PlanCard';
 import PaymentModal from '@/components/user/billing/PaymentModal';
