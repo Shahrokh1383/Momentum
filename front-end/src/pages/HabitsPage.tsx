@@ -5,6 +5,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Habit, HabitPayload, HabitLogPayload } from '@/types/habit';
+import Modal from '@/components/ui/Modal';
 import HabitQuotaBanner from '@/components/user/habits/HabitQuotaBanner';
 import HabitGrid from '@/components/user/habits/HabitGrid';
 import HabitFormModal from '@/components/user/habits/HabitFormModal';
@@ -35,6 +36,8 @@ const HabitsPage: React.FC = () => {
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [targetHabit, setTargetHabit] = useState<Habit | null>(null);
   const [isRestoringAction, setIsRestoringAction] = useState(false);
+
+  const [logError, setLogError] = useState<string | null>(null);
 
   const currentHabits = isArchivedView ? archivedHabits : activeHabits;
   const isLoading = isArchivedView ? isArchivedLoading : isActiveLoading;
@@ -75,16 +78,21 @@ const HabitsPage: React.FC = () => {
   };
 
   // Logging Handlers
+  const getLogErrorMessage = (err: unknown): string => {
+    const error = err as any;
+    return error?.response?.data?.message || error?.message || 'An unexpected error occurred while logging.';
+  };
+
   const handleLog = async (habitId: number, payload: HabitLogPayload) => {
-    try { await logHabit({ habitId, payload }); } catch (_err) {}
+    try { await logHabit({ habitId, payload }); } catch (err) { setLogError(getLogErrorMessage(err)); }
   };
 
   const handleUpdateLog = async (logId: number, payload: Partial<HabitLogPayload>) => {
-    try { await updateLog({ logId, payload }); } catch (_err) {}
+    try { await updateLog({ logId, payload }); } catch (err) { setLogError(getLogErrorMessage(err)); }
   };
 
   const handleDeleteLog = async (logId: number) => {
-    try { await deleteLog(logId); } catch (_err) {}
+    try { await deleteLog(logId); } catch (err) { setLogError(getLogErrorMessage(err)); }
   };
 
   const getErrorMessage = () => {
@@ -97,6 +105,12 @@ const HabitsPage: React.FC = () => {
     }
     return err?.response?.data?.message || err?.message || 'An unexpected error occurred.';
   };
+
+  const logErrorFooter = (
+    <button className="modal-btn modal-btn--primary" onClick={() => setLogError(null)}>
+      OK
+    </button>
+  );
 
   return (
     <div className="habits-page">
@@ -160,6 +174,20 @@ const HabitsPage: React.FC = () => {
         isRestoring={isRestoringAction}
         errorMessage={(archiveError || restoreError) ? getErrorMessage() : null}
       />
+
+      <Modal
+        isOpen={!!logError}
+        onClose={() => setLogError(null)}
+        title="Logging Error"
+        footer={logErrorFooter}
+      >
+        <div className="habit-error-modal__content">
+          <div className="habit-error-modal__icon">
+            <i className="fas fa-exclamation-triangle"></i>
+          </div>
+          <p className="habit-error-modal__message">{logError}</p>
+        </div>
+      </Modal>
     </div>
   );
 };

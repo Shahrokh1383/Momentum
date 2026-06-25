@@ -22,9 +22,7 @@ class HabitService
         return $user->habits()
             ->with(['category', 'tags', 'streak', 'todayLog', 'checklistItems'])
             ->orderBy('created_at', 'desc')
-            ->get()
-            ->filter(fn (Habit $habit) => $habit->isDueToday())
-            ->values();
+            ->get();
     }
 
     /**
