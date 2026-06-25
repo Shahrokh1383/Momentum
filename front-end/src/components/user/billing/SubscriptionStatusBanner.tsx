@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import { SubscriptionDetail } from '@/types/subscription';
 import PremiumBadge from './PremiumBadge';
+import { useDismissable } from '@/hooks/billing/useDismissable';
 
 interface SubscriptionStatusBannerProps {
   subscription: SubscriptionDetail | null;
@@ -10,7 +11,14 @@ interface SubscriptionStatusBannerProps {
   onUpgrade?: () => void;
 }
 
-const DISMISS_KEY_PREFIX = 'dismissed_sub_';
+const formatDate = (dateStr: string | null) => {
+  if (!dateStr) return 'N/A';
+  return new Intl.DateTimeFormat('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  }).format(new Date(dateStr));
+};
 
 const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
   subscription,
@@ -19,46 +27,27 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
   isCancelling,
   onUpgrade
 }) => {
-  const [userDismissed, setUserDismissed] = useState(false);
+  // 1. Hooks must be called unconditionally at the top level
+  const dismissKey = subscription?.id ? `dismissed_sub_${subscription.id}` : 'dismissed_sub_unknown';
+  const { isDismissed, dismiss } = useDismissable(dismissKey);
 
-  const isDismissed = useMemo(() => {
-    if (userDismissed) return true;
-    
-    if (!subscription || (subscription.status !== 'cancelled' && subscription.status !== 'expired' && subscription.status !== 'payment_failed')) {
-      return false;
-    }
-    
-    return localStorage.getItem(`${DISMISS_KEY_PREFIX}${subscription.id}`) === 'true';
-  }, [subscription, userDismissed]);
+  // 2. Explicit null/loading check (TypeScript successfully narrows the type here)
+  if (isLoading || !subscription) return null;
 
-  if (isLoading) {
-    return <div className="subscription-banner subscription-banner--loading">Loading subscription status...</div>;
-  }
-  
-  if (!subscription || isDismissed) return null;
+  // 3. Dismiss logic for terminal states
+  const isDismissableStatus = ['cancelled', 'expired', 'payment_failed'].includes(subscription.status);
+  if (isDismissableStatus && isDismissed) return null;
 
+  // 4. Safe destructuring (TS now guarantees subscription is NOT null)
   const { status, plan, expires_at, transaction_ref, latest_payment } = subscription;
   const planSlug = subscription.plan_slug || 'free';
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  };
+  // ── RENDERING LOGIC ───────────────────────────────────────────────────────
 
-  const handleDismiss = () => {
-    setUserDismissed(true);
-    if (subscription?.id) {
-      localStorage.setItem(`${DISMISS_KEY_PREFIX}${subscription.id}`, 'true');
-    }
-  };
-
-  // State: Pending Payment
   if (status === 'pending_payment') {
-    // Check if the user has actually visited the bank and returned
     const isWaitingForBank = latest_payment?.gateway_transaction_id != null;
 
     if (isWaitingForBank) {
-      // TRUE Waiting State: User went to bank, we are verifying
       return (
         <div className="subscription-banner subscription-banner--pending">
           <div className="subscription-banner__icon">⏳</div>
@@ -71,7 +60,6 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
       );
     }
 
-    // ABANDONED State: User clicked upgrade but closed the modal/redirect before reaching the bank
     return (
       <div className="subscription-banner subscription-banner--warning">
         <div className="subscription-banner__icon">⚠️</div>
@@ -80,15 +68,12 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
           <p>You didn't complete the payment process. You can try again at any time.</p>
         </div>
         {onUpgrade && (
-          <button className="btn btn-primary" onClick={onUpgrade}>
-            Retry Upgrade
-          </button>
+          <button className="btn btn-primary" onClick={onUpgrade}>Retry Upgrade</button>
         )}
       </div>
     );
   }
 
-  // State: Active
   if (status === 'active') {
     return (
       <div className="subscription-banner subscription-banner--active">
@@ -101,11 +86,7 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
           <p>Your plan is active. Access expires on <strong>{formatDate(expires_at)}</strong>.</p>
         </div>
         {planSlug !== 'free' && (
-          <button 
-            className="subscription-banner__cancel" 
-            onClick={onCancel} 
-            disabled={isCancelling}
-          >
+          <button className="subscription-banner__cancel" onClick={onCancel} disabled={isCancelling}>
             {isCancelling ? 'Cancelling...' : 'Cancel Plan'}
           </button>
         )}
@@ -113,38 +94,26 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
     );
   }
   
-  // State: Payment Failed
   if (status === 'payment_failed') {
     return (
       <div className="subscription-banner subscription-banner--error">
-        <button className="subscription-banner__close" onClick={handleDismiss} aria-label="Dismiss">
-          ✕
-        </button>
+        <button className="subscription-banner__close" onClick={dismiss} aria-label="Dismiss">✕</button>
         <div className="subscription-banner__icon">❌</div>
         <div className="subscription-banner__content">
           <h4>Payment Failed</h4>
-          <p>
-            Your payment was rejected by the bank. You can try again at any time.
-          </p>
+          <p>Your payment was rejected by the bank. You can try again at any time.</p>
           {transaction_ref && <span className="subscription-banner__ref">Ref: {transaction_ref}</span>}
         </div>
-        {onUpgrade && (
-          <button className="btn btn-primary" onClick={onUpgrade}>
-            Try Again
-          </button>
-        )}
+        {onUpgrade && <button className="btn btn-primary" onClick={onUpgrade}>Try Again</button>}
       </div>
     );
   }
 
-  // State: Cancelled or Expired
   if (status === 'cancelled' || status === 'expired') {
     const isExpired = status === 'expired';
     return (
       <div className="subscription-banner subscription-banner--inactive">
-        <button className="subscription-banner__close" onClick={handleDismiss} aria-label="Dismiss">
-          ✕
-        </button>
+        <button className="subscription-banner__close" onClick={dismiss} aria-label="Dismiss">✕</button>
         <div className="subscription-banner__icon">!</div>
         <div className="subscription-banner__content">
           <h4>{isExpired ? 'Subscription Expired' : 'Subscription Cancelled'}</h4>
@@ -154,11 +123,7 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
               : 'Your subscription has been cancelled. Your premium features have been immediately revoked.'}
           </p>
         </div>
-        {onUpgrade && (
-          <button className="btn btn-primary" onClick={onUpgrade}>
-            Upgrade Now
-          </button>
-        )}
+        {onUpgrade && <button className="btn btn-primary" onClick={onUpgrade}>Upgrade Now</button>}
       </div>
     );
   }

@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { subscriptionService } from '@/services/user/subscriptionService';
+import React from 'react';
+import { usePaymentVerification } from '@/hooks/billing/usePaymentVerification';
 
 interface PaymentProcessingProps {
   transactionId: number;
@@ -15,51 +14,12 @@ const PaymentProcessing: React.FC<PaymentProcessingProps> = ({
   onFailure,
   onTimeout 
 }) => {
-  const [timeLeft, setTimeLeft] = useState(20);
-  const [isDone, setIsDone] = useState(false); // Prevents infinite loops and stops polling
-
-  // Poll the verify endpoint every 3 seconds
-  const { data, isError } = useQuery({
-    queryKey: ['verifyPayment', transactionId],
-    queryFn: () => subscriptionService.verifyPayment(transactionId),
-    refetchInterval: isDone ? false : 3000, // Stop polling if done
-    retry: false,
+  const { timeLeft, radius, circumference, offset } = usePaymentVerification({
+    transactionId,
+    onSuccess,
+    onFailure,
+    onTimeout,
   });
-
-  // Countdown timer logic
-  useEffect(() => {
-    if (isDone) return;
-
-    if (timeLeft <= 0) {
-      setIsDone(true);
-      onTimeout(); // Trigger timeout action instead of failure
-      return;
-    }
-    
-    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
-    return () => clearInterval(timer);
-  }, [timeLeft, onTimeout, isDone]);
-
-  // Gateway status polling logic
-  useEffect(() => {
-    if (isDone || !data) return;
-
-    if (data.status === 'confirmed' || data.status === 'already_confirmed') {
-      setIsDone(true);
-      onSuccess();
-    } else if (data.status === 'failed') {
-      setIsDone(true);
-      onFailure();
-    }
-    
-    // Note: If isError is true (e.g., network error), we intentionally do nothing 
-    // and let the timer continue, respecting the "bank might just be slow" requirement.
-  }, [data, isError, onSuccess, onFailure, isDone]);
-
-  // SVG Circle Math for Countdown Ring
-  const radius = 54;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (timeLeft / 20) * circumference;
 
   return (
     <div className="payment-modal__content payment-result-card">
