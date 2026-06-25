@@ -31,8 +31,9 @@
     "front-end\\vite.config.ts",
     "front-end\\tsconfig.json",
     "front-end\\tsconfig.app.json",
-    "front-end\\road_map.txt"
+    "front-end\\road_map.txt",
+    "front-end\\src\\styles"
   ],
-  "lastModified": "2026-06-25T15:40:37.112Z",
+  "lastModified": "2026-06-25T18:04:51.252Z",
   "version": 1
 }

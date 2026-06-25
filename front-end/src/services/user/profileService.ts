@@ -3,7 +3,7 @@ import { User } from '@/types/user';
 
 export interface UpdateProfilePayload {
   name?: string;
-  bio?: string;
+  bio?: string | null; // ✅ FIXED: Explicitly allow null to clear the bio
   profile_visibility?: 'public' | 'friends_only' | 'private';
 }
 
@@ -28,7 +28,6 @@ export const profileService = {
   uploadAvatar: async (file: File): Promise<{ url: string }> => {
     const formData = new FormData();
     formData.append('avatar', file);
-    // Axios automatically sets Content-Type to multipart/form-data for FormData
     const { data } = await api.post('/api/user/profile/avatar', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });

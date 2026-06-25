@@ -1,11 +1,11 @@
 import React, { useRef, useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import { useAuthStore } from '@/context/authStore';
+import { validateAvatarFile } from '@/utils/profile/avatarValidation';
 
 interface AvatarModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // Updated to Promise<unknown> to accept React Query's mutateAsync return type
   onUpload: (file: File) => Promise<unknown>; 
   onDelete: () => Promise<unknown>;
   isUploading: boolean;
@@ -24,19 +24,15 @@ const AvatarModal: React.FC<AvatarModalProps> = ({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError('');
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Client-side validation (DRY & UX)
-    if (!file.type.startsWith('image/')) {
-      setError('Please select a valid image file.');
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      setError('Image size must be less than 2MB.');
+    
+    const validation = validateAvatarFile(file);
+    if (!validation.isValid) {
+      setError(validation.error);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
-    onUpload(file).finally(() => {
+    onUpload(file!).finally(() => {
       if (fileInputRef.current) fileInputRef.current.value = '';
     });
   };
