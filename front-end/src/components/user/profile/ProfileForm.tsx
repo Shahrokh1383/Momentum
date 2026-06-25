@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
-import { useProfile } from '@/hooks/useProfile';
+import { useProfile } from '@/hooks/profile/useProfile';
 import { useAuthStore } from '@/context/authStore';
 import AvatarModal from './AvatarModal';
 import { profileSchema, ProfileFormData } from '@/validation/profileSchema';

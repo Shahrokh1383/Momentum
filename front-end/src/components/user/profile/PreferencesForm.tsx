@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
-import { useProfile } from '@/hooks/useProfile';
+import { useProfile } from '@/hooks/profile/useProfile';
 import { preferencesSchema, PreferencesFormData } from '@/validation/profileSchema';
 
 const PreferencesForm: React.FC = () => {
