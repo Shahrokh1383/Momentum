@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\PaymentStatus;
-use App\Models\Subscription;
-use App\Models\Payment;
+use App\Enums\Billing\PaymentStatus;
+use App\Models\Billing\Subscription;
+use App\Models\Billing\Payment;
 use Illuminate\Http\Request;
 
 class PaymentCallbackController extends Controller
