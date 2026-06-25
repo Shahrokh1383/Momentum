@@ -12,7 +12,7 @@ import PlansPage from '@/pages/billing/PlansPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useCurrentUser } from '@/hooks/auth/useCurrentUser';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/hooks/profile/useTheme';
 import PaymentResultPage from './pages/billing/PaymentResultPage';
 import SettingsPage from '@/pages/settings/SettingsPage';
 import CategoriesPage from '@/pages/taxonomy/CategoriesPage';
