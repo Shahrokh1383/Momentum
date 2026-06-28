@@ -96,8 +96,8 @@ export interface ResetPasswordPayload {
 }
 
 export interface VerifyEmailPayload {
-  id: string;
+  id: number;
   hash: string;
-  expires: string;
+  expires: number;
   signature: string;
 }

@@ -62,8 +62,8 @@ export const useVerifyEmail = () => {
   const navigate = useNavigate();
   const mutation = useMutation({
     mutationFn: (payload: VerifyEmailPayload) => authService.verifyEmail(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+    onSuccess: (user) => {
+      queryClient.setQueryData(['currentUser'], user);
       navigate('/dashboard');
     },
   });

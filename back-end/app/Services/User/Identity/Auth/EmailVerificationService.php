@@ -2,6 +2,7 @@
 
 namespace App\Services\User\Identity\Auth;
 
+use App\Exceptions\Identity\InvalidVerificationSignatureException;
 use App\Models\Identity\User;
 use Illuminate\Support\Facades\URL;
 use Carbon\Carbon;
@@ -19,7 +20,7 @@ class EmailVerificationService
             'api.verification.verify',
             now()->addMinutes(60),
             ['id' => $id, 'hash' => sha1($email)],
-            false // Relative URL
+            false
         );
 
         return $frontendUrl . '/verify-email?' . parse_url($verificationUrl, PHP_URL_QUERY);
@@ -34,36 +35,52 @@ class EmailVerificationService
     }
 
     /**
-     * Validate an existing User's email verification.
+     * Centralized verification orchestration.
+     * Validates signature, checks existing users, and falls back to pending registrations.
+     * 
+     * @throws InvalidVerificationSignatureException
      */
-    public function verifySignedUrl(int $id, string $hash): bool
+    public function verify(int $id, string $hash, int $expires, string $signature): User
     {
+        // 1. Validate Cryptographic Signature
+        if (! $this->hasValidSignature($id, $hash, $expires, $signature)) {
+            throw new InvalidVerificationSignatureException();
+        }
+
+        // 2. Try existing User verification (backward compatible)
         $user = User::find($id);
+        if ($user) {
+            if (!hash_equals(sha1($user->getEmailForVerification()), $hash)) {
+                throw new InvalidVerificationSignatureException();
+            }
 
-        if (!$user || !hash_equals(sha1($user->getEmailForVerification()), $hash)) {
-            return false;
+            if (!$user->hasVerifiedEmail()) {
+                $user->markEmailAsVerified();
+            }
+
+            return $user;
         }
 
-        if ($user->hasVerifiedEmail()) {
-            return true;
+        // 3. Fallback to pending registration promotion
+        $pendingService = app(PendingRegistrationService::class);
+        $newUser = $pendingService->verify($id, $hash);
+
+        if (!$newUser) {
+            throw new InvalidVerificationSignatureException();
         }
 
-        return $user->markEmailAsVerified();
+        return $newUser;
     }
 
     /**
      * Cryptographically verify the signed URL parameters.
-     * Bypasses manual HMAC reconstruction by regenerating the signed URL 
-     * using Laravel's own engine with the exact same parameters and expiration.
      */
-    public function hasValidSignature(int $id, string $hash, int $expires, string $signature): bool
+    private function hasValidSignature(int $id, string $hash, int $expires, string $signature): bool
     {
-        // 1. Check expiration immediately
         if (now()->greaterThan(Carbon::createFromTimestamp($expires))) {
             return false;
         }
 
-        // 2. Regenerate the signed URL using the exact same expiration and parameters
         $expectedUrl = URL::temporarySignedRoute(
             'api.verification.verify',
             Carbon::createFromTimestamp($expires),
@@ -71,11 +88,9 @@ class EmailVerificationService
             false
         );
 
-        // 3. Extract the signature from the regenerated URL
         parse_str(parse_url($expectedUrl, PHP_URL_QUERY), $queryParams);
         $expectedSignature = $queryParams['signature'] ?? '';
 
-        // 4. Constant-time comparison to prevent timing attacks
         return hash_equals($expectedSignature, $signature);
     }
 }

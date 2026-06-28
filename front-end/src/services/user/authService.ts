@@ -38,8 +38,9 @@ export const authService = {
   resetPassword: async (payload: ResetPasswordPayload): Promise<void> => {
     await api.post('/api/auth/reset-password', payload);
   },
-  verifyEmail: async (payload: VerifyEmailPayload): Promise<void> => {
-    await api.post('/api/auth/verify-email', payload);
+  verifyEmail: async (payload: VerifyEmailPayload): Promise<User> => {
+    const { data } = await api.post('/api/auth/verify-email', payload);
+    return data.data;
   },
   resendVerification: async (email: string): Promise<void> => {
     await api.post('/api/auth/verify-email/resend', { email });

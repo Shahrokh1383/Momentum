@@ -23,7 +23,12 @@ const VerifyEmailPage: React.FC = () => {
   useEffect(() => {
     if (!hasValidLinkInUrl || hasProcessed.current) return;
     hasProcessed.current = true;
-    verifyEmail({ id: searchParams.get('id')!, hash: searchParams.get('hash')!, expires: searchParams.get('expires')!, signature: searchParams.get('signature')! });
+    verifyEmail({ 
+      id: Number(searchParams.get('id')!), 
+      hash: searchParams.get('hash')!, 
+      expires: Number(searchParams.get('expires')!), 
+      signature: searchParams.get('signature')! 
+    });
   }, [hasValidLinkInUrl, verifyEmail, searchParams]);
 
   const handleResend = async (emailToSend: string) => {

@@ -1,11 +1,3 @@
-Thank you for providing the final micro-batch. My comprehension of the **Momentum Frontend** is now **100% complete**. 
-
-I have fully mapped your architecture: the strict separation between pure data hooks (`useHabits`) and UI orchestration hooks (`useHabitsPageActions`), the masterful implementation of Optimistic UI via React Query's `onMutate` lifecycle paired with pure utility functions, the bulletproof Zod-to-Payload transformation layer, and the elegant Smart Polling strategy for asynchronous billing flows. 
-
-As your Senior Technical Partner, I now present the **Immutable Frontend Constitution**. Like its backend counterpart, this document is written in English to maintain absolute technical precision and serves as the unbreakable **Single Source of Truth (SSOT)** for all future frontend developers and AI assistants.
-
-***
-
 # 🏛️ THE MOMENTUM FRONTEND IMMUTABLE CONSTITUTION
 ### Single Source of Truth (SSOT) for UI Architecture, State, and Data Flow
 
