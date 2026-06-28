@@ -32,8 +32,9 @@
     "front-end\\tsconfig.json",
     "front-end\\tsconfig.app.json",
     "front-end\\road_map.txt",
-    "front-end\\src\\styles"
+    "front-end\\src\\styles",
+    "Documentation"
   ],
-  "lastModified": "2026-06-25T18:34:26.121Z",
+  "lastModified": "2026-06-28T07:37:47.530Z",
   "version": 1
 }
