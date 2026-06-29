@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User\Billing;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\Subscription\UpgradeSubscriptionRequest;
+use App\Http\Resources\User\PaymentResource;
 use App\Http\Resources\User\PlanResource;
 use App\Http\Resources\User\SubscriptionResource;
 use App\Services\User\Billing\PlanQuotaService;
@@ -77,12 +78,7 @@ class SubscriptionController extends Controller
             }
 
             if (isset($result['payment'])) {
-                $data['payment'] = [
-                    'gateway_transaction_id' => $result['payment']->gateway_transaction_id,
-                    'status' => $result['payment']->status->value,
-                    'amount' => $result['payment']->amount,
-                    'paid_at' => $result['payment']->paid_at,
-                ];
+                $data['payment'] = new PaymentResource($result['payment']);
             }
 
             return $this->successResponse($data, $message, $statusCode);
