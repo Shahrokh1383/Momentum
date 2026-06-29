@@ -12,168 +12,45 @@ PROJECT STRUCTURE
 📁 back-end/
 ├── 📁 app/
 │   ├── 📁 Console/
-│   │   └── 📁 Commands/
-│   │       ├── 📄 CheckSubscriptionStatus.php
-│   │       ├── 📄 MarkMissedHabits.php
-│   │       └── 📄 SendHabitReminders.php
 │   ├── 📁 Enums/
 │   │   ├── 📁 Billing/
 │   │   │   ├── 📄 PaymentStatus.php
 │   │   │   ├── 📄 PlanSlug.php
 │   │   │   └── 📄 SubscriptionStatus.php
-│   │   ├── 📁 Identity/
-│   │   │   ├── 📄 ProfileVisibility.php
-│   │   │   └── 📄 UserRole.php
-│   │   └── 📄 Theme.php
-│   ├── 📁 Events/
-│   │   └── 📁 Billing/
-│   │       └── 📄 SubscriptionExpired.php
-│   ├── 📁 Exceptions/
-│   │   ├── 📁 Identity/
-│   │   │   └── 📄 InvalidVerificationSignatureException.php
-│   │   ├── 📄 FeatureLockedException.php
-│   │   └── 📄 QuotaExceededException.php
 │   ├── 📁 Http/
 │   │   ├── 📁 Controllers/
-│   │   │   ├── 📁 Admin/
 │   │   │   ├── 📁 User/
 │   │   │   │   ├── 📁 Billing/
 │   │   │   │   │   ├── 📄 PlansController.php
 │   │   │   │   │   └── 📄 SubscriptionController.php
-│   │   │   │   ├── 📁 Habit/
-│   │   │   │   │   ├── 📄 HabitController.php
-│   │   │   │   │   └── 📄 HabitLogController.php
-│   │   │   │   ├── 📁 Identity/
-│   │   │   │   │   ├── 📁 Auth/
-│   │   │   │   │   │   ├── 📄 AuthController.php
-│   │   │   │   │   │   ├── 📄 EmailVerificationController.php
-│   │   │   │   │   │   ├── 📄 OAuthController.php
-│   │   │   │   │   │   └── 📄 PasswordResetController.php
-│   │   │   │   │   ├── 📄 AvatarController.php
-│   │   │   │   │   └── 📄 SettingsController.php
-│   │   │   │   ├── 📁 Streak/
-│   │   │   │   │   └── 📄 StreakFreezeController.php
-│   │   │   │   ├── 📁 Taxonomy/
-│   │   │   │   │   ├── 📄 CategoryController.php
-│   │   │   │   │   └── 📄 TagController.php
-│   │   │   │   └── 📄 DashboardController.php
-│   │   │   ├── 📄 Controller.php
 │   │   │   └── 📄 PaymentCallbackController.php
 │   │   ├── 📁 Middleware/
 │   │   │   ├── 📄 EnforceHabitPlanLimits.php
 │   │   │   ├── 📄 EnsureTier.php
 │   │   │   └── 📄 RoleMiddleware.php
 │   │   ├── 📁 Requests/
-│   │   │   ├── 📁 Admin/
-│   │   │   ├── 📁 Auth/
-│   │   │   │   ├── 📄 ForgotPasswordRequest.php
-│   │   │   │   ├── 📄 LoginRequest.php
-│   │   │   │   ├── 📄 OAuthCallbackRequest.php
-│   │   │   │   ├── 📄 RegisterRequest.php
-│   │   │   │   ├── 📄 ResendVerificationRequest.php
-│   │   │   │   ├── 📄 ResetPasswordRequest.php
-│   │   │   │   └── 📄 VerifyEmailRequest.php
 │   │   │   └── 📁 User/
-│   │   │       ├── 📁 Category/
-│   │   │       │   ├── 📄 StoreCategoryRequest.php
-│   │   │       │   └── 📄 UpdateCategoryRequest.php
-│   │   │       ├── 📁 Habit/
-│   │   │       │   ├── 📄 StoreHabitRequest.php
-│   │   │       │   └── 📄 UpdateHabitRequest.php
-│   │   │       ├── 📁 HabitLog/
-│   │   │       │   ├── 📄 StoreHabitLogRequest.php
-│   │   │       │   └── 📄 UpdateHabitLogRequest.php
-│   │   │       ├── 📁 Profile/
-│   │   │       │   ├── 📄 UpdateAvatarRequest.php
-│   │   │       │   ├── 📄 UpdatePreferencesRequest.php
-│   │   │       │   └── 📄 UpdateProfileRequest.php
-│   │   │       ├── 📁 StreakFreeze/
-│   │   │       │   └── 📄 StoreStreakFreezeRequest.php
 │   │   │       ├── 📁 Subscription/
 │   │   │       │   └── 📄 UpgradeSubscriptionRequest.php
-│   │   │       └── 📁 Tag/
-│   │   │           ├── 📄 StoreTagRequest.php
-│   │   │           └── 📄 UpdateTagRequest.php
 │   │   └── 📁 Resources/
 │   │       ├── 📁 Admin/
 │   │       └── 📁 User/
-│   │           ├── 📄 CategoryResource.php
-│   │           ├── 📄 DashboardResource.php
-│   │           ├── 📄 HabitLogResource.php
-│   │           ├── 📄 HabitResource.php
 │   │           ├── 📄 PlanResource.php
-│   │           ├── 📄 StreakResource.php
 │   │           ├── 📄 SubscriptionResource.php
-│   │           ├── 📄 TagResource.php
 │   │           └── 📄 UserResource.php
-│   ├── 📁 Listeners/
-│   │   └── 📁 Billing/
-│   │       └── 📄 SendSubscriptionExpiredEmailListener.php
-│   ├── 📁 Mail/
-│   │   ├── 📁 Auth/
-│   │   │   ├── 📄 PasswordResetMail.php
-│   │   │   └── 📄 VerificationMail.php
-│   │   ├── 📁 Billing/
-│   │   │   ├── 📄 SubscriptionConfirmedMail.php
-│   │   │   └── 📄 SubscriptionExpiredMail.php
-│   │   └── 📁 Habit/
-│   │       └── 📄 HabitReminderMail.php
 │   ├── 📁 Models/
 │   │   ├── 📁 Billing/
 │   │   │   ├── 📄 Payment.php
 │   │   │   ├── 📄 Plan.php
 │   │   │   └── 📄 Subscription.php
-│   │   ├── 📁 Habit/
-│   │   │   ├── 📁 Scopes/
-│   │   │   │   └── 📄 ActiveHabitScope.php
-│   │   │   ├── 📄 Habit.php
-│   │   │   ├── 📄 HabitChecklistItem.php
-│   │   │   ├── 📄 HabitChecklistLog.php
-│   │   │   ├── 📄 HabitLog.php
-│   │   │   └── 📄 HabitReminderLog.php
-│   │   ├── 📁 Identity/
-│   │   │   ├── 📄 PendingRegistration.php
-│   │   │   ├── 📄 User.php
-│   │   │   └── 📄 UserSetting.php
-│   │   ├── 📁 Streak/
-│   │   │   ├── 📄 Streak.php
-│   │   │   └── 📄 StreakFreeze.php
-│   │   └── 📁 Taxonomy/
-│   │       ├── 📄 Category.php
-│   │       └── 📄 Tag.php
-│   ├── 📁 Observers/
-│   │   └── 📄 HabitLogObserver.php
 │   ├── 📁 Providers/
 │   │   └── 📄 AppServiceProvider.php
 │   ├── 📁 Services/
-│   │   ├── 📁 Admin/
 │   │   └── 📁 User/
 │   │       ├── 📁 Billing/
 │   │       │   ├── 📄 PaymenterService.php
 │   │       │   ├── 📄 PlanQuotaService.php
 │   │       │   └── 📄 SubscriptionService.php
-│   │       ├── 📁 Habit/
-│   │       │   ├── 📄 HabitLogService.php
-│   │       │   ├── 📄 HabitReminderService.php
-│   │       │   └── 📄 HabitService.php
-│   │       ├── 📁 Identity/
-│   │       │   ├── 📁 Auth/
-│   │       │   │   ├── 📄 EmailVerificationService.php
-│   │       │   │   ├── 📄 OAuthService.php
-│   │       │   │   ├── 📄 PasswordResetService.php
-│   │       │   │   └── 📄 PendingRegistrationService.php
-│   │       │   └── 📁 Profile/
-│   │       │       ├── 📄 AvatarService.php
-│   │       │       └── 📄 ProfileService.php
-│   │       ├── 📁 Streak/
-│   │       │   └── 📄 StreakService.php
-│   │       └── 📁 Taxonomy/
-│   │           ├── 📄 CategoryService.php
-│   │           └── 📄 TagService.php
-│   ├── 📁 Traits/
-│   │   ├── 📄 HandlesAuthResponses.php
-│   │   └── 📄 HasApiResponse.php
-│   └── 📄 helpers.php
 ├── 📁 bootstrap/
 │   ├── 📄 app.php
 │   └── 📄 providers.php
@@ -222,18 +99,7 @@ PROJECT STRUCTURE
 │   │   ├── 📁 layout/
 │   │   │   ├── 📄 AppHeader.tsx
 │   │   │   └── 📄 DashboardLayout.tsx
-│   │   ├── 📁 ui/
-│   │   │   ├── 📄 ColorPicker.tsx
-│   │   │   ├── 📄 CreatableTagInput.tsx
-│   │   │   ├── 📄 IconPicker.tsx
-│   │   │   ├── 📄 LoadingSpinner.tsx
-│   │   │   └── 📄 Modal.tsx
 │   │   ├── 📁 user/
-│   │   │   ├── 📁 auth/
-│   │   │   │   ├── 📄 AuthLayout.tsx
-│   │   │   │   ├── 📄 OAuthButtons.tsx
-│   │   │   │   ├── 📄 PasswordInput.tsx
-│   │   │   │   └── 📄 PasswordStrengthMeter.tsx
 │   │   │   ├── 📁 billing/
 │   │   │   │   ├── 📄 PaymentModal.tsx
 │   │   │   │   ├── 📄 PaymentProcessing.tsx
@@ -241,129 +107,30 @@ PROJECT STRUCTURE
 │   │   │   │   ├── 📄 PlanCard.tsx
 │   │   │   │   ├── 📄 PremiumBadge.tsx
 │   │   │   │   └── 📄 SubscriptionStatusBanner.tsx
-│   │   │   ├── 📁 categories/
-│   │   │   │   ├── 📄 CategoryCard.tsx
-│   │   │   │   ├── 📄 CategoryFormModal.tsx
-│   │   │   │   ├── 📄 CategoryGrid.tsx
-│   │   │   │   ├── 📄 CategoryQuotaBanner.tsx
-│   │   │   │   ├── 📄 DeleteCategoryModal.tsx
-│   │   │   │   └── 📄 TrashedCategoriesModal.tsx
-│   │   │   ├── 📁 dashboard/
-│   │   │   │   ├── 📄 CompletionRing.tsx
-│   │   │   │   ├── 📄 QuotaBanner.tsx
-│   │   │   │   ├── 📄 QuotaIndicator.tsx
-│   │   │   │   ├── 📄 StreakStatsCard.tsx
-│   │   │   │   └── 📄 TodayHabitsList.tsx
-│   │   │   ├── 📁 habits/
-│   │   │   │   ├── 📁 form-fields/
-│   │   │   │   │   ├── 📄 ChecklistFields.tsx
-│   │   │   │   │   ├── 📄 NumericFields.tsx
-│   │   │   │   │   ├── 📄 ScheduleFields.tsx
-│   │   │   │   │   └── 📄 TimerFields.tsx
-│   │   │   │   ├── 📁 widgets/
-│   │   │   │   │   ├── 📄 BooleanLog.tsx
-│   │   │   │   │   ├── 📄 ChecklistLog.tsx
-│   │   │   │   │   ├── 📄 HabitLogWidget.tsx
-│   │   │   │   │   ├── 📄 NumericLog.tsx
-│   │   │   │   │   └── 📄 TimerWidget.tsx
-│   │   │   │   ├── 📄 ArchiveHabitModal.tsx
-│   │   │   │   ├── 📄 DeleteHabitModal.tsx
-│   │   │   │   ├── 📄 FreezeButton.tsx
-│   │   │   │   ├── 📄 FreezeStreakModal.tsx
-│   │   │   │   ├── 📄 HabitCard.tsx
-│   │   │   │   ├── 📄 HabitFormModal.tsx
-│   │   │   │   ├── 📄 HabitGrid.tsx
-│   │   │   │   ├── 📄 HabitQuotaBanner.tsx
-│   │   │   │   └── 📄 StreakBadge.tsx
-│   │   │   └── 📁 profile/
-│   │   │       ├── 📄 AvatarModal.tsx
-│   │   │       ├── 📄 PreferencesForm.tsx
-│   │   │       └── 📄 ProfileForm.tsx
 │   │   └── 📄 ProtectedRoute.tsx
 │   ├── 📁 context/
 │   │   └── 📄 authStore.ts
 │   ├── 📁 hooks/
-│   │   ├── 📁 auth/
-│   │   │   ├── 📄 useAuthMutations.ts
-│   │   │   ├── 📄 useCurrentUser.ts
-│   │   │   └── 📄 useOAuth.ts
 │   │   ├── 📁 billing/
 │   │   │   ├── 📄 useDismissable.ts
 │   │   │   ├── 📄 usePaymentVerification.ts
 │   │   │   └── 📄 useSubscription.ts
-│   │   ├── 📁 categories/
-│   │   │   ├── 📄 useCategories.ts
-│   │   │   └── 📄 useCategoriesPageActions.ts
-│   │   ├── 📁 habits/
-│   │   │   ├── 📄 useDebouncedNumericInput.ts
-│   │   │   ├── 📄 useHabitLogs.ts
-│   │   │   ├── 📄 useHabits.ts
-│   │   │   ├── 📄 useHabitsPageActions.ts
-│   │   │   ├── 📄 useStreakFreezes.ts
-│   │   │   ├── 📄 useTags.ts
-│   │   │   └── 📄 useTimer.ts
-│   │   ├── 📁 profile/
-│   │   │   ├── 📄 useProfile.ts
-│   │   │   └── 📄 useTheme.ts
-│   │   └── 📄 useDashboard.ts
 │   ├── 📁 pages/
-│   │   ├── 📁 auth/
-│   │   │   ├── 📄 ForgotPasswordPage.tsx
-│   │   │   ├── 📄 LoginPage.tsx
-│   │   │   ├── 📄 OAuthCallbackPage.tsx
-│   │   │   ├── 📄 RegisterPage.tsx
-│   │   │   ├── 📄 ResetPasswordPage.tsx
-│   │   │   └── 📄 VerifyEmailPage.tsx
 │   │   ├── 📁 billing/
 │   │   │   ├── 📄 PaymentResultPage.tsx
 │   │   │   └── 📄 PlansPage.tsx
-│   │   ├── 📁 dashboard/
-│   │   │   └── 📄 DashboardPage.tsx
-│   │   ├── 📁 habit/
-│   │   │   └── 📄 HabitsPage.tsx
-│   │   ├── 📁 settings/
-│   │   │   └── 📄 SettingsPage.tsx
-│   │   └── 📁 taxonomy/
-│   │       └── 📄 CategoriesPage.tsx
 │   ├── 📁 services/
 │   │   ├── 📁 user/
 │   │   │   ├── 📄 authService.ts
-│   │   │   ├── 📄 categoryService.ts
-│   │   │   ├── 📄 dashboardService.ts
-│   │   │   ├── 📄 habitLogService.ts
-│   │   │   ├── 📄 habitService.ts
-│   │   │   ├── 📄 profileService.ts
-│   │   │   ├── 📄 streakService.ts
 │   │   │   ├── 📄 subscriptionService.ts
-│   │   │   └── 📄 tagService.ts
 │   │   ├── 📄 api.ts
 │   │   └── 📄 queryClient.ts
 │   ├── 📁 types/
-│   │   ├── 📄 category.ts
-│   │   ├── 📄 habit.ts
 │   │   ├── 📄 subscription.ts
-│   │   ├── 📄 tag.ts
 │   │   └── 📄 user.ts
 │   ├── 📁 utils/
-│   │   ├── 📁 auth/
-│   │   │   ├── 📄 errorHandler.ts
-│   │   │   ├── 📄 oauthPopup.ts
-│   │   │   └── 📄 passwordStrength.ts
 │   │   ├── 📁 billing/
 │   │   │   └── 📄 planUtils.ts
-│   │   ├── 📁 category/
-│   │   │   └── 📄 categoryErrors.ts
-│   │   ├── 📁 habit/
-│   │   │   ├── 📄 habitErrors.ts
-│   │   │   ├── 📄 habitFormUtils.ts
-│   │   │   └── 📄 habitLogOptimistic.ts
-│   │   └── 📁 profile/
-│   │       └── 📄 avatarValidation.ts
-│   ├── 📁 validation/
-│   │   ├── 📄 authSchema.ts
-│   │   ├── 📄 categorySchema.ts
-│   │   ├── 📄 habitSchema.ts
-│   │   └── 📄 profileSchema.ts
 │   ├── 📄 App.tsx
 │   └── 📄 main.tsx
 └── 📄 index.html

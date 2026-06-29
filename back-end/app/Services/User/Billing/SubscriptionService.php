@@ -109,6 +109,7 @@ class SubscriptionService
     {
         $payment = Payment::where('user_id', $user->id)
             ->where('gateway_transaction_id', $gatewayTransactionId)
+            ->latest()
             ->firstOrFail();
 
         if ($payment->isSuccess()) {
