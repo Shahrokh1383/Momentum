@@ -3,12 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Enums\Billing\PaymentStatus;
-use App\Models\Billing\Subscription;
 use App\Models\Billing\Payment;
+use App\Models\Billing\Subscription;
+use App\Services\User\Billing\PaymenterService;
 use Illuminate\Http\Request;
 
 class PaymentCallbackController extends Controller
 {
+    public function __construct(
+        private PaymenterService $paymenterService
+    ) {}
+
+    /**
+     * Handle the user redirect after bank payment.
+     */
     public function handle(Request $request)
     {
         $ref = $request->query('ref');
@@ -26,7 +34,7 @@ class PaymentCallbackController extends Controller
         }
 
         $payment = Payment::where('subscription_id', $subscription->id)
-            ->where('status', PaymentStatus::PENDING) 
+            ->where('status', PaymentStatus::PENDING)
             ->latest()
             ->first();
 
@@ -34,7 +42,17 @@ class PaymentCallbackController extends Controller
             $payment->update(['gateway_transaction_id' => $transactionId]);
         }
 
-        // Redirect to frontend to start polling
         return redirect("{$frontendUrl}/payment-result?transaction_id={$transactionId}");
+    }
+
+    /**
+     * Handle Paymenter webhook (async business logic fulfillment).
+     */
+    public function webhook(Request $request)
+    {
+        // Delegate entirely to PaymenterService
+        $this->paymenterService->handleWebhook($request);
+
+        return response()->json(['status' => 'success']);
     }
 }

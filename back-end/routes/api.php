@@ -1,5 +1,11 @@
 <?php
+
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\PaymentCallbackController;
+
+// Webhooks must be accessible without authentication
+Route::post('webhooks/paymenter', [PaymentCallbackController::class, 'webhook'])
+    ->name('webhooks.paymenter');
 
 // Auth routes -> final prefix: /api/auth
 Route::prefix('auth')->group(base_path('routes/api/auth.php'));

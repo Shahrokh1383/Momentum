@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Http\Controllers\User\Billing; 
+namespace App\Http\Controllers\User\Billing;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\Subscription\UpgradeSubscriptionRequest;
 use App\Http\Resources\User\PaymentResource;
 use App\Http\Resources\User\PlanResource;
 use App\Http\Resources\User\SubscriptionResource;
+use App\Services\User\Billing\PaymenterService;
 use App\Services\User\Billing\PlanQuotaService;
 use App\Services\User\Billing\SubscriptionService;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +17,8 @@ class SubscriptionController extends Controller
 {
     public function __construct(
         private SubscriptionService $subscriptionService,
-        private PlanQuotaService $quotaService
+        private PlanQuotaService $quotaService,
+        private PaymenterService $paymenterService   // ✅ Added
     ) {}
 
     public function current(Request $request): JsonResponse
@@ -36,13 +38,25 @@ class SubscriptionController extends Controller
     public function upgrade(UpgradeSubscriptionRequest $request): JsonResponse
     {
         try {
-            $result = $this->subscriptionService->upgrade(
+            // 1. Create subscription (no payment yet)
+            $subscription = $this->subscriptionService->upgrade(
                 $request->user(),
                 $request->plan()
             );
 
+            // 2. Delegate payment initiation to PaymenterService
+            $callbackUrl = route('payment.callback', ['ref' => $subscription->transaction_ref]);
+            $amount = $this->resolveAmountForPlan($request->plan());
+
+            $payment = $this->paymenterService->initiatePayment(
+                $subscription,
+                $amount,
+                $callbackUrl
+            );
+
+            $gatewayResponse = $payment->gateway_response;
             return $this->successResponse([
-                'payment_url' => $result['payment_url'],
+                'payment_url' => $gatewayResponse['payment_url'] ?? null,
             ], 'Redirecting to secure payment gateway.', 202);
         } catch (\InvalidArgumentException $e) {
             return $this->errorResponse('upgrade_failed', $e->getMessage(), 422);
@@ -51,41 +65,30 @@ class SubscriptionController extends Controller
         }
     }
 
-    public function verify(Request $request, int $transactionId): JsonResponse
+    public function verify(Request $request, string $transactionId): JsonResponse
     {
-        try {
-            $result = $this->subscriptionService->verify($request->user(), $transactionId);
+        $payment = $this->paymenterService->getPaymentByTransactionId($transactionId);
 
-            $statusCode = match ($result['status']) {
-                'confirmed', 'already_confirmed' => 200,
-                'pending' => 200,
-                'failed' => 200,
-                default => 200,
-            };
-
-            $message = match ($result['status']) {
-                'confirmed' => 'Payment confirmed. Subscription activated.',
-                'already_confirmed' => 'Payment was already confirmed.',
-                'pending' => 'Payment is still being processed.',
-                'failed' => 'Payment failed.',
-                default => 'Unknown status.',
-            };
-
-            $data = ['status' => $result['status']];
-
-            if (isset($result['subscription'])) {
-                $data['subscription'] = new SubscriptionResource($result['subscription']->load('planDetails'));
-            }
-
-            if (isset($result['payment'])) {
-                $data['payment'] = new PaymentResource($result['payment']);
-            }
-
-            return $this->successResponse($data, $message, $statusCode);
-
-        } catch (\Exception $e) {
-            return $this->errorResponse('verify_error', $e->getMessage(), 502);
+        if (! $payment) {
+            return $this->errorResponse('not_found', 'Payment not found.', 404);
         }
+
+        $status = $payment->status->value;
+        $message = match ($status) {
+            'success' => 'Payment confirmed. Subscription activated.',
+            'pending' => 'Payment is still being processed.',
+            'failed'  => 'Payment failed.',
+            'refunded'=> 'Payment has been refunded.',
+            default   => 'Unknown status.',
+        };
+
+        $data = ['status' => $status];
+        if ($payment->subscription) {
+            $data['subscription'] = new SubscriptionResource($payment->subscription->load('planDetails'));
+        }
+        $data['payment'] = new PaymentResource($payment);
+
+        return $this->successResponse($data, $message);
     }
 
     public function cancel(Request $request): JsonResponse
@@ -99,8 +102,8 @@ class SubscriptionController extends Controller
 
             if ($result['payment']) {
                 $data['refund'] = [
-                    'status' => $result['payment']->status->value,
-                    'amount' => $result['payment']->amount,
+                    'status'    => $result['payment']->status->value,
+                    'amount'    => $result['payment']->amount,
                     'refunded_at' => $result['payment']->refunded_at,
                 ];
             }
@@ -158,5 +161,18 @@ class SubscriptionController extends Controller
             ],
             'allowed_habit_types' => explode(',', $plan->allowed_habit_types),
         ], 'User quota and feature information retrieved.');
+    }
+
+    private function resolveAmountForPlan(\App\Enums\Billing\PlanSlug $planSlug): float
+    {
+        $plan = \App\Models\Billing\Plan::where('slug', $planSlug->value)->first();
+        if (!$plan) {
+            throw new \InvalidArgumentException('Plan not found.');
+        }
+        return match ($planSlug) {
+            \App\Enums\Billing\PlanSlug::EXPERT  => (float) ($plan->price_monthly ?? 0.00),
+            \App\Enums\Billing\PlanSlug::PREMIUM => (float) ($plan->price_monthly ?? 0.00),
+            default => 0.00,
+        };
     }
 }
