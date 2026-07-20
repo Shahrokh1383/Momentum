@@ -68,7 +68,7 @@ class PaymenterService
      * @return array{status: string, ...}
      * @throws \Exception
      */
-    public function verify(int $transactionId): array
+    public function verify(string $transactionId): array
     {
         try {
             $response = $this->httpClient()->get("{$this->apiUrl}/verify/{$transactionId}");
@@ -93,7 +93,7 @@ class PaymenterService
      * @return array{status: string, ...}
      * @throws \Exception
      */
-    public function refund(int $transactionId): array
+    public function refund(string $transactionId): array
     {
         try {
             $response = $this->httpClient()->post("{$this->apiUrl}/refund", [

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->decimal('amount', 12, 2);
             $table->string('currency', 3)->default('USD');
             $table->string('status')->default(\App\Enums\Billing\PaymentStatus::PENDING->value);
-            $table->unsignedBigInteger('gateway_transaction_id')->nullable();
+            $table->string('gateway_transaction_id', 64)->nullable();
             $table->string('card_number_masked', 19)->nullable();
             $table->json('gateway_response')->nullable();
             $table->timestamp('paid_at')->nullable();

@@ -105,7 +105,7 @@ class SubscriptionService
         ];
     }
 
-    public function verify(User $user, int $gatewayTransactionId): array
+    public function verify(User $user, string $gatewayTransactionId): array
     {
         $payment = Payment::where('user_id', $user->id)
             ->where('gateway_transaction_id', $gatewayTransactionId)
