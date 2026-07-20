@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { subscriptionService } from '@/services/user/subscriptionService';
-import { UpgradePayload, SubscriptionDetail } from '@/types/subscription';
-import { QuotasData } from '@/types/subscription';
+import { UpgradePayload, SubscriptionDetail, QuotasData } from '@/types/subscription';
 
 export const useSubscription = () => {
   const queryClient = useQueryClient();
@@ -16,8 +15,6 @@ export const useSubscription = () => {
     queryKey: ['currentSubscription'],
     queryFn: subscriptionService.getCurrent,
     retry: false,
-    // SMART POLLING: Only poll if status is 'pending_payment' AND the user has 
-    // actually been to the gateway (gateway_transaction_id is not null)
     refetchInterval: (query) => {
       const sub = query.state.data;
       const hasGatewayId = sub?.latest_payment?.gateway_transaction_id;
@@ -34,8 +31,6 @@ export const useSubscription = () => {
   const upgradeMutation = useMutation({
     mutationFn: (payload: UpgradePayload) => subscriptionService.upgrade(payload),
     onSuccess: () => {
-      // Invalidate immediately so the UI updates with the 'pending_payment' state
-      // and waits for the user to come back from the bank
       queryClient.invalidateQueries({ queryKey: ['currentSubscription'] });
     },
   });
@@ -52,21 +47,15 @@ export const useSubscription = () => {
     plans,
     isLoadingPlans,
     plansError,
-    
     currentSubscription,
     isLoadingSubscription,
     subscriptionError,
-    
     upgrade: upgradeMutation.mutateAsync,
     isUpgrading: upgradeMutation.isPending,
     upgradeError: upgradeMutation.error,
-    
     cancel: cancelMutation.mutateAsync,
     isCancelling: cancelMutation.isPending,
     cancelError: cancelMutation.error,
-
-    verifyPayment: subscriptionService.verifyPayment,
-
     quotas,
     isLoadingQuotas,
     quotasError,

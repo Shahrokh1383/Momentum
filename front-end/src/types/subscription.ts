@@ -27,9 +27,10 @@ export interface Plan {
 
 export interface LatestPayment {
   status: string;
-  gateway_transaction_id: number | null;
+  gateway_transaction_id: string | null;
   amount: string;
 }
+
 export interface SubscriptionDetail {
   id: number;
   plan: Plan | null;
@@ -43,17 +44,6 @@ export interface SubscriptionDetail {
   latest_payment?: LatestPayment | null;
 }
 
-/**
- * Matches the backend Payment array returned in SubscriptionController@upgrade
- */
-export interface PaymentInfo {
-  gateway_transaction_id: number;
-  status: string; // 'pending'
-  amount: string;
-  currency: string;
-  card: string;
-}
-
 export interface UpgradePayload {
   plan_slug: string;
 }
@@ -63,10 +53,10 @@ export interface UpgradeResponse {
 }
 
 export interface VerifyPaymentResponse {
-  status: 'confirmed' | 'already_confirmed' | 'pending' | 'failed' | 'unknown';
+  status: 'success' | 'pending' | 'failed' | 'refunded';
   subscription?: SubscriptionDetail;
   payment?: {
-    gateway_transaction_id: number;
+    gateway_transaction_id: string;
     status: string;
     amount: string;
     paid_at: string | null;

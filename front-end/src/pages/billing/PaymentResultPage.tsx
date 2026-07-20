@@ -11,8 +11,7 @@ const PaymentResultPage: React.FC = () => {
 
   const transactionId = searchParams.get('transaction_id');
   const status = searchParams.get('status');
-  
-  // State to track explicit failure vs timeout
+
   const [isFailed, setIsFailed] = useState(false);
   const [isTimedOut, setIsTimedOut] = useState(false);
 
@@ -38,13 +37,12 @@ const PaymentResultPage: React.FC = () => {
     navigate('/plans');
   };
 
-  // 1. Explicit failure from URL or polling
   if (status === 'failed' || isFailed) {
     return (
       <div className="payment-result-page">
-        <PaymentResult 
-          status="failed" 
-          message="Payment failed. Please try again or use a different payment method." 
+        <PaymentResult
+          status="failed"
+          message="Payment failed. Please try again or use a different payment method."
           onClose={handleClose}
           onRetry={handleTryAgain}
         />
@@ -52,37 +50,27 @@ const PaymentResultPage: React.FC = () => {
     );
   }
 
-  // 2. Timeout reached
   if (isTimedOut) {
     return (
       <div className="payment-result-page">
-        <PaymentResult 
-          status="timeout" 
-          onClose={handleClose}
-        />
+        <PaymentResult status="timeout" onClose={handleClose} />
       </div>
     );
   }
 
-  // 3. Missing transaction ID
   if (!transactionId) {
     return (
       <div className="payment-result-page">
-        <PaymentResult 
-          status="failed" 
-          message="No transaction found." 
-          onClose={handleClose}
-        />
+        <PaymentResult status="failed" message="No transaction found." onClose={handleClose} />
       </div>
     );
   }
 
-  // 4. Default processing state
   return (
     <div className="payment-result-page">
-      <PaymentProcessing 
-        transactionId={parseInt(transactionId, 10)} 
-        onSuccess={handleSuccess} 
+      <PaymentProcessing
+        transactionId={transactionId}
+        onSuccess={handleSuccess}
         onFailure={handleFailure}
         onTimeout={handleTimeout}
       />

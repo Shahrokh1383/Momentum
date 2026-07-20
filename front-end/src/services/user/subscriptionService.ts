@@ -1,11 +1,11 @@
 import api from '@/services/api';
-import { 
-  Plan, 
-  SubscriptionDetail, 
+import {
+  Plan,
+  SubscriptionDetail,
   UpgradePayload,
   UpgradeResponse,
   QuotasData,
-  VerifyPaymentResponse 
+  VerifyPaymentResponse,
 } from '@/types/subscription';
 
 export const subscriptionService = {
@@ -26,20 +26,12 @@ export const subscriptionService = {
     }
   },
 
-  /**
-   * Initiates the upgrade. Backend will create a pending subscription,
-   * call the gateway, and return the gateway_transaction_id.
-   */
   upgrade: async (payload: UpgradePayload): Promise<UpgradeResponse> => {
     const { data } = await api.post('/api/user/subscription/upgrade', payload);
     return data.data;
   },
 
-  /**
-   * CRITICAL: Polls the backend to verify the actual status of the transaction 
-   * with the payment gateway.
-   */
-  verifyPayment: async (transactionId: number): Promise<VerifyPaymentResponse> => {
+  verifyPayment: async (transactionId: string): Promise<VerifyPaymentResponse> => {
     const { data } = await api.get(`/api/user/subscription/verify/${transactionId}`);
     return data.data;
   },

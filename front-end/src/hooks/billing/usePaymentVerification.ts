@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { subscriptionService } from '@/services/user/subscriptionService';
 
 interface UsePaymentVerificationProps {
-  transactionId: number;
+  transactionId: string;
   onSuccess: () => void;
   onFailure: () => void;
   onTimeout: () => void;
@@ -29,13 +29,11 @@ export const usePaymentVerification = ({
 
   useEffect(() => {
     if (isDone) return;
-
     if (timeLeft <= 0) {
       setIsDone(true);
       onTimeout();
       return;
     }
-    
     const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(timer);
   }, [timeLeft, onTimeout, isDone]);
@@ -43,7 +41,7 @@ export const usePaymentVerification = ({
   useEffect(() => {
     if (isDone || !data) return;
 
-    if (data.status === 'confirmed' || data.status === 'already_confirmed') {
+    if (data.status === 'success') {
       setIsDone(true);
       onSuccess();
     } else if (data.status === 'failed') {

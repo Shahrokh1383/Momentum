@@ -2,17 +2,17 @@ import React from 'react';
 import { usePaymentVerification } from '@/hooks/billing/usePaymentVerification';
 
 interface PaymentProcessingProps {
-  transactionId: number;
+  transactionId: string;  // ✅ string
   onSuccess: () => void;
   onFailure: () => void;
   onTimeout: () => void;
 }
 
-const PaymentProcessing: React.FC<PaymentProcessingProps> = ({ 
-  transactionId, 
-  onSuccess, 
+const PaymentProcessing: React.FC<PaymentProcessingProps> = ({
+  transactionId,
+  onSuccess,
   onFailure,
-  onTimeout 
+  onTimeout,
 }) => {
   const { timeLeft, radius, circumference, offset } = usePaymentVerification({
     transactionId,
@@ -27,9 +27,11 @@ const PaymentProcessing: React.FC<PaymentProcessingProps> = ({
         <div className="countdown-ring">
           <svg className="countdown-ring__svg" viewBox="0 0 120 120">
             <circle className="countdown-ring__bg" cx="60" cy="60" r={radius} />
-            <circle 
-              className="countdown-ring__progress" 
-              cx="60" cy="60" r={radius}
+            <circle
+              className="countdown-ring__progress"
+              cx="60"
+              cy="60"
+              r={radius}
               style={{ strokeDasharray: circumference, strokeDashoffset: offset }}
             />
           </svg>
