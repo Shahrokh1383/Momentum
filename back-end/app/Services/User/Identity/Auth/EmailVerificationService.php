@@ -3,9 +3,11 @@
 namespace App\Services\User\Identity\Auth;
 
 use App\Exceptions\Identity\InvalidVerificationSignatureException;
+use App\Models\Identity\PendingRegistration;
 use App\Models\Identity\User;
-use Illuminate\Support\Facades\URL;
+use App\Services\User\Identity\Auth\PendingRegistrationService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\URL;
 
 class EmailVerificationService
 {
@@ -36,40 +38,48 @@ class EmailVerificationService
 
     /**
      * Centralized verification orchestration.
-     * Validates signature, checks existing users, and falls back to pending registrations.
-     * 
+     * Validates signature, then promotes a PendingRegistration if the link was for a pending record,
+     * otherwise falls back to verifying an existing user's email.
+     *
      * @throws InvalidVerificationSignatureException
      */
     public function verify(int $id, string $hash, int $expires, string $signature): User
     {
-        // 1. Validate Cryptographic Signature
+        // 1. Validate cryptographic signature (global check)
         if (! $this->hasValidSignature($id, $hash, $expires, $signature)) {
             throw new InvalidVerificationSignatureException();
         }
 
-        // 2. Try existing User verification (backward compatible)
-        $user = User::find($id);
-        if ($user) {
-            if (!hash_equals(sha1($user->getEmailForVerification()), $hash)) {
+        // 2. Priority: Check pending registrations first to avoid ID collision with users table
+        $pending = PendingRegistration::find($id);
+        if ($pending && hash_equals(sha1($pending->email), $hash)) {
+            $pendingService = app(PendingRegistrationService::class);
+            $newUser = $pendingService->verify($id, $hash);
+
+            if (! $newUser) {
+                // Promotion failed unexpectedly
                 throw new InvalidVerificationSignatureException();
             }
 
-            if (!$user->hasVerifiedEmail()) {
+            return $newUser;
+        }
+
+        // 3. Fallback: Existing user verification (backward compatibility)
+        $user = User::find($id);
+        if ($user) {
+            if (! hash_equals(sha1($user->getEmailForVerification()), $hash)) {
+                throw new InvalidVerificationSignatureException();
+            }
+
+            if (! $user->hasVerifiedEmail()) {
                 $user->markEmailAsVerified();
             }
 
             return $user;
         }
 
-        // 3. Fallback to pending registration promotion
-        $pendingService = app(PendingRegistrationService::class);
-        $newUser = $pendingService->verify($id, $hash);
-
-        if (!$newUser) {
-            throw new InvalidVerificationSignatureException();
-        }
-
-        return $newUser;
+        // 4. No matching record found
+        throw new InvalidVerificationSignatureException();
     }
 
     /**
