@@ -54,12 +54,14 @@ export interface UpgradeResponse {
 
 export interface VerifyPaymentResponse {
   status: 'success' | 'pending' | 'failed' | 'refunded';
+  deadline: string;
   subscription?: SubscriptionDetail;
   payment?: {
     gateway_transaction_id: string;
     status: string;
     amount: string;
     paid_at: string | null;
+    created_at: string;
   };
 }
 

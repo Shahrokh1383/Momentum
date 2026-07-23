@@ -4,10 +4,9 @@ interface PaymentResultProps {
   status: 'success' | 'failed' | 'timeout';
   message?: string;
   onClose: () => void;
-  onRetry?: () => void;
 }
 
-const PaymentResult: React.FC<PaymentResultProps> = ({ status, message, onClose, onRetry }) => {
+const PaymentResult: React.FC<PaymentResultProps> = ({ status, message, onClose }) => {
   // Auto-close on success after 3 seconds
   useEffect(() => {
     if (status === 'success') {
@@ -64,9 +63,6 @@ const PaymentResult: React.FC<PaymentResultProps> = ({ status, message, onClose,
           {message || 'We could not process your payment. Please check your card details and try again.'}
         </p>
         <div className="payment-modal__actions">
-          {onRetry && (
-            <button className="btn btn-primary" onClick={onRetry}>Try Again</button>
-          )}
           <button className="btn btn-secondary" onClick={onClose}>Back to Plans</button>
         </div>
       </div>

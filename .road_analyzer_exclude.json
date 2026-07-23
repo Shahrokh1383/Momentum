@@ -60,15 +60,17 @@
     "front-end\\src\\components\\user\\categories",
     "front-end\\src\\components\\ui",
     "front-end\\src\\components\\layout",
-    "front-end\\src\\components\\user\\billing",
-    "front-end\\src\\hooks\\billing",
-    "front-end\\src\\pages\\billing",
-    "back-end\\app\\Http\\Controllers\\User\\Billing",
-    "back-end\\app\\Http\\Requests\\User",
     "back-end\\app\\Services\\User\\Billing",
-    "back-end\\resources"
+    "back-end\\resources",
+    "front-end\\src\\components\\user\\auth",
+    "front-end\\src\\hooks\\auth",
+    "front-end\\src\\pages\\auth",
+    "back-end\\database",
+    "back-end\\bootstrap",
+    "back-end\\app\\Http\\Controllers\\User\\Identity",
+    "back-end\\app\\Http\\Requests\\Auth"
   ],
   "globalPatterns": [],
-  "lastModified": "2026-07-21T10:42:24.524Z",
+  "lastModified": "2026-07-23T12:11:45.550Z",
   "version": 1
 }

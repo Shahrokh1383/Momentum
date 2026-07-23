@@ -18,7 +18,7 @@ class SubscriptionController extends Controller
     public function __construct(
         private SubscriptionService $subscriptionService,
         private PlanQuotaService $quotaService,
-        private PaymenterService $paymenterService   // ✅ Added
+        private PaymenterService $paymenterService
     ) {}
 
     public function current(Request $request): JsonResponse
@@ -87,6 +87,7 @@ class SubscriptionController extends Controller
             $data['subscription'] = new SubscriptionResource($payment->subscription->load('planDetails'));
         }
         $data['payment'] = new PaymentResource($payment);
+        $data['deadline'] = $payment->created_at->addMinutes(15)->toIso8601String();
 
         return $this->successResponse($data, $message);
     }

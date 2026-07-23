@@ -2,7 +2,7 @@ import React from 'react';
 import { usePaymentVerification } from '@/hooks/billing/usePaymentVerification';
 
 interface PaymentProcessingProps {
-  transactionId: string;  // ✅ string
+  transactionId: string;
   onSuccess: () => void;
   onFailure: () => void;
   onTimeout: () => void;
@@ -35,7 +35,7 @@ const PaymentProcessing: React.FC<PaymentProcessingProps> = ({
               style={{ strokeDasharray: circumference, strokeDashoffset: offset }}
             />
           </svg>
-          <div className="countdown-ring__text">{timeLeft}</div>
+          <div className="countdown-ring__text">{timeLeft ?? '...'}</div>
         </div>
         <p className="payment-modal__processing-text">Processing your payment securely...</p>
         <p className="payment-modal__processing-subtext">Please do not close this window.</p>

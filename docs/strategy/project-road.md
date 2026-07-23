@@ -18,7 +18,7 @@
 - Axios interceptors for 401 handling
 
 ### Phase 2: Enhanced Data Model (Weeks 3-4)
-**Database Schema:** Users, Categories, Habits (with complex scheduling), HabitLogs (with rich context), Tags, Streaks (cached), Achievements.
+**Database Schema:** Users, Categories, Habits (with complex scheduling), HabitLogs (with rich context), Tags, Streaks, Achievements.
 
 **New Frontend Pages:**
 - `/categories` – Manage habit categories

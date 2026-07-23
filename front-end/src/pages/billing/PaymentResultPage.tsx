@@ -29,10 +29,6 @@ const PaymentResultPage: React.FC = () => {
     setIsTimedOut(true);
   };
 
-  const handleTryAgain = () => {
-    navigate('/plans');
-  };
-
   const handleClose = () => {
     navigate('/plans');
   };
@@ -44,7 +40,6 @@ const PaymentResultPage: React.FC = () => {
           status="failed"
           message="Payment failed. Please try again or use a different payment method."
           onClose={handleClose}
-          onRetry={handleTryAgain}
         />
       </div>
     );
