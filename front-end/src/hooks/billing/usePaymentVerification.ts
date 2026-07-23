@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { subscriptionService } from '@/services/user/subscriptionService';
+import { paymentService } from '@/services/user/paymentService';   // <-- changed
 
 interface UsePaymentVerificationProps {
   transactionId: string;
@@ -23,7 +23,7 @@ export const usePaymentVerification = ({
 
   const query = useQuery({
     queryKey: ['verifyPayment', transactionId],
-    queryFn: () => subscriptionService.verifyPayment(transactionId),
+    queryFn: () => paymentService.verifyPayment(transactionId),
     refetchInterval: (query) => {
       if (isDoneRef.current) return false;
       const data = query.state.data;
@@ -35,7 +35,6 @@ export const usePaymentVerification = ({
 
   const { data } = query;
 
-  // React to status changes
   useEffect(() => {
     if (isDoneRef.current || !data) return;
 
@@ -48,7 +47,6 @@ export const usePaymentVerification = ({
     }
   }, [data]);
 
-  // Countdown from absolute deadline
   useEffect(() => {
     if (isDoneRef.current || !data?.deadline) {
       setTimeLeft(null);
@@ -73,13 +71,12 @@ export const usePaymentVerification = ({
     return () => clearInterval(timer);
   }, [data?.deadline]);
 
-  // Ring animation
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
 
   const totalSeconds = data?.deadline && data?.payment?.created_at
     ? Math.max(1, (new Date(data.deadline).getTime() - new Date(data.payment.created_at).getTime()) / 1000)
-    : 900; // fallback 15 minutes
+    : 900;
 
   const offset = timeLeft != null
     ? circumference - (timeLeft / totalSeconds) * circumference

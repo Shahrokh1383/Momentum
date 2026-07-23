@@ -52,19 +52,6 @@ export interface UpgradeResponse {
   payment_url: string;
 }
 
-export interface VerifyPaymentResponse {
-  status: 'success' | 'pending' | 'failed' | 'refunded';
-  deadline: string;
-  subscription?: SubscriptionDetail;
-  payment?: {
-    gateway_transaction_id: string;
-    status: string;
-    amount: string;
-    paid_at: string | null;
-    created_at: string;
-  };
-}
-
 export interface QuotasData {
   plan: Plan | null;
   limits: Record<string, number>;

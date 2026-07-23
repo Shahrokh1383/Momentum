@@ -5,7 +5,6 @@ import {
   UpgradePayload,
   UpgradeResponse,
   QuotasData,
-  VerifyPaymentResponse,
 } from '@/types/subscription';
 
 export const subscriptionService = {
@@ -28,11 +27,6 @@ export const subscriptionService = {
 
   upgrade: async (payload: UpgradePayload): Promise<UpgradeResponse> => {
     const { data } = await api.post('/api/user/subscription/upgrade', payload);
-    return data.data;
-  },
-
-  verifyPayment: async (transactionId: string): Promise<VerifyPaymentResponse> => {
-    const { data } = await api.get(`/api/user/subscription/verify/${transactionId}`);
     return data.data;
   },
 

@@ -5,6 +5,7 @@ use App\Http\Controllers\User\Identity\AvatarController;
 use App\Http\Controllers\User\Identity\SettingsController;
 use App\Http\Controllers\User\Billing\PlansController;
 use App\Http\Controllers\User\Billing\SubscriptionController;
+use App\Http\Controllers\User\Billing\PaymentController;
 use App\Http\Controllers\User\Taxonomy\CategoryController;
 use App\Http\Controllers\User\Taxonomy\TagController;
 use App\Http\Controllers\User\Habit\HabitController;
@@ -37,9 +38,13 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
         Route::get('/', [SubscriptionController::class, 'current']);
         Route::get('quotas', [SubscriptionController::class, 'quotas']);
         Route::post('upgrade', [SubscriptionController::class, 'upgrade']);
-        Route::get('verify/{transactionId}', [SubscriptionController::class, 'verify'])
-            ->where('transactionId', '^[0-9a-f]{32}$');
         Route::delete('/', [SubscriptionController::class, 'cancel']);
+    });
+
+    // Payments
+    Route::prefix('payments')->group(function () {
+        Route::get('verify/{transactionId}', [PaymentController::class, 'verify'])
+            ->where('transactionId', '^[0-9a-f]{32}$');
     });
 
     // Categories
