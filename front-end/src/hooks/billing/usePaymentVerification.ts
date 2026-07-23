@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { paymentService } from '@/services/user/paymentService';   // <-- changed
+import { paymentService } from '@/services/user/paymentService';
 
 interface UsePaymentVerificationProps {
   transactionId: string;

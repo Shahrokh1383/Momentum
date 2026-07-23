@@ -1,3 +1,5 @@
+these are just my own settings in .env file
+
 APP_NAME=Momentum
 APP_ENV=local
 APP_KEY=base64:zRCDtzbXW17NLCDoyquW8E9/EHXj0uEs4LD+G9aHnME=
@@ -67,15 +69,16 @@ AWS_USE_PATH_STYLE_ENDPOINT=false
 VITE_APP_NAME="${APP_NAME}"
 
 # GitHub OAuth (Replace with the keys you just generated)
-GITHUB_CLIENT_ID=github-client-id
-GITHUB_CLIENT_SECRET=github-secret
+GITHUB_CLIENT_ID=Ov23liMNwMvHyokWy2nY
+GITHUB_CLIENT_SECRET=d7dd16d0b9b903ae549887d7fc6c9f5e75d2b500
 GITHUB_REDIRECT_URI=http://localhost:5173/auth/callback/github
 
-GOOGLE_CLIENT_ID=google-client-id
-GOOGLE_CLIENT_SECRET=google-secret
+# Google OAuth (Leave blank for now)
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_REDIRECT_URI=http://localhost:5173/auth/callback/google
 
-PAYMENTER_API_URL=
-PAYMENTER_API_KEY=api-key
+PAYMENTER_API_URL=http://127.0.0.1:5001/api
+PAYMENTER_API_KEY=pay_7I00Ay8P37a6eXB0JspQUMNtAc8rl9sGnqPqgScTuwI
 PAYMENTER_CURRENCY=USD
-PAYMENTER_WEBHOOK_SECRET=wehook-secret_key
+PAYMENTER_WEBHOOK_SECRET=whsec_3cuHUxbSm9IBY00m6vDoufha1RWV5MTInkdAvEnZTBs
