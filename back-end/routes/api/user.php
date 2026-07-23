@@ -38,7 +38,7 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:api-limiter'])->group(f
         Route::get('quotas', [SubscriptionController::class, 'quotas']);
         Route::post('upgrade', [SubscriptionController::class, 'upgrade']);
         Route::get('verify/{transactionId}', [SubscriptionController::class, 'verify'])
-            ->whereUuid('transactionId');
+            ->where('transactionId', '^[0-9a-f]{32}$');
         Route::delete('/', [SubscriptionController::class, 'cancel']);
     });
 
