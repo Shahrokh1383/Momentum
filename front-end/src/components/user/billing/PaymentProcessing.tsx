@@ -8,6 +8,12 @@ interface PaymentProcessingProps {
   onTimeout: () => void;
 }
 
+const formatTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
 const PaymentProcessing: React.FC<PaymentProcessingProps> = ({
   transactionId,
   onSuccess,
@@ -35,7 +41,9 @@ const PaymentProcessing: React.FC<PaymentProcessingProps> = ({
               style={{ strokeDasharray: circumference, strokeDashoffset: offset }}
             />
           </svg>
-          <div className="countdown-ring__text">{timeLeft ?? '...'}</div>
+          <div className="countdown-ring__text">
+            {timeLeft !== null ? formatTime(timeLeft) : '...'}
+          </div>
         </div>
         <p className="payment-modal__processing-text">Processing your payment securely...</p>
         <p className="payment-modal__processing-subtext">Please do not close this window.</p>
